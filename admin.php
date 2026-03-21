@@ -321,13 +321,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                 }
 
-                    if ($playlistsImported > 0 || $imported > 0) {
-                        $parts = [];
-                        if ($imported > 0) $parts[] = "$imported videos";
-                        if ($playlistsImported > 0) $parts[] = "$playlistsImported playlists";
-                        $msg = "Importación completada: " . implode(' + ', $parts) . ".";
+                    $parts = [];
+                    if ($imported > 0) $parts[] = "$imported videos nuevos";
+                    if ($playlistsImported > 0) $parts[] = "$playlistsImported playlists nuevas";
+                    $selectedCount = count($selectedPlaylists);
+                    if ($selectedCount > 0 && $playlistsImported === 0) $parts[] = "$selectedCount playlists actualizadas";
+                    if (!empty($parts)) {
+                        $msg = "Importación completada: " . implode(', ', $parts) . ".";
                     } else if (empty($msg)) {
-                        $msg = "No se seleccionó nada para importar.";
+                        $msg = "Todo al día. No hay contenido nuevo para importar.";
                     }
                 }
             }
