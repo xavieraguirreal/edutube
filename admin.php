@@ -694,27 +694,32 @@ $section = $_GET['s'] ?? 'dashboard';
                         // Count videos not in any playlist (via uploads playlist)
                         $uploadsId = $preview['uploads_playlist'] ?? '';
                         // "Sin lista" = special entry for loose videos
-                        $sinListaImported = 0;
-                        $sinListaKey = 'sinlista_' . $previewChId;
-                        if (isset($importedPlaylists[$sinListaKey])) $sinListaImported = $importedPlaylists[$sinListaKey];
-                        // Check if "Sin lista" playlist exists
-                        $stmtSL = $db->prepare("SELECT id, (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = playlists.id) AS cnt FROM playlists WHERE nombre LIKE ? AND canal_id = ?");
-                        $canalNombreCheck = $_POST['canal_nombre'] ?? $preview['nombre'];
-                        // Get channel DB id if exists
+                        // Get channel DB id
                         $stmtChDb = $db->prepare("SELECT id FROM canales WHERE youtube_channel_id = ?");
                         $stmtChDb->execute([$previewChId]);
                         $chDbRow = $stmtChDb->fetch();
-                        $canalDbIdPreview = $chDbRow ? $chDbRow['id'] : 0;
+                        $canalDbIdPreview = $chDbRow ? intval($chDbRow['id']) : 0;
 
-                        $stmtSL = $db->prepare("SELECT id, (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = playlists.id) AS cnt FROM playlists WHERE nombre LIKE ? AND canal_id = ?");
-                        $stmtSL->execute(['%Sin lista%', $canalDbIdPreview]);
-                        $sinListaRow = $stmtSL->fetch();
-                        $sinListaCount = $sinListaRow ? intval($sinListaRow['cnt']) : 0;
+                        // Count videos in this channel that are NOT in any playlist
+                        $sinListaCount = 0;
+                        if ($canalDbIdPreview > 0) {
+                            $stmtSL = $db->prepare("SELECT COUNT(*) FROM videos v WHERE v.canal_id = ? AND v.activo = 1 AND v.id NOT IN (SELECT video_id FROM playlist_videos)");
+                            $stmtSL->execute([$canalDbIdPreview]);
+                            $sinListaCount = intval($stmtSL->fetchColumn());
+                        }
 
-                        // Total videos in playlists (to estimate loose videos)
+                        // Estimate total loose videos from YouTube data
                         $totalEnPlaylists = 0;
                         foreach ($preview['playlists'] as $pl) $totalEnPlaylists += $pl['total_videos'];
                         $estimadoSueltos = max(0, $preview['total_videos'] - $totalEnPlaylists);
+
+                        // Total imported for this channel
+                        $totalImportados = 0;
+                        if ($canalDbIdPreview > 0) {
+                            $stmtTot = $db->prepare("SELECT COUNT(*) FROM videos WHERE canal_id = ? AND activo = 1");
+                            $stmtTot->execute([$canalDbIdPreview]);
+                            $totalImportados = intval($stmtTot->fetchColumn());
+                        }
                     ?>
                     <div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;font-weight:500;margin-bottom:0.5rem;">
@@ -723,18 +728,21 @@ $section = $_GET['s'] ?? 'dashboard';
                         <div style="max-height:350px;overflow-y:auto;">
                             <!-- Sin lista (loose videos) -->
                             <?php
-                                $sinListaComplete = $sinListaCount > 0 && $estimadoSueltos > 0 && ($sinListaCount / max($estimadoSueltos, 1) >= 0.95);
+                                $sinListaComplete = $estimadoSueltos > 0 && $sinListaCount > 0 && ($sinListaCount / max($estimadoSueltos, 1) >= 0.90);
+                                if ($estimadoSueltos <= 0) $sinListaComplete = $totalImportados >= $preview['total_videos'] * 0.95;
                             ?>
                             <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;font-size:0.85rem;cursor:pointer;font-weight:500;border-bottom:1px solid #e0e0e0;margin-bottom:0.3rem;padding-bottom:0.5rem;<?= $sinListaComplete ? 'opacity:0.5;' : '' ?>">
                                 <input type="checkbox" name="import_latest" value="1" <?= $sinListaComplete ? 'disabled' : '' ?>>
                                 📂 Sin lista (videos sueltos)
                                 <span style="margin-left:auto;font-size:0.78rem;">
                                     <?php if ($sinListaComplete): ?>
-                                        <span style="color:#2e8b47;">✓ <?= $sinListaCount ?></span>
-                                    <?php elseif ($sinListaCount > 0): ?>
+                                        <span style="color:#2e8b47;">✓ <?= $sinListaCount ?: $totalImportados ?></span>
+                                    <?php elseif ($sinListaCount > 0 && $estimadoSueltos > 0): ?>
                                         <span style="color:#f77f00;">↻ <?= $sinListaCount ?>/~<?= $estimadoSueltos ?></span>
+                                    <?php elseif ($totalImportados > 0 && $estimadoSueltos > 0): ?>
+                                        <span style="color:#888;">~<?= $estimadoSueltos ?> sueltos</span>
                                     <?php else: ?>
-                                        <span style="color:#888;">~<?= $estimadoSueltos ?> videos</span>
+                                        <span style="color:#888;">~<?= $estimadoSueltos > 0 ? $estimadoSueltos : $preview['total_videos'] ?> videos</span>
                                     <?php endif; ?>
                                 </span>
                                 <input type="hidden" name="limit" value="50">
