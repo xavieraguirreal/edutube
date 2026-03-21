@@ -234,24 +234,74 @@ function formatDate(dateStr) {
                 '</div>' +
             '</div>' +
             '<div class="player-sidebar">' +
-                '<div class="related-tabs">' +
+                '<div class="related-tabs" id="related-tabs">' +
                     '<button class="related-tab active" data-tab="canal">Del canal</button>' +
                     '<button class="related-tab" data-tab="relacionados">Relacionados</button>' +
                 '</div>' +
                 '<div class="related-list" id="related-canal">' + canalHtml + '</div>' +
                 '<div class="related-list" id="related-relacionados" style="display:none">' + relacionadosHtml + '</div>' +
+                '<div class="related-list" id="related-playlist" style="display:none"></div>' +
             '</div>' +
         '</div>';
 
-    // Related tabs
-    document.querySelectorAll('.related-tab').forEach(function(tab) {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.related-tab').forEach(function(t) { t.classList.remove('active'); });
-            this.classList.add('active');
-            var target = this.getAttribute('data-tab');
-            document.getElementById('related-canal').style.display = target === 'canal' ? '' : 'none';
-            document.getElementById('related-relacionados').style.display = target === 'relacionados' ? '' : 'none';
+    // Check if video belongs to a playlist
+    fetch('api.php?action=video_playlists&id=' + encodeURIComponent(videoId))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.playlists && data.playlists.length > 0) {
+                var pl = data.playlists[0];
+                // Add playlist tab (first position)
+                var tabsDiv = document.getElementById('related-tabs');
+                var plTab = document.createElement('button');
+                plTab.className = 'related-tab active';
+                plTab.setAttribute('data-tab', 'playlist');
+                plTab.textContent = '📋 ' + pl.nombre;
+                tabsDiv.insertBefore(plTab, tabsDiv.firstChild);
+
+                // Deactivate "Del canal" tab
+                tabsDiv.querySelector('[data-tab="canal"]').classList.remove('active');
+                document.getElementById('related-canal').style.display = 'none';
+                document.getElementById('related-playlist').style.display = '';
+
+                // Build playlist videos
+                var plHtml = '';
+                (data.playlist_videos || []).forEach(function(v) {
+                    var isCurrent = v.youtube_id === videoId;
+                    plHtml += '<a href="watch?v=' + v.youtube_id + '" class="related-card' + (isCurrent ? '" style="background:var(--bg-hover);border-left:3px solid var(--accent);' : '') + '">' +
+                        '<div class="r-thumb">' +
+                            '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                            (v.duracion ? '<span class="r-duration">' + v.duracion + '</span>' : '') +
+                        '</div>' +
+                        '<div class="r-info">' +
+                            '<div class="r-title">' + v.titulo + '</div>' +
+                            '<div class="r-meta">' + (v.canal_nombre || '') + '</div>' +
+                        '</div></a>';
+                });
+                document.getElementById('related-playlist').innerHTML = plHtml;
+
+                // Re-bind tab clicks
+                bindRelatedTabs();
+            }
         });
+
+    function bindRelatedTabs() {
+        document.querySelectorAll('.related-tab').forEach(function(tab) {
+            tab.addEventListener('click', handleTabClick);
+        });
+    }
+
+    function handleTabClick() {
+        document.querySelectorAll('.related-tab').forEach(function(t) { t.classList.remove('active'); });
+        this.classList.add('active');
+        var target = this.getAttribute('data-tab');
+        document.getElementById('related-canal').style.display = target === 'canal' ? '' : 'none';
+        document.getElementById('related-relacionados').style.display = target === 'relacionados' ? '' : 'none';
+        document.getElementById('related-playlist').style.display = target === 'playlist' ? '' : 'none';
+    }
+
+    // Bind initial tabs
+    document.querySelectorAll('.related-tab').forEach(function(tab) {
+        tab.addEventListener('click', handleTabClick);
     });
 
     // Description toggle

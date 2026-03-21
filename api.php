@@ -121,4 +121,82 @@ if ($action === 'search') {
     exit;
 }
 
+// ── Playlists list ──
+if ($action === 'playlists') {
+    $stmt = $db->query("
+        SELECT p.id, p.nombre, p.canal_id, c.nombre AS canal_nombre,
+               (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = p.id) AS total_videos
+        FROM playlists p
+        LEFT JOIN canales c ON p.canal_id = c.id
+        WHERE p.activa = 1
+        ORDER BY p.nombre
+    ");
+    echo json_encode(['playlists' => $stmt->fetchAll()], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ── Playlist videos ──
+if ($action === 'playlist') {
+    $plId = intval($_GET['id'] ?? 0);
+    $stmt = $db->prepare("SELECT nombre FROM playlists WHERE id = ? AND activa = 1");
+    $stmt->execute([$plId]);
+    $pl = $stmt->fetch();
+    if (!$pl) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Playlist no encontrada']);
+        exit;
+    }
+
+    $stmt = $db->prepare("
+        SELECT v.youtube_id, v.titulo, v.duracion, v.vistas_yt, v.fecha_yt,
+               c.nombre AS canal_nombre, c.codigo AS canal_codigo, c.color AS canal_color, c.id AS canal_id
+        FROM playlist_videos pv
+        JOIN videos v ON pv.video_id = v.id
+        LEFT JOIN canales c ON v.canal_id = c.id
+        WHERE pv.playlist_id = ? AND v.activo = 1
+        ORDER BY pv.orden
+    ");
+    $stmt->execute([$plId]);
+    echo json_encode(['playlist' => $pl, 'videos' => $stmt->fetchAll()], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ── Video playlists (which playlists contain this video) ──
+if ($action === 'video_playlists') {
+    $ytId = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['id'] ?? '');
+    $stmt = $db->prepare("
+        SELECT p.id, p.nombre,
+               (SELECT COUNT(*) FROM playlist_videos pv2 WHERE pv2.playlist_id = p.id) AS total_videos
+        FROM playlists p
+        JOIN playlist_videos pv ON pv.playlist_id = p.id
+        JOIN videos v ON pv.video_id = v.id
+        WHERE v.youtube_id = ? AND p.activa = 1
+    ");
+    $stmt->execute([$ytId]);
+
+    // Get videos from the first playlist
+    $playlists = $stmt->fetchAll();
+    $playlistVideos = [];
+    if (!empty($playlists)) {
+        $firstPlId = $playlists[0]['id'];
+        $stmt = $db->prepare("
+            SELECT v.youtube_id, v.titulo, v.duracion, v.vistas_yt, v.fecha_yt,
+                   c.nombre AS canal_nombre, c.codigo AS canal_codigo, c.color AS canal_color
+            FROM playlist_videos pv
+            JOIN videos v ON pv.video_id = v.id
+            LEFT JOIN canales c ON v.canal_id = c.id
+            WHERE pv.playlist_id = ? AND v.activo = 1
+            ORDER BY pv.orden
+        ");
+        $stmt->execute([$firstPlId]);
+        $playlistVideos = $stmt->fetchAll();
+    }
+
+    echo json_encode([
+        'playlists' => $playlists,
+        'playlist_videos' => $playlistVideos
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 echo json_encode(['error' => 'Acción no válida']);

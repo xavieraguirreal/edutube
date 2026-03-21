@@ -84,6 +84,10 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <div id="sidebar-channels"><!-- se llena dinámicamente --></div>
     </div>
     <div class="sidebar-section">
+        <div class="sidebar-title">Listas de reproducción</div>
+        <div id="sidebar-playlists"><!-- se llena dinámicamente --></div>
+    </div>
+    <div class="sidebar-section">
         <div class="sidebar-title">Tu actividad</div>
         <a href="#" class="sidebar-item" id="nav-history">
             <span class="si-icon">⏱️</span><span class="si-label">Historial</span>
@@ -188,6 +192,7 @@ function loadVideos() {
             buildSidebarChannels();
             buildChips();
             renderGrid();
+            loadPlaylists();
             updateBadges();
         });
 }
@@ -216,6 +221,40 @@ function buildChips() {
     container.querySelectorAll('.chip').forEach(function(c) {
         c.addEventListener('click', function() { filterCanal(this.getAttribute('data-canal')); });
     });
+}
+
+function loadPlaylists() {
+    fetch('api.php?action=playlists')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var pls = data.playlists || [];
+            var container = document.getElementById('sidebar-playlists');
+            if (pls.length === 0) { container.innerHTML = '<div style="padding:0.3rem 0.75rem;font-size:0.8rem;color:var(--text-muted);">Sin listas</div>'; return; }
+            var html = '';
+            pls.forEach(function(p) {
+                html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '">' +
+                    '<span class="si-icon">📋</span>' +
+                    '<span class="si-label">' + p.nombre + '</span>' +
+                    '<span class="si-badge">' + p.total_videos + '</span></a>';
+            });
+            container.innerHTML = html;
+            container.querySelectorAll('.sidebar-item').forEach(function(s) {
+                s.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    filterPlaylist(this.getAttribute('data-playlist'));
+                    closeSidebar();
+                });
+            });
+        });
+}
+
+function filterPlaylist(plId) {
+    clearAllActive();
+    var side = document.querySelector('.sidebar-item[data-playlist="' + plId + '"]');
+    if (side) side.classList.add('active');
+    fetch('api.php?action=playlist&id=' + plId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderGrid(data.videos || []); });
 }
 
 // ── Render ──
