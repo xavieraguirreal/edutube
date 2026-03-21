@@ -1,21 +1,28 @@
 <?php
 // Server-side meta tags for social sharing (crawlers don't execute JS)
 $videoId = isset($_GET['v']) ? $_GET['v'] : (isset($_GET['id']) ? $_GET['id'] : '');
-$videoId = preg_replace('/[^a-zA-Z0-9_-]/', '', $videoId); // sanitize
-
-// Video titles for meta tags (subset of videos.js data)
-$metaData = json_decode(file_get_contents(__DIR__ . '/videos-meta.json'), true);
+$videoId = preg_replace('/[^a-zA-Z0-9_-]/', '', $videoId);
 
 $title = 'EduTube — Videos Educativos';
 $description = 'Video educativo en EduTube — Plataforma de videos educativos curados.';
 $image = 'https://edutube.universidadliberte.org/loguito-edutube.png';
 $url = 'https://edutube.universidadliberte.org/watch?v=' . $videoId;
 
-if ($videoId && isset($metaData[$videoId])) {
-    $v = $metaData[$videoId];
-    $title = $v['titulo'] . ' — EduTube';
-    $description = $v['descripcion'];
-    $image = 'https://img.youtube.com/vi/' . $videoId . '/hqdefault.jpg';
+if ($videoId) {
+    try {
+        require_once __DIR__ . '/config.php';
+        $db = getDB();
+        $stmt = $db->prepare("SELECT titulo, descripcion FROM videos WHERE youtube_id = ? AND activo = 1");
+        $stmt->execute([$videoId]);
+        $v = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($v) {
+            $title = $v['titulo'] . ' — EduTube';
+            $description = $v['descripcion'] ?: $title;
+            $image = 'https://img.youtube.com/vi/' . $videoId . '/hqdefault.jpg';
+        }
+    } catch (Exception $e) {
+        // Silently fail - use defaults
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -76,7 +83,6 @@ if ($videoId && isset($metaData[$videoId])) {
 
 <div class="toast" id="toast"></div>
 
-<script src="videos.js"></script>
 <script>
 // ── Helpers ──
 function getStore(key) { try { return JSON.parse(localStorage.getItem('edutube_' + key)) || []; } catch(e) { return []; } }
@@ -120,15 +126,22 @@ function formatDate(dateStr) {
 (function() {
     var params = new URLSearchParams(window.location.search);
     var videoId = params.get('v') || params.get('id');
-    var video = VIDEOS[videoId];
     var page = document.getElementById('player-page');
 
-    if (!video || !videoId) {
-        page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);margin-bottom:1rem;">Video no encontrado</h2><a href="index.php" class="btn-back">← Volver al inicio</a></div>';
+    if (!videoId) {
+        page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);margin-bottom:1rem;">Video no encontrado</h2><a href="/" class="btn-back">← Volver al inicio</a></div>';
         return;
     }
 
-    var ch = CHANNELS[video.canal];
+    // Fetch video data from API
+    fetch('api.php?action=video&id=' + encodeURIComponent(videoId))
+        .then(function(r) { if (!r.ok) throw new Error('not found'); return r.json(); })
+        .then(function(data) { renderPlayer(data.video, data.related); })
+        .catch(function() {
+            page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);margin-bottom:1rem;">Video no encontrado</h2><a href="/" class="btn-back">← Volver al inicio</a></div>';
+        });
+
+    function renderPlayer(video, related) {
 
     // Save to history
     var hist = getStore('history');
@@ -137,40 +150,29 @@ function formatDate(dateStr) {
     if (hist.length > 50) hist = hist.slice(0, 50);
     setStore('history', hist);
 
-    // Build related lists
-    function buildCardList(ids) {
+    // Build related HTML
+    function buildCardList(list) {
         var html = '';
-        ids.forEach(function(id) {
-            var v = VIDEOS[id];
-            var rc = CHANNELS[v.canal];
-            html += '<a href="watch?v=' + id + '" class="related-card">' +
+        list.forEach(function(v) {
+            html += '<a href="watch?v=' + v.youtube_id + '" class="related-card">' +
                 '<div class="r-thumb">' +
-                    '<img src="https://img.youtube.com/vi/' + id + '/mqdefault.jpg" alt="" loading="lazy">' +
-                    '<span class="r-duration">' + v.duracion + '</span>' +
+                    '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                    (v.duracion ? '<span class="r-duration">' + v.duracion + '</span>' : '') +
                 '</div>' +
                 '<div class="r-info">' +
                     '<div class="r-title">' + v.titulo + '</div>' +
-                    '<div class="r-meta">' + rc.nombre + '</div>' +
-                    '<div class="r-meta">' + formatViews(v.vistas) + ' repr. · ' + timeAgo(v.fecha) + '</div>' +
+                    '<div class="r-meta">' + (v.canal_nombre || '') + '</div>' +
+                    '<div class="r-meta">' + formatViews(v.vistas_yt) + ' repr. · ' + timeAgo(v.fecha_yt) + '</div>' +
                 '</div></a>';
         });
         return html;
     }
 
-    // Same channel videos
-    var sameChIds = [];
-    Object.keys(VIDEOS).forEach(function(id) {
-        if (id !== videoId && VIDEOS[id].canal === video.canal) sameChIds.push(id);
-    });
+    var sameChList = related.filter(function(v) { return String(v.canal_id) === String(video.canal_id); });
+    var otherList = related.filter(function(v) { return String(v.canal_id) !== String(video.canal_id); });
 
-    // All others (related)
-    var otherIds = [];
-    Object.keys(VIDEOS).forEach(function(id) {
-        if (id !== videoId && VIDEOS[id].canal !== video.canal) otherIds.push(id);
-    });
-
-    var canalHtml = buildCardList(sameChIds.slice(0, 10));
-    var relacionadosHtml = buildCardList(otherIds.slice(0, 10));
+    var canalHtml = buildCardList(sameChList);
+    var relacionadosHtml = buildCardList(otherList);
 
     var origin = window.location.protocol + '//' + window.location.host;
     var embedSrc = 'https://www.youtube-nocookie.com/embed/' + videoId +
@@ -214,8 +216,8 @@ function formatDate(dateStr) {
                     '<h1>' + video.titulo + '</h1>' +
                     '<div class="video-info-row">' +
                         '<div class="video-info-channel">' +
-                            '<div class="ch-avatar" style="background:' + ch.color + '">' + ch.code + '</div>' +
-                            '<div><div class="ch-name">' + ch.nombre + '</div><div class="ch-subs">' + video.categoria + '</div></div>' +
+                            '<div class="ch-avatar" style="background:' + (video.canal_color || '#2e8b47') + '">' + (video.canal_codigo || '?') + '</div>' +
+                            '<div><div class="ch-name">' + (video.canal_nombre || '') + '</div><div class="ch-subs">' + (video.categoria_nombre || '') + '</div></div>' +
                         '</div>' +
                         '<div class="video-actions">' +
                             '<button class="action-btn' + (isLiked ? ' active' : '') + '" id="btn-like"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><span id="like-label">' + (isLiked ? 'Te gusta' : 'Me gusta') + '</span></button>' +
@@ -225,8 +227,8 @@ function formatDate(dateStr) {
                         '</div>' +
                     '</div>' +
                     '<div class="video-description" id="video-desc">' +
-                        '<div class="desc-stats">' + formatViews(video.vistas) + ' reproducciones · ' + formatDate(video.fecha) + '</div>' +
-                        '<div class="desc-text">' + video.descripcion + '</div>' +
+                        '<div class="desc-stats">' + formatViews(video.vistas_yt) + ' reproducciones · ' + formatDate(video.fecha_yt) + '</div>' +
+                        '<div class="desc-text">' + (video.descripcion || '') + '</div>' +
                         '<div class="desc-toggle" id="desc-toggle">Mostrar más</div>' +
                     '</div>' +
                 '</div>' +
@@ -374,6 +376,8 @@ function formatDate(dateStr) {
     });
 
     document.getElementById('player-container').addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+    } // end renderPlayer
 })();
 </script>
 

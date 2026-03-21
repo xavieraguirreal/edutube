@@ -81,18 +81,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Canales</div>
-        <a href="#" class="sidebar-item" data-canal="liberte">
-            <span class="si-icon">🟢</span><span class="si-label">Cooperativa Liberté</span>
-        </a>
-        <a href="#" class="sidebar-item" data-canal="infobae">
-            <span class="si-icon">🔴</span><span class="si-label">Infobae</span>
-        </a>
-        <a href="#" class="sidebar-item" data-canal="aterciopelados">
-            <span class="si-icon">🟣</span><span class="si-label">Aterciopelados</span>
-        </a>
-        <a href="#" class="sidebar-item" data-canal="a24">
-            <span class="si-icon">🟠</span><span class="si-label">A24</span>
-        </a>
+        <div id="sidebar-channels"><!-- se llena dinámicamente --></div>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Tu actividad</div>
@@ -119,10 +108,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
 <main class="main" id="main-content">
     <div class="chips" id="chips">
         <button class="chip active" data-cat="todos">Todos</button>
-        <button class="chip" data-canal="liberte">Liberté</button>
-        <button class="chip" data-canal="infobae">Infobae</button>
-        <button class="chip" data-canal="aterciopelados">Aterciopelados</button>
-        <button class="chip" data-canal="a24">A24</button>
+        <span id="channel-chips"><!-- se llena dinámicamente --></span>
         <button class="chip" data-filter="watchlater">🕐 Ver después</button>
         <button class="chip" data-filter="liked">👍 Me gusta</button>
         <button class="chip" data-filter="history">⏱ Historial</button>
@@ -152,7 +138,6 @@ if (!localStorage.getItem('edutube_welcomed')) {
 
 <div class="toast" id="toast"></div>
 
-<script src="videos.js"></script>
 <script>
 // ── Helpers ──
 function getStore(key) { try { return JSON.parse(localStorage.getItem('edutube_' + key)) || []; } catch(e) { return []; } }
@@ -171,6 +156,7 @@ function showToast(msg) {
 }
 
 function timeAgo(dateStr) {
+    if (!dateStr) return '';
     var diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
     if (diff < 60) return 'hace un momento';
     if (diff < 3600) return 'hace ' + Math.floor(diff/60) + ' min';
@@ -183,34 +169,76 @@ function timeAgo(dateStr) {
 }
 
 function formatViews(n) {
+    n = parseInt(n) || 0;
     if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + ' M';
     if (n >= 1000) return (n/1000).toFixed(1).replace('.0','') + ' K';
     return n.toString();
 }
 
+// ── Data from API ──
+var ALL_VIDEOS = [];
+var ALL_CHANNELS = [];
+
+function loadVideos() {
+    fetch('api.php?action=videos')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            ALL_VIDEOS = data.videos || [];
+            ALL_CHANNELS = data.canales || [];
+            buildSidebarChannels();
+            buildChips();
+            renderGrid();
+            updateBadges();
+        });
+}
+
+function buildSidebarChannels() {
+    var container = document.getElementById('sidebar-channels');
+    var html = '';
+    ALL_CHANNELS.forEach(function(c) {
+        html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '">' +
+            '<span class="si-icon" style="color:' + c.color + '">●</span>' +
+            '<span class="si-label">' + c.nombre + '</span></a>';
+    });
+    container.innerHTML = html;
+    container.querySelectorAll('.sidebar-item').forEach(function(s) {
+        s.addEventListener('click', function(e) { e.preventDefault(); filterCanal(this.getAttribute('data-canal')); closeSidebar(); });
+    });
+}
+
+function buildChips() {
+    var container = document.getElementById('channel-chips');
+    var html = '';
+    ALL_CHANNELS.forEach(function(c) {
+        html += '<button class="chip" data-canal="' + c.id + '">' + c.nombre + '</button>';
+    });
+    container.innerHTML = html;
+    container.querySelectorAll('.chip').forEach(function(c) {
+        c.addEventListener('click', function() { filterCanal(this.getAttribute('data-canal')); });
+    });
+}
+
 // ── Render ──
-function renderGrid(filterFn) {
+function renderGrid(videos) {
+    var list = videos || ALL_VIDEOS;
     var grid = document.getElementById('video-grid');
     var html = '';
-    Object.keys(VIDEOS).forEach(function(id) {
-        var v = VIDEOS[id];
-        if (filterFn && !filterFn(id, v)) return;
-        var ch = CHANNELS[v.canal];
-        var isWL = isInStore('watchlater', id);
-        html += '<div class="video-card" data-id="' + id + '">' +
-            '<a href="watch?v=' + id + '" class="thumb">' +
-                '<img src="https://img.youtube.com/vi/' + id + '/mqdefault.jpg" alt="" loading="lazy">' +
-                '<span class="duration-badge">' + v.duracion + '</span>' +
+    list.forEach(function(v) {
+        var isWL = isInStore('watchlater', v.youtube_id);
+        html += '<div class="video-card" data-id="' + v.youtube_id + '">' +
+            '<a href="watch?v=' + v.youtube_id + '" class="thumb">' +
+                '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
                 '<div class="thumb-actions">' +
-                    '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + id + '" title="Ver después">🕐</button>' +
+                    '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Ver después">🕐</button>' +
                 '</div>' +
             '</a>' +
             '<div class="card-info">' +
-                '<div class="channel-avatar" style="background:' + ch.color + '">' + ch.code + '</div>' +
+                '<div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '?') + '</div>' +
                 '<div class="card-text">' +
-                    '<a href="watch?v=' + id + '" class="card-title">' + v.titulo + '</a>' +
-                    '<div class="card-channel">' + ch.nombre + '</div>' +
-                    '<div class="card-stats">' + formatViews(v.vistas) + ' reproducciones · ' + timeAgo(v.fecha) + '</div>' +
+                    '<a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
+                    '<div class="card-channel">' + (v.canal_nombre || '') + '</div>' +
+                    '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + '</div>' +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -235,40 +263,25 @@ function updateBadges() {
     });
 }
 
-function doSearch(q) {
-    q = q.toLowerCase().trim();
-    if (!q) { renderGrid(); return; }
-    renderGrid(function(id, v) {
-        var ch = CHANNELS[v.canal];
-        return v.titulo.toLowerCase().includes(q) ||
-               v.descripcion.toLowerCase().includes(q) ||
-               v.categoria.toLowerCase().includes(q) ||
-               ch.nombre.toLowerCase().includes(q) ||
-               (v.tags && v.tags.some(function(t) { return t.includes(q); }));
-    });
-}
-
+// ── Filters ──
 function clearAllActive() {
     document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
     document.querySelectorAll('.sidebar-item').forEach(function(s) { s.classList.remove('active'); });
 }
 
-function filterCat(cat) {
+function filterAll() {
     clearAllActive();
-    document.querySelector('.chip[data-cat="' + cat + '"]').classList.add('active');
-    var sideItem = document.querySelector('.sidebar-item[data-cat="' + cat + '"]');
-    if (sideItem) sideItem.classList.add('active');
-    if (cat === 'todos') renderGrid();
-    else renderGrid(function(id, v) { return v.categoria === cat; });
+    document.querySelector('.chip[data-cat="todos"]').classList.add('active');
+    renderGrid();
 }
 
-function filterCanal(canal) {
+function filterCanal(canalId) {
     clearAllActive();
-    var chip = document.querySelector('.chip[data-canal="' + canal + '"]');
+    var chip = document.querySelector('.chip[data-canal="' + canalId + '"]');
     if (chip) chip.classList.add('active');
-    var sideItem = document.querySelector('.sidebar-item[data-canal="' + canal + '"]');
-    if (sideItem) sideItem.classList.add('active');
-    renderGrid(function(id, v) { return v.canal === canal; });
+    var side = document.querySelector('.sidebar-item[data-canal="' + canalId + '"]');
+    if (side) side.classList.add('active');
+    renderGrid(ALL_VIDEOS.filter(function(v) { return String(v.canal_id) === String(canalId); }));
 }
 
 function filterSpecial(type) {
@@ -276,37 +289,39 @@ function filterSpecial(type) {
     var chip = document.querySelector('.chip[data-filter="' + type + '"]');
     if (chip) chip.classList.add('active');
     var list = getStore(type);
-    renderGrid(function(id) { return list.indexOf(id) > -1; });
+    renderGrid(ALL_VIDEOS.filter(function(v) { return list.indexOf(v.youtube_id) > -1; }));
+}
+
+function doSearch(q) {
+    q = q.trim();
+    if (!q) { renderGrid(); return; }
+    fetch('api.php?action=search&q=' + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderGrid(data.videos || []); });
 }
 
 // ── Init ──
-renderGrid();
-updateBadges();
+loadVideos();
 
-// Chips
-document.querySelectorAll('.chip[data-cat]').forEach(function(c) {
-    c.addEventListener('click', function() { filterCat(this.getAttribute('data-cat')); });
-});
-document.querySelectorAll('.chip[data-canal]').forEach(function(c) {
-    c.addEventListener('click', function() { filterCanal(this.getAttribute('data-canal')); });
-});
+// Chips (static)
+document.querySelector('.chip[data-cat="todos"]').addEventListener('click', filterAll);
 document.querySelectorAll('.chip[data-filter]').forEach(function(c) {
     c.addEventListener('click', function() { filterSpecial(this.getAttribute('data-filter')); });
 });
 
-// Sidebar
-document.querySelectorAll('.sidebar-item[data-cat]').forEach(function(s) {
-    s.addEventListener('click', function(e) { e.preventDefault(); filterCat(this.getAttribute('data-cat')); closeSidebar(); });
-});
-document.querySelectorAll('.sidebar-item[data-canal]').forEach(function(s) {
-    s.addEventListener('click', function(e) { e.preventDefault(); filterCanal(this.getAttribute('data-canal')); closeSidebar(); });
-});
+// Sidebar static items
+document.querySelector('.sidebar-item[data-cat="todos"]').addEventListener('click', function(e) { e.preventDefault(); filterAll(); closeSidebar(); });
 document.getElementById('nav-history').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('history'); closeSidebar(); });
 document.getElementById('nav-watchlater').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('watchlater'); closeSidebar(); });
 document.getElementById('nav-liked').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('liked'); closeSidebar(); });
 
 // Search
-document.getElementById('search').addEventListener('input', function() { doSearch(this.value); });
+var searchTimer;
+document.getElementById('search').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    var q = this.value;
+    searchTimer = setTimeout(function() { doSearch(q); }, 300);
+});
 
 // Mobile search
 ['mobile-search-toggle','mobile-search-trigger'].forEach(function(id) {
@@ -320,7 +335,11 @@ document.getElementById('mobile-search-close').addEventListener('click', functio
     document.getElementById('mobile-search-input').value = '';
     renderGrid();
 });
-document.getElementById('mobile-search-input').addEventListener('input', function() { doSearch(this.value); });
+document.getElementById('mobile-search-input').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    var q = this.value;
+    searchTimer = setTimeout(function() { doSearch(q); }, 300);
+});
 document.getElementById('mobile-watchlater-nav').addEventListener('click', function() { filterSpecial('watchlater'); });
 document.getElementById('mobile-history-nav').addEventListener('click', function() { filterSpecial('history'); });
 
