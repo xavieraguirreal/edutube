@@ -78,12 +78,12 @@ button { font-family: inherit; }
     align-items: center;
     gap: 0.35rem;
     white-space: nowrap;
-    flex-wrap: wrap;
+    position: relative;
 }
 
 .logo .logo-icon { width: 30px; height: 22px; object-fit: contain; }
 .logo .logo-text { color: var(--accent); font-size: 1.2rem; font-weight: 700; letter-spacing: -0.5px; }
-.logo .logo-count { font-size: 0.5rem; color: var(--text-muted); font-weight: 400; width: 100%; padding-left: 35px; margin-top: -4px; line-height: 1; }
+.logo .logo-count { position: absolute; bottom: -10px; left: 35px; font-size: 0.5rem; color: var(--text-muted); font-weight: 400; line-height: 1; }
 
 .topbar-center {
     flex: 1;
@@ -205,7 +205,8 @@ button { font-family: inherit; }
 .sidebar-item.active { background: var(--bg-hover); font-weight: 600; }
 
 .sidebar-item .si-icon { font-size: 1.05rem; width: 24px; text-align: center; flex-shrink: 0; }
-.sidebar-item .si-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-item .si-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.sidebar-item .si-expand { margin-left: auto; font-size: 0.7rem; color: var(--text-muted); padding: 2px 4px; flex-shrink: 0; }
 .sidebar-item .si-badge {
     margin-left: auto;
     background: var(--primary);

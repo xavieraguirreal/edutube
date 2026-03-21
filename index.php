@@ -200,18 +200,24 @@ function buildSidebar() {
     var container = document.getElementById('sidebar-channels');
     var html = '';
     ALL_CHANNELS.forEach(function(c) {
-        html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '" title="' + c.nombre + '">' +
-            '<span class="si-icon" style="color:' + c.color + '">●</span>' +
-            '<span class="si-label">' + c.nombre + '</span></a>';
-        // Playlists de este canal (indentadas)
-        ALL_PLAYLISTS.forEach(function(p) {
-            if (String(p.canal_id) === String(c.id) && parseInt(p.total_videos) > 0) {
-                html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '" title="' + p.nombre + '" style="padding-left:2.5rem;font-size:0.82rem;">' +
-                    '<span class="si-icon" style="font-size:0.85rem;">📋</span>' +
-                    '<span class="si-label">' + p.nombre + '</span>' +
-                    '<span class="si-badge">' + p.total_videos + '</span></a>';
-            }
+        // Count playlists for this channel
+        var chPlaylists = ALL_PLAYLISTS.filter(function(p) { return String(p.canal_id) === String(c.id) && parseInt(p.total_videos) > 0; });
+        var hasPlaylists = chPlaylists.length > 0;
+
+        html += '<div class="sidebar-channel-group">' +
+            '<a href="#" class="sidebar-item" data-canal="' + c.id + '" title="' + c.nombre + '">' +
+                '<span class="si-icon" style="color:' + c.color + '">●</span>' +
+                '<span class="si-label">' + c.nombre + '</span>' +
+                (hasPlaylists ? '<span class="si-expand" data-toggle="ch-' + c.id + '">▸</span>' : '') +
+            '</a>' +
+            '<div class="sidebar-playlists-group" id="ch-' + c.id + '" style="display:none;">';
+        chPlaylists.forEach(function(p) {
+            html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '" title="' + p.nombre + '" style="padding-left:2.5rem;font-size:0.82rem;">' +
+                '<span class="si-icon" style="font-size:0.85rem;">📋</span>' +
+                '<span class="si-label">' + p.nombre + '</span>' +
+                '<span class="si-badge">' + p.total_videos + '</span></a>';
         });
+        html += '</div></div>';
     });
     // Playlists sin canal
     ALL_PLAYLISTS.forEach(function(p) {
@@ -223,6 +229,20 @@ function buildSidebar() {
         }
     });
     container.innerHTML = html;
+
+    // Expand/collapse toggles
+    container.querySelectorAll('.si-expand').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var targetId = this.getAttribute('data-toggle');
+            var target = document.getElementById(targetId);
+            var isOpen = target.style.display !== 'none';
+            target.style.display = isOpen ? 'none' : '';
+            this.textContent = isOpen ? '▸' : '▾';
+        });
+    });
+
     container.querySelectorAll('.sidebar-item[data-canal]').forEach(function(s) {
         s.addEventListener('click', function(e) { e.preventDefault(); filterCanal(this.getAttribute('data-canal')); closeSidebar(); });
     });
