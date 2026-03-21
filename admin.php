@@ -238,13 +238,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     ]);
                                     $imported++;
                                 }
+
+                                // Create auto-playlist for loose videos
+                                $canalNombre = $_POST['canal_nombre'] ?: $chInfo['nombre'];
+                                $autoPlName = $canalNombre . ' — Videos recientes';
+                                $stmt = $db->prepare("SELECT id FROM playlists WHERE nombre = ? AND canal_id = ?");
+                                $stmt->execute([$autoPlName, $canalDbId]);
+                                $autoPlRow = $stmt->fetch();
+
+                                if ($autoPlRow) {
+                                    $autoPlId = $autoPlRow['id'];
+                                } else {
+                                    $stmt = $db->prepare("INSERT INTO playlists (nombre, descripcion, canal_id) VALUES (?, ?, ?)");
+                                    $stmt->execute([$autoPlName, 'Videos importados del canal que no pertenecen a una playlist específica.', $canalDbId]);
+                                    $autoPlId = $db->lastInsertId();
+                                    $playlistsImported++;
+                                }
+
+                                // Link videos to auto-playlist
+                                // Get max order
+                                $stmt = $db->prepare("SELECT COALESCE(MAX(orden), -1) FROM playlist_videos WHERE playlist_id = ?");
+                                $stmt->execute([$autoPlId]);
+                                $maxOrden = intval($stmt->fetchColumn());
+
+                                foreach ($videoIds as $vid) {
+                                    $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                                    $stmt->execute([$vid]);
+                                    $vRow = $stmt->fetch();
+                                    if ($vRow) {
+                                        $maxOrden++;
+                                        $stmt = $db->prepare("INSERT IGNORE INTO playlist_videos (playlist_id, video_id, orden) VALUES (?, ?, ?)");
+                                        $stmt->execute([$autoPlId, $vRow['id'], $maxOrden]);
+                                    }
+                                }
                             }
                         }
                     }
 
-                    if ($imported > 0) {
-                        $msg = "$imported videos nuevos importados.";
-                    }
                     $msgType = 'success';
 
                     // Import selected playlists
