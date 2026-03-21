@@ -226,9 +226,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                             if (!empty($newIds)) {
                                 $apiDetails = getVideoDetailsAPI($newIds);
+
+                                // Sort newest first
+                                usort($newIds, function($a, $b) use ($apiDetails) {
+                                    $fa = isset($apiDetails[$a]) ? $apiDetails[$a]['fecha'] : '';
+                                    $fb = isset($apiDetails[$b]) ? $apiDetails[$b]['fecha'] : '';
+                                    return strcmp($fb, $fa);
+                                });
+
                                 foreach ($newIds as $ytId) {
                                     $meta = $apiDetails[$ytId] ?? null;
-                                    if (!$meta) continue; // Skip private/deleted
+                                    if (!$meta) continue;
                                     $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                                     $stmt->execute([
                                         $ytId,
@@ -339,9 +347,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                     if (!empty($newPlVideoIds)) {
                         $apiDetails = getVideoDetailsAPI($newPlVideoIds);
+
+                        // Sort by date newest first so limit cuts oldest
+                        usort($newPlVideoIds, function($a, $b) use ($apiDetails) {
+                            $fa = isset($apiDetails[$a]) ? $apiDetails[$a]['fecha'] : '';
+                            $fb = isset($apiDetails[$b]) ? $apiDetails[$b]['fecha'] : '';
+                            return strcmp($fb, $fa);
+                        });
+
                         foreach ($newPlVideoIds as $vid) {
+                            if ($totalNewVideos >= $maxVideosPerRun) break;
                             $meta = $apiDetails[$vid] ?? null;
-                            // Skip private/deleted videos (API returns no data)
                             if (!$meta) continue;
                             $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                             $stmt->execute([
