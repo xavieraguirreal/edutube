@@ -286,10 +286,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                     $msgType = 'success';
 
-                    // Sync all: select all playlists automatically
+                    // Sync all: select all playlists + loose videos
                     if (isset($_POST['sync_all'])) {
                         $allPlaylists = getChannelPlaylists($channelId);
                         $selectedPlaylists = array_column($allPlaylists, 'youtube_id');
+                        $_POST['import_latest'] = '1'; // Also import loose videos
+                        $_POST['limit'] = 50;
                     } else {
                         $selectedPlaylists = $_POST['playlists'] ?? [];
                     }
