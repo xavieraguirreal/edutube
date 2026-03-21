@@ -25,7 +25,7 @@ CREATE TABLE canales (
 CREATE TABLE categorias (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
-    icono VARCHAR(50) DEFAULT '📚',
+    icono VARCHAR(50) DEFAULT '',
     orden INT NOT NULL DEFAULT 0,
     activa TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;
