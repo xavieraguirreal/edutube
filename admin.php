@@ -666,6 +666,7 @@ $section = $_GET['s'] ?? 'dashboard';
 
                     <?php
                     // Check which playlists are already imported
+                    // Also get the real accessible count from YouTube API
                     $importedPlaylists = [];
                     $stmtImp = $db->query("SELECT youtube_playlist_id, (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = playlists.id) AS imported_count FROM playlists");
                     foreach ($stmtImp->fetchAll() as $ip) {
@@ -700,19 +701,21 @@ $section = $_GET['s'] ?? 'dashboard';
                             <?php foreach ($preview['playlists'] as $pl):
                                 $isImported = isset($importedPlaylists[$pl['youtube_id']]);
                                 $importedCount = $isImported ? $importedPlaylists[$pl['youtube_id']] : 0;
-                                $isComplete = $isImported && $importedCount >= $pl['total_videos'];
-                                $needsUpdate = $isImported && $importedCount < $pl['total_videos'];
+                                $ytTotal = $pl['total_videos'];
+                                // Consider complete if imported >= 95% (private/deleted videos cause mismatch)
+                                $isComplete = $isImported && ($importedCount >= $ytTotal || ($ytTotal > 0 && $importedCount / $ytTotal >= 0.95));
+                                $needsUpdate = $isImported && !$isComplete;
                             ?>
                             <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;font-size:0.85rem;cursor:pointer;<?= $isComplete ? 'opacity:0.5;' : '' ?>">
                                 <input type="checkbox" name="playlists[]" value="<?= e($pl['youtube_id']) ?>" <?= $isComplete ? 'disabled' : '' ?>>
                                 <?= e($pl['nombre']) ?>
                                 <span style="margin-left:auto;font-size:0.78rem;">
                                     <?php if ($isComplete): ?>
-                                        <span style="color:#2e8b47;">✓ <?= $importedCount ?>/<?= $pl['total_videos'] ?></span>
+                                        <span style="color:#2e8b47;">✓ <?= $importedCount ?></span>
                                     <?php elseif ($needsUpdate): ?>
-                                        <span style="color:#f77f00;">↻ <?= $importedCount ?>/<?= $pl['total_videos'] ?></span>
+                                        <span style="color:#f77f00;">↻ <?= $importedCount ?>/<?= $ytTotal ?></span>
                                     <?php else: ?>
-                                        <span style="color:#888;"><?= $pl['total_videos'] ?> videos</span>
+                                        <span style="color:#888;"><?= $ytTotal ?> videos</span>
                                     <?php endif; ?>
                                 </span>
                             </label>
