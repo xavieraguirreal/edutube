@@ -120,7 +120,7 @@ $msg = '';
 $msgType = '';
 
 // Handle actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] !== 'login') {
     if (!validateCSRF($_POST['csrf'] ?? '')) {
         $msg = 'Token de seguridad inválido.';
         $msgType = 'error';
