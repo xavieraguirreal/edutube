@@ -277,8 +277,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                     $msgType = 'success';
 
-                    // Import selected playlists
-                $selectedPlaylists = $_POST['playlists'] ?? [];
+                    // Sync all: select all playlists automatically
+                    if (isset($_POST['sync_all'])) {
+                        $allPlaylists = getChannelPlaylists($channelId);
+                        $selectedPlaylists = array_column($allPlaylists, 'youtube_id');
+                    } else {
+                        $selectedPlaylists = $_POST['playlists'] ?? [];
+                    }
                 $playlistsImported = 0;
 
                 foreach ($selectedPlaylists as $plYtId) {
@@ -645,19 +650,31 @@ $section = $_GET['s'] ?? 'dashboard';
                     <input type="hidden" name="canal_codigo" value="CH">
                     <input type="hidden" name="canal_color" value="#2e8b47">
 
-                    <h3 style="font-size:0.95rem;margin-bottom:0.75rem;">¿Qué importar?</h3>
+                    <?php
+                    // Check which playlists are already imported
+                    $importedPlaylists = [];
+                    $stmtImp = $db->query("SELECT youtube_playlist_id, (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = playlists.id) AS imported_count FROM playlists");
+                    foreach ($stmtImp->fetchAll() as $ip) {
+                        if ($ip['youtube_playlist_id']) $importedPlaylists[$ip['youtube_playlist_id']] = intval($ip['imported_count']);
+                    }
+                    ?>
 
-                    <!-- Option A: Latest videos -->
-                    <div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
-                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;font-weight:500;">
-                            <input type="checkbox" name="import_latest" value="1">
-                            Últimos videos del canal (sueltos, no de playlists)
+                    <!-- Sync all button -->
+                    <div style="background:#eef7f0;border:1px solid #c3e6cb;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+                        <div style="font-size:0.95rem;font-weight:600;margin-bottom:0.3rem;">⚡ Sincronizar canal completo</div>
+                        <div style="font-size:0.8rem;color:#555;margin-bottom:0.75rem;">Importa todas las playlists. Saltea las que ya están completas, actualiza las que tienen videos nuevos, y crea las que faltan.</div>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;margin-bottom:0.5rem;">
+                            <input type="checkbox" name="sync_all" value="1">
+                            Sincronizar todas las playlists
                         </label>
-                        <div style="margin-left:1.5rem;margin-top:0.5rem;font-size:0.78rem;color:#888;">
-                            Importa los últimos videos publicados, sin importar a qué playlist pertenecen.
-                            <br>Cantidad: <input type="number" name="limit" value="15" min="1" max="50" style="width:60px;padding:0.2rem;border:1px solid #ddd;border-radius:4px;font-size:0.8rem;"> (máx 50 por vez)
-                        </div>
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;">
+                            <input type="checkbox" name="import_latest" value="1">
+                            + Últimos 50 videos sueltos del canal
+                            <input type="hidden" name="limit" value="50">
+                        </label>
                     </div>
+
+                    <div style="text-align:center;color:#999;font-size:0.8rem;margin-bottom:0.75rem;">— o seleccionar manualmente —</div>
 
                     <!-- Option B: Playlists -->
                     <?php if (!empty($preview['playlists'])): ?>
@@ -665,17 +682,30 @@ $section = $_GET['s'] ?? 'dashboard';
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;font-weight:500;margin-bottom:0.5rem;">
                             Playlists (<?= count($preview['playlists']) ?> disponibles)
                         </label>
-                        <div style="max-height:250px;overflow-y:auto;">
-                            <?php foreach ($preview['playlists'] as $pl): ?>
-                            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0;font-size:0.85rem;cursor:pointer;">
-                                <input type="checkbox" name="playlists[]" value="<?= e($pl['youtube_id']) ?>">
+                        <div style="max-height:300px;overflow-y:auto;">
+                            <?php foreach ($preview['playlists'] as $pl):
+                                $isImported = isset($importedPlaylists[$pl['youtube_id']]);
+                                $importedCount = $isImported ? $importedPlaylists[$pl['youtube_id']] : 0;
+                                $isComplete = $isImported && $importedCount >= $pl['total_videos'];
+                                $needsUpdate = $isImported && $importedCount < $pl['total_videos'];
+                            ?>
+                            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;font-size:0.85rem;cursor:pointer;<?= $isComplete ? 'opacity:0.5;' : '' ?>">
+                                <input type="checkbox" name="playlists[]" value="<?= e($pl['youtube_id']) ?>" <?= $isComplete ? 'disabled' : '' ?>>
                                 <?= e($pl['nombre']) ?>
-                                <span style="color:#888;margin-left:auto;"><?= $pl['total_videos'] ?> videos</span>
+                                <span style="margin-left:auto;font-size:0.78rem;">
+                                    <?php if ($isComplete): ?>
+                                        <span style="color:#2e8b47;">✓ <?= $importedCount ?>/<?= $pl['total_videos'] ?></span>
+                                    <?php elseif ($needsUpdate): ?>
+                                        <span style="color:#f77f00;">↻ <?= $importedCount ?>/<?= $pl['total_videos'] ?></span>
+                                    <?php else: ?>
+                                        <span style="color:#888;"><?= $pl['total_videos'] ?> videos</span>
+                                    <?php endif; ?>
+                                </span>
                             </label>
                             <?php endforeach; ?>
                         </div>
                         <div style="margin-top:0.5rem;">
-                            <button type="button" class="btn btn-sm btn-outline" onclick="this.closest('div').querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=true});">Seleccionar todas</button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="this.closest('div').querySelectorAll('input[type=checkbox]:not(:disabled)').forEach(function(c){c.checked=true});">Seleccionar pendientes</button>
                             <button type="button" class="btn btn-sm btn-outline" onclick="this.closest('div').querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=false});">Ninguna</button>
                         </div>
                     </div>
