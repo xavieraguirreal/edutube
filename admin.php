@@ -205,8 +205,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $canalDbId = $canal['id'];
                 }
 
-                // Fetch video IDs from RSS
-                $rssVideos = getChannelVideos($channelId, intval($_POST['limit'] ?? 15));
+                // Use uploads playlist via API if checkbox, otherwise RSS
+                $importLatest = isset($_POST['import_latest']);
+                $rssVideos = [];
+
+                if ($importLatest) {
+                    $limit = intval($_POST['limit'] ?? 15);
+                    // Try to get from uploads playlist (more than 15)
+                    $chInfo = getChannelInfo($channelId);
+                    $uploadsPlaylist = $chInfo ? $chInfo['uploads_playlist'] : '';
+                    if ($uploadsPlaylist && $limit > 15) {
+                        $plIds = getPlaylistVideoIds($uploadsPlaylist, $limit);
+                        foreach ($plIds as $vid) {
+                            $rssVideos[] = ['youtube_id' => $vid, 'titulo' => '', 'fecha' => ''];
+                        }
+                    } else {
+                        $rssVideos = getChannelVideos($channelId, $limit);
+                    }
+                }
                 $imported = 0;
                 $catId = $_POST['categoria_id'] ?: null;
 
@@ -253,6 +269,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                     $msg = "Canal importado: $imported videos nuevos agregados.";
                     $msgType = 'success';
+                }
+
+                // Import selected playlists
+                $selectedPlaylists = $_POST['playlists'] ?? [];
+                $playlistsImported = 0;
+
+                foreach ($selectedPlaylists as $plYtId) {
+                    // Get playlist info from YouTube API
+                    $plData = youtubeApiGet('playlists', ['part' => 'snippet,contentDetails', 'id' => $plYtId]);
+                    if (!$plData || empty($plData['items'])) continue;
+                    $plInfo = $plData['items'][0];
+                    $plNombre = $plInfo['snippet']['title'] ?? 'Playlist';
+                    $plDesc = $plInfo['snippet']['description'] ?? '';
+
+                    // Create playlist in DB (or get existing)
+                    $stmt = $db->prepare("SELECT id FROM playlists WHERE youtube_playlist_id = ?");
+                    $stmt->execute([$plYtId]);
+                    $existingPl = $stmt->fetch();
+
+                    if ($existingPl) {
+                        $plDbId = $existingPl['id'];
+                    } else {
+                        $stmt = $db->prepare("INSERT INTO playlists (nombre, descripcion, canal_id, youtube_playlist_id) VALUES (?, ?, ?, ?)");
+                        $stmt->execute([$plNombre, $plDesc, $canalDbId, $plYtId]);
+                        $plDbId = $db->lastInsertId();
+                        $playlistsImported++;
+                    }
+
+                    // Get video IDs from playlist
+                    $plVideoIds = getPlaylistVideoIds($plYtId, 50);
+                    if (empty($plVideoIds)) continue;
+
+                    // Get metadata for new videos
+                    $newPlVideoIds = [];
+                    foreach ($plVideoIds as $vid) {
+                        $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                        $stmt->execute([$vid]);
+                        if (!$stmt->fetch()) $newPlVideoIds[] = $vid;
+                    }
+
+                    if (!empty($newPlVideoIds)) {
+                        $apiDetails = getVideoDetailsAPI($newPlVideoIds);
+                        foreach ($newPlVideoIds as $vid) {
+                            $meta = $apiDetails[$vid] ?? null;
+                            $embedding = getEmbedding(($meta ? $meta['titulo'] . ' ' . $meta['descripcion'] : ''));
+                            $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt->execute([
+                                $vid,
+                                $meta ? $meta['titulo'] : 'Sin título',
+                                $meta ? $meta['descripcion'] : '',
+                                $canalDbId, $catId,
+                                $meta ? $meta['duracion'] : '',
+                                $meta ? $meta['vistas'] : 0,
+                                $meta ? $meta['fecha'] : date('Y-m-d'),
+                                $meta ? $meta['tags'] : '',
+                                $embedding ? json_encode($embedding) : null,
+                                $_SESSION['admin_nombre'] ?? 'admin'
+                            ]);
+                            $imported++;
+                        }
+                    }
+
+                    // Link all playlist videos (existing + new)
+                    $orden = 0;
+                    foreach ($plVideoIds as $vid) {
+                        $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                        $stmt->execute([$vid]);
+                        $videoRow = $stmt->fetch();
+                        if ($videoRow) {
+                            $stmt = $db->prepare("INSERT IGNORE INTO playlist_videos (playlist_id, video_id, orden) VALUES (?, ?, ?)");
+                            $stmt->execute([$plDbId, $videoRow['id'], $orden]);
+                        }
+                        $orden++;
+                    }
+                }
+
+                if ($playlistsImported > 0) {
+                    $msg .= " + $playlistsImported playlists creadas.";
                 }
             }
         }
@@ -524,17 +618,6 @@ $section = $_GET['s'] ?? 'dashboard';
                     <div style="font-size:0.85rem;color:#666;margin-bottom:1rem;max-height:80px;overflow:hidden;"><?= nl2br(e(mb_substr($preview['descripcion'], 0, 300))) ?></div>
                 <?php endif; ?>
 
-                <?php if (!empty($preview['playlists'])): ?>
-                    <h3 style="font-size:0.95rem;margin-bottom:0.5rem;">Playlists del canal (<?= count($preview['playlists']) ?>)</h3>
-                    <div style="max-height:200px;overflow-y:auto;margin-bottom:1rem;">
-                        <table>
-                            <tr><th>Playlist</th><th>Videos</th></tr>
-                            <?php foreach ($preview['playlists'] as $pl): ?>
-                                <tr><td><?= e($pl['nombre']) ?></td><td><?= $pl['total_videos'] ?></td></tr>
-                            <?php endforeach; ?>
-                        </table>
-                    </div>
-                <?php endif; ?>
             </div>
 
             <!-- Step 3: Confirm import -->
@@ -547,12 +630,45 @@ $section = $_GET['s'] ?? 'dashboard';
                     <input type="hidden" name="canal_nombre" value="<?= e($preview['nombre']) ?>">
                     <input type="hidden" name="canal_codigo" value="CH">
                     <input type="hidden" name="canal_color" value="#2e8b47">
-                    <div class="form-row">
-                        <div class="form-group" style="max-width:200px;">
-                            <label>Cantidad de videos a importar</label>
-                            <input type="number" name="limit" value="<?= min($preview['total_videos'], 15) ?>" min="1" max="50">
-                            <div style="font-size:0.75rem;color:#888;margin-top:0.2rem;">Máximo 50 por vez. El canal tiene <?= number_format($preview['total_videos']) ?>.</div>
+
+                    <h3 style="font-size:0.95rem;margin-bottom:0.75rem;">¿Qué importar?</h3>
+
+                    <!-- Option A: Latest videos -->
+                    <div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;font-weight:500;">
+                            <input type="checkbox" name="import_latest" value="1" checked>
+                            Últimos videos del canal
+                        </label>
+                        <div style="margin-left:1.5rem;margin-top:0.5rem;">
+                            <label style="font-size:0.8rem;color:#555;">Cantidad:</label>
+                            <input type="number" name="limit" value="15" min="1" max="50" style="width:70px;padding:0.3rem;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;">
+                            <span style="font-size:0.75rem;color:#888;">(máx 50 por vez)</span>
                         </div>
+                    </div>
+
+                    <!-- Option B: Playlists -->
+                    <?php if (!empty($preview['playlists'])): ?>
+                    <div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
+                        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;font-weight:500;margin-bottom:0.5rem;">
+                            Playlists (<?= count($preview['playlists']) ?> disponibles)
+                        </label>
+                        <div style="max-height:250px;overflow-y:auto;">
+                            <?php foreach ($preview['playlists'] as $pl): ?>
+                            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0;font-size:0.85rem;cursor:pointer;">
+                                <input type="checkbox" name="playlists[]" value="<?= e($pl['youtube_id']) ?>">
+                                <?= e($pl['nombre']) ?>
+                                <span style="color:#888;margin-left:auto;"><?= $pl['total_videos'] ?> videos</span>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                        <div style="margin-top:0.5rem;">
+                            <button type="button" class="btn btn-sm btn-outline" onclick="this.closest('div').querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=true});">Seleccionar todas</button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="this.closest('div').querySelectorAll('input[type=checkbox]').forEach(function(c){c.checked=false});">Ninguna</button>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <div class="form-row" style="margin-top:0.75rem;">
                         <div class="form-group">
                             <label>Categoría por defecto</label>
                             <select name="categoria_id">
@@ -563,7 +679,7 @@ $section = $_GET['s'] ?? 'dashboard';
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary" id="btn-import" onclick="this.disabled=true;this.innerHTML='⏳ Importando... esto puede tardar un momento';this.form.submit();">Importar <?= e($preview['nombre']) ?></button>
+                    <button type="submit" class="btn btn-primary" onclick="this.disabled=true;this.innerHTML='⏳ Importando... esto puede tardar un momento';this.form.submit();">Importar <?= e($preview['nombre']) ?></button>
                 </form>
             </div>
             <?php endif; ?>
