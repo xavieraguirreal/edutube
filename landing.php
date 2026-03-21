@@ -8,8 +8,8 @@
 
     <!-- SEO -->
     <meta name="description" content="EduTube es una plataforma de videos educativos diseñada para contextos con restricciones de acceso a redes sociales. Contenido curado, sin comentarios, sin algoritmos. Solo educación.">
-    <meta name="keywords" content="videos educativos, plataforma educativa, educación en contextos de encierro, Universidad Liberté, videos curados">
-    <meta name="author" content="Universidad Liberté">
+    <meta name="keywords" content="videos educativos, plataforma educativa, educación en contextos de encierro, Comité de Convivencia Mario Juliano, videos curados">
+    <meta name="author" content="Comité de Convivencia Mario Juliano">
     <meta name="robots" content="index, follow">
 
     <!-- Open Graph -->
@@ -498,7 +498,7 @@
         <span>EduTube</span>
     </div>
     <p>
-        Plataforma desarrollada por <strong>VERUMax</strong> para la Universidad Liberté, solicitado por el Comité de Convivencia Mario Juliano.<br>
+        Plataforma desarrollada por <strong>VERUMax</strong> para el Comité de Convivencia Mario Juliano.<br>
         Provincia de Buenos Aires, Argentina.
     </p>
     <a href="/" class="footer-cta" id="enter-btn-footer">Ingresar a EduTube →</a>

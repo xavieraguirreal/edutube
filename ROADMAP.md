@@ -41,16 +41,16 @@
 - Las reproducciones en EduTube SÍ cuentan como vistas en YouTube
 
 ## Pendiente — Próximos pasos
-- [ ] Backend PHP + MySQL
-  - [ ] config.php (conexión BD)
-  - [ ] setup.sql (esquema de BD)
-  - [ ] admin.php (panel de administración)
-  - [ ] CRUD de videos, categorías, canales
-  - [ ] Autenticación admin (bcrypt, sesiones, CSRF)
-  - [ ] Rate limiting en login
-- [ ] Importación de videos
-  - [ ] Agregar video individual por URL
-  - [ ] Importar canal completo (RSS feed)
+- [x] Backend PHP + MySQL
+  - [x] config.php (conexión BD + OpenAI + funciones auxiliares)
+  - [x] setup.sql (esquema completo: videos, canales, categorías, playlists, embeddings, vistas, búsquedas)
+  - [x] admin.php (panel de administración completo)
+  - [x] CRUD de videos, categorías, canales
+  - [x] Autenticación admin (bcrypt, sesiones, CSRF)
+  - [x] Rate limiting en login
+- [x] Importación de videos
+  - [x] Agregar video individual por URL (con autocompletado via yt-dlp)
+  - [x] Importar canal completo (RSS feed + yt-dlp metadata)
   - [ ] Importar playlist de YouTube
   - [ ] Obtener metadatos automáticos (YouTube Data API v3)
 - [ ] Listas de reproducción propias

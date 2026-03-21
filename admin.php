@@ -1,0 +1,584 @@
+<?php
+session_start();
+require_once __DIR__ . '/config.php';
+
+$db = getDB();
+
+// ═══════════════════════════════════════════
+// Rate limiting
+// ═══════════════════════════════════════════
+function checkRateLimit($db, $ip) {
+    $stmt = $db->prepare("SELECT COUNT(*) FROM login_intentos WHERE ip = ? AND fecha > DATE_SUB(NOW(), INTERVAL 15 MINUTE)");
+    $stmt->execute([$ip]);
+    return $stmt->fetchColumn() < 5;
+}
+
+function logLoginAttempt($db, $ip) {
+    $stmt = $db->prepare("INSERT INTO login_intentos (ip) VALUES (?)");
+    $stmt->execute([$ip]);
+}
+
+// ═══════════════════════════════════════════
+// Auth
+// ═══════════════════════════════════════════
+$isLoggedIn = !empty($_SESSION[ADMIN_SESSION_NAME]);
+
+if (!$isLoggedIn && isset($_POST['action']) && $_POST['action'] === 'login') {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+    if (!checkRateLimit($db, $ip)) {
+        $loginError = 'Demasiados intentos. Esperá 15 minutos.';
+    } else {
+        $user = $_POST['usuario'] ?? '';
+        $pass = $_POST['password'] ?? '';
+        $stmt = $db->prepare("SELECT * FROM admins WHERE usuario = ?");
+        $stmt->execute([$user]);
+        $admin = $stmt->fetch();
+
+        if ($admin && password_verify($pass, $admin['password_hash'])) {
+            session_regenerate_id(true);
+            $_SESSION[ADMIN_SESSION_NAME] = $admin['id'];
+            $_SESSION['admin_nombre'] = $admin['nombre'];
+            $isLoggedIn = true;
+        } else {
+            logLoginAttempt($db, $ip);
+            $loginError = 'Usuario o contraseña incorrectos.';
+        }
+    }
+}
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header('Location: admin.php');
+    exit;
+}
+
+// ═══════════════════════════════════════════
+// Login page
+// ═══════════════════════════════════════════
+if (!$isLoggedIn) {
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTube — Admin</title>
+    <link rel="icon" type="image/png" href="loguito-edutube.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:#f5f5f5; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+        .login-card { background:#fff; border-radius:16px; padding:2.5rem; width:100%; max-width:400px; box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+        .login-logo { display:flex; align-items:center; gap:0.5rem; justify-content:center; margin-bottom:2rem; }
+        .login-logo img { width:32px; }
+        .login-logo span { font-size:1.3rem; font-weight:700; color:#2e8b47; }
+        .login-card h2 { text-align:center; font-size:1.1rem; margin-bottom:1.5rem; color:#333; }
+        .form-group { margin-bottom:1rem; }
+        .form-group label { display:block; font-size:0.85rem; font-weight:500; margin-bottom:0.3rem; color:#555; }
+        .form-group input { width:100%; padding:0.6rem 0.8rem; border:1px solid #ddd; border-radius:8px; font-size:0.9rem; font-family:inherit; }
+        .form-group input:focus { outline:none; border-color:#2e8b47; }
+        .btn-login { width:100%; padding:0.7rem; background:#2e8b47; color:#fff; border:none; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer; font-family:inherit; }
+        .btn-login:hover { background:#38a555; }
+        .error { background:#fee; color:#c00; padding:0.6rem; border-radius:8px; font-size:0.85rem; margin-bottom:1rem; text-align:center; }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <div class="login-logo">
+        <img src="loguito-edutube.png" alt="EduTube">
+        <span>EduTube</span>
+    </div>
+    <h2>Panel de Administración</h2>
+    <?php if (!empty($loginError)): ?>
+        <div class="error"><?= e($loginError) ?></div>
+    <?php endif; ?>
+    <form method="POST">
+        <input type="hidden" name="action" value="login">
+        <div class="form-group">
+            <label>Usuario</label>
+            <input type="text" name="usuario" required autofocus>
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" name="password" required>
+        </div>
+        <button type="submit" class="btn-login">Ingresar</button>
+    </form>
+</div>
+</body>
+</html>
+<?php
+    exit;
+}
+
+// ═══════════════════════════════════════════
+// Admin panel (authenticated)
+// ═══════════════════════════════════════════
+$csrf = generateCSRF();
+$msg = '';
+$msgType = '';
+
+// Handle actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!validateCSRF($_POST['csrf'] ?? '')) {
+        $msg = 'Token de seguridad inválido.';
+        $msgType = 'error';
+    } else {
+        $action = $_POST['action'];
+
+        // ── Add video ──
+        if ($action === 'add_video') {
+            $ytId = extractYouTubeId($_POST['youtube_url'] ?? '');
+            if (!$ytId) {
+                $msg = 'URL de YouTube inválida.'; $msgType = 'error';
+            } else {
+                // Check duplicate
+                $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                $stmt->execute([$ytId]);
+                if ($stmt->fetch()) {
+                    $msg = 'Este video ya está indexado.'; $msgType = 'error';
+                } else {
+                    // Try yt-dlp metadata
+                    $meta = getYouTubeMetadata($ytId);
+                    $titulo = $_POST['titulo'] ?: ($meta ? $meta['titulo'] : 'Sin título');
+                    $desc = $_POST['descripcion'] ?: ($meta ? $meta['descripcion'] : '');
+                    $duracion = $meta ? $meta['duracion'] : '';
+                    $vistas = $meta ? $meta['vistas'] : 0;
+                    $fecha = $meta ? $meta['fecha'] : date('Y-m-d');
+                    $canalId = $_POST['canal_id'] ?: null;
+                    $catId = $_POST['categoria_id'] ?: null;
+                    $tags = $_POST['tags'] ?? '';
+
+                    // Generate embedding
+                    $embeddingText = $titulo . ' ' . $desc . ' ' . $tags;
+                    $embedding = getEmbedding($embeddingText);
+
+                    $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([
+                        $ytId, $titulo, $desc, $canalId, $catId, $duracion, $vistas, $fecha,
+                        $tags, $embedding ? json_encode($embedding) : null,
+                        $_SESSION['admin_nombre'] ?? 'admin'
+                    ]);
+
+                    $msg = 'Video "' . e($titulo) . '" agregado correctamente.';
+                    $msgType = 'success';
+                }
+            }
+        }
+
+        // ── Import channel ──
+        if ($action === 'import_channel') {
+            $url = $_POST['channel_url'] ?? '';
+            $channelId = extractChannelId($url);
+            if (!$channelId) {
+                $msg = 'No se pudo obtener el Channel ID.'; $msgType = 'error';
+            } else {
+                // Check if channel exists
+                $stmt = $db->prepare("SELECT id FROM canales WHERE youtube_channel_id = ?");
+                $stmt->execute([$channelId]);
+                $canal = $stmt->fetch();
+
+                if (!$canal) {
+                    // Create channel
+                    $nombre = $_POST['canal_nombre'] ?? 'Canal importado';
+                    $codigo = $_POST['canal_codigo'] ?? 'CH';
+                    $color = $_POST['canal_color'] ?? '#2e8b47';
+                    $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$nombre, $channelId, $codigo, $color]);
+                    $canalDbId = $db->lastInsertId();
+                } else {
+                    $canalDbId = $canal['id'];
+                }
+
+                // Fetch videos from RSS
+                $videos = getChannelVideos($channelId, intval($_POST['limit'] ?? 15));
+                $imported = 0;
+                $catId = $_POST['categoria_id'] ?: null;
+
+                foreach ($videos as $v) {
+                    $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                    $stmt->execute([$v['youtube_id']]);
+                    if ($stmt->fetch()) continue;
+
+                    // Get metadata
+                    $meta = getYouTubeMetadata($v['youtube_id']);
+                    $titulo = $meta ? $meta['titulo'] : $v['titulo'];
+                    $desc = $meta ? $meta['descripcion'] : '';
+                    $duracion = $meta ? $meta['duracion'] : '';
+                    $vistas = $meta ? $meta['vistas'] : 0;
+                    $fecha = $meta ? $meta['fecha'] : $v['fecha'];
+
+                    // Embedding
+                    $embedding = getEmbedding($titulo . ' ' . $desc);
+
+                    $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([
+                        $v['youtube_id'], $titulo, $desc, $canalDbId, $catId,
+                        $duracion, $vistas, $fecha,
+                        $embedding ? json_encode($embedding) : null,
+                        $_SESSION['admin_nombre'] ?? 'admin'
+                    ]);
+                    $imported++;
+                }
+                $msg = "Canal importado: $imported videos nuevos agregados.";
+                $msgType = 'success';
+            }
+        }
+
+        // ── Add channel ──
+        if ($action === 'add_channel') {
+            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
+                $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
+                $_POST['descripcion'] ?? ''
+            ]);
+            $msg = 'Canal creado correctamente.'; $msgType = 'success';
+        }
+
+        // ── Add category ──
+        if ($action === 'add_categoria') {
+            $stmt = $db->prepare("INSERT INTO categorias (nombre, icono, orden) VALUES (?, ?, ?)");
+            $stmt->execute([$_POST['nombre'], $_POST['icono'] ?? '📚', intval($_POST['orden'] ?? 0)]);
+            $msg = 'Categoría creada correctamente.'; $msgType = 'success';
+        }
+
+        // ── Toggle video ──
+        if ($action === 'toggle_video') {
+            $stmt = $db->prepare("UPDATE videos SET activo = NOT activo WHERE id = ?");
+            $stmt->execute([$_POST['video_id']]);
+            $msg = 'Estado del video actualizado.'; $msgType = 'success';
+        }
+
+        // ── Delete video ──
+        if ($action === 'delete_video') {
+            $stmt = $db->prepare("DELETE FROM videos WHERE id = ?");
+            $stmt->execute([$_POST['video_id']]);
+            $msg = 'Video eliminado.'; $msgType = 'success';
+        }
+
+        // ── Change password ──
+        if ($action === 'change_password') {
+            $newPass = $_POST['new_password'] ?? '';
+            if (strlen($newPass) < 8) {
+                $msg = 'La contraseña debe tener al menos 8 caracteres.'; $msgType = 'error';
+            } else {
+                $hash = password_hash($newPass, PASSWORD_BCRYPT);
+                $stmt = $db->prepare("UPDATE admins SET password_hash = ? WHERE id = ?");
+                $stmt->execute([$hash, $_SESSION[ADMIN_SESSION_NAME]]);
+                $msg = 'Contraseña actualizada.'; $msgType = 'success';
+            }
+        }
+
+        // Regenerate CSRF
+        $csrf = generateCSRF();
+    }
+}
+
+// Stats
+$totalVideos = $db->query("SELECT COUNT(*) FROM videos")->fetchColumn();
+$totalVistas = $db->query("SELECT COUNT(*) FROM registro_vistas")->fetchColumn();
+$totalCanales = $db->query("SELECT COUNT(*) FROM canales")->fetchColumn();
+$totalCategorias = $db->query("SELECT COUNT(*) FROM categorias")->fetchColumn();
+
+// Data
+$videos = $db->query("SELECT v.*, c.nombre as canal_nombre, cat.nombre as cat_nombre FROM videos v LEFT JOIN canales c ON v.canal_id = c.id LEFT JOIN categorias cat ON v.categoria_id = cat.id ORDER BY v.created_at DESC LIMIT 50")->fetchAll();
+$canales = $db->query("SELECT * FROM canales ORDER BY nombre")->fetchAll();
+$categorias = $db->query("SELECT * FROM categorias ORDER BY orden")->fetchAll();
+
+$section = $_GET['s'] ?? 'dashboard';
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTube — Admin</title>
+    <link rel="icon" type="image/png" href="loguito-edutube.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:#f5f5f5; color:#1a1a1a; }
+        .admin-layout { display:flex; min-height:100vh; }
+        .admin-sidebar { width:220px; background:#fff; border-right:1px solid #e0e0e0; padding:1rem 0; flex-shrink:0; }
+        .admin-sidebar .logo { display:flex; align-items:center; gap:0.4rem; padding:0.5rem 1rem 1.5rem; }
+        .admin-sidebar .logo img { width:24px; }
+        .admin-sidebar .logo span { font-weight:700; color:#2e8b47; }
+        .admin-sidebar a { display:block; padding:0.55rem 1rem; color:#555; font-size:0.88rem; text-decoration:none; border-left:3px solid transparent; }
+        .admin-sidebar a:hover { background:#f5f5f5; }
+        .admin-sidebar a.active { background:#eef7f0; color:#2e8b47; border-left-color:#2e8b47; font-weight:600; }
+        .admin-main { flex:1; padding:1.5rem 2rem; overflow-x:auto; }
+        .admin-main h1 { font-size:1.4rem; margin-bottom:1.5rem; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
+        .stat-card { background:#fff; border-radius:12px; padding:1.25rem; border:1px solid #e0e0e0; }
+        .stat-card .stat-num { font-size:1.8rem; font-weight:700; color:#2e8b47; }
+        .stat-card .stat-label { font-size:0.8rem; color:#888; margin-top:0.2rem; }
+        .card { background:#fff; border-radius:12px; padding:1.5rem; border:1px solid #e0e0e0; margin-bottom:1.5rem; }
+        .card h2 { font-size:1.1rem; margin-bottom:1rem; }
+        .form-row { display:flex; gap:1rem; margin-bottom:0.8rem; flex-wrap:wrap; }
+        .form-group { flex:1; min-width:200px; }
+        .form-group label { display:block; font-size:0.8rem; font-weight:500; color:#555; margin-bottom:0.2rem; }
+        .form-group input, .form-group select, .form-group textarea { width:100%; padding:0.5rem 0.7rem; border:1px solid #ddd; border-radius:8px; font-size:0.88rem; font-family:inherit; }
+        .form-group textarea { height:80px; resize:vertical; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; border-color:#2e8b47; }
+        .btn { padding:0.5rem 1.2rem; border:none; border-radius:8px; font-size:0.88rem; font-weight:500; cursor:pointer; font-family:inherit; }
+        .btn-primary { background:#2e8b47; color:#fff; }
+        .btn-primary:hover { background:#38a555; }
+        .btn-danger { background:#e63946; color:#fff; }
+        .btn-sm { padding:0.3rem 0.7rem; font-size:0.78rem; }
+        .btn-outline { background:none; border:1px solid #ddd; color:#555; }
+        .btn-outline:hover { background:#f5f5f5; }
+        table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+        th { text-align:left; padding:0.6rem; background:#f9f9f9; border-bottom:1px solid #e0e0e0; font-weight:600; font-size:0.78rem; color:#888; text-transform:uppercase; }
+        td { padding:0.5rem 0.6rem; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+        .thumb-sm { width:80px; border-radius:4px; }
+        .badge { padding:2px 8px; border-radius:10px; font-size:0.72rem; font-weight:500; }
+        .badge-active { background:#eef7f0; color:#2e8b47; }
+        .badge-inactive { background:#fee; color:#c00; }
+        .msg { padding:0.7rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.88rem; }
+        .msg-success { background:#eef7f0; color:#1f6e34; border:1px solid #c3e6cb; }
+        .msg-error { background:#fee; color:#c00; border:1px solid #f5c6cb; }
+        @media (max-width:768px) {
+            .admin-layout { flex-direction:column; }
+            .admin-sidebar { width:100%; display:flex; overflow-x:auto; padding:0.5rem; gap:0.25rem; border-right:none; border-bottom:1px solid #e0e0e0; }
+            .admin-sidebar .logo { display:none; }
+            .admin-sidebar a { white-space:nowrap; border-left:none; border-bottom:2px solid transparent; padding:0.4rem 0.8rem; font-size:0.8rem; }
+            .admin-sidebar a.active { border-left:none; border-bottom-color:#2e8b47; }
+            .admin-main { padding:1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-layout">
+    <nav class="admin-sidebar">
+        <div class="logo">
+            <img src="loguito-edutube.png" alt="">
+            <span>EduTube Admin</span>
+        </div>
+        <a href="?s=dashboard" class="<?= $section==='dashboard'?'active':'' ?>">📊 Dashboard</a>
+        <a href="?s=videos" class="<?= $section==='videos'?'active':'' ?>">🎬 Videos</a>
+        <a href="?s=add_video" class="<?= $section==='add_video'?'active':'' ?>">➕ Agregar video</a>
+        <a href="?s=import" class="<?= $section==='import'?'active':'' ?>">📥 Importar canal</a>
+        <a href="?s=canales" class="<?= $section==='canales'?'active':'' ?>">📺 Canales</a>
+        <a href="?s=categorias" class="<?= $section==='categorias'?'active':'' ?>">🏷 Categorías</a>
+        <a href="?s=password" class="<?= $section==='password'?'active':'' ?>">🔑 Contraseña</a>
+        <a href="/" target="_blank">🌐 Ver sitio</a>
+        <a href="?logout=1">🚪 Salir</a>
+    </nav>
+
+    <main class="admin-main">
+        <?php if ($msg): ?>
+            <div class="msg msg-<?= $msgType ?>"><?= e($msg) ?></div>
+        <?php endif; ?>
+
+        <?php if ($section === 'dashboard'): ?>
+            <h1>Dashboard</h1>
+            <div class="stats">
+                <div class="stat-card"><div class="stat-num"><?= $totalVideos ?></div><div class="stat-label">Videos</div></div>
+                <div class="stat-card"><div class="stat-num"><?= $totalCanales ?></div><div class="stat-label">Canales</div></div>
+                <div class="stat-card"><div class="stat-num"><?= $totalCategorias ?></div><div class="stat-label">Categorías</div></div>
+                <div class="stat-card"><div class="stat-num"><?= $totalVistas ?></div><div class="stat-label">Vistas en EduTube</div></div>
+            </div>
+
+        <?php elseif ($section === 'add_video'): ?>
+            <h1>Agregar video</h1>
+            <div class="card">
+                <form method="POST">
+                    <input type="hidden" name="action" value="add_video">
+                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>URL de YouTube *</label>
+                            <input type="text" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Título (dejar vacío para autocompletar)</label>
+                            <input type="text" name="titulo">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Canal</label>
+                            <select name="canal_id">
+                                <option value="">— Sin canal —</option>
+                                <?php foreach ($canales as $c): ?>
+                                    <option value="<?= $c['id'] ?>"><?= e($c['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Categoría</label>
+                            <select name="categoria_id">
+                                <option value="">— Sin categoría —</option>
+                                <?php foreach ($categorias as $c): ?>
+                                    <option value="<?= $c['id'] ?>"><?= e($c['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tags (separados por coma)</label>
+                            <input type="text" name="tags" placeholder="educación, derechos, argentina">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Descripción (dejar vacío para autocompletar)</label>
+                            <textarea name="descripcion"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Agregar video</button>
+                </form>
+            </div>
+
+        <?php elseif ($section === 'import'): ?>
+            <h1>Importar canal</h1>
+            <div class="card">
+                <h2>Importar últimos videos de un canal</h2>
+                <form method="POST">
+                    <input type="hidden" name="action" value="import_channel">
+                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>URL del canal *</label>
+                            <input type="text" name="channel_url" placeholder="https://www.youtube.com/@canal" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad de videos</label>
+                            <input type="number" name="limit" value="15" min="1" max="50">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre del canal</label>
+                            <input type="text" name="canal_nombre" placeholder="Nombre visible">
+                        </div>
+                        <div class="form-group">
+                            <label>Código (2-4 letras)</label>
+                            <input type="text" name="canal_codigo" value="CH" maxlength="4">
+                        </div>
+                        <div class="form-group">
+                            <label>Color</label>
+                            <input type="color" name="canal_color" value="#2e8b47">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Categoría por defecto</label>
+                            <select name="categoria_id">
+                                <option value="">— Sin categoría —</option>
+                                <?php foreach ($categorias as $c): ?>
+                                    <option value="<?= $c['id'] ?>"><?= e($c['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Importar canal</button>
+                </form>
+            </div>
+
+        <?php elseif ($section === 'videos'): ?>
+            <h1>Videos (<?= $totalVideos ?>)</h1>
+            <table>
+                <tr><th></th><th>Título</th><th>Canal</th><th>Vistas YT</th><th>Estado</th><th>Acciones</th></tr>
+                <?php foreach ($videos as $v): ?>
+                <tr>
+                    <td><img src="https://img.youtube.com/vi/<?= e($v['youtube_id']) ?>/default.jpg" class="thumb-sm"></td>
+                    <td><a href="watch?v=<?= e($v['youtube_id']) ?>" target="_blank"><?= e(mb_substr($v['titulo'], 0, 60)) ?><?= mb_strlen($v['titulo'])>60?'...':'' ?></a></td>
+                    <td><?= e($v['canal_nombre'] ?? '—') ?></td>
+                    <td><?= number_format($v['vistas_yt']) ?></td>
+                    <td><span class="badge <?= $v['activo']?'badge-active':'badge-inactive' ?>"><?= $v['activo']?'Activo':'Inactivo' ?></span></td>
+                    <td>
+                        <form method="POST" style="display:inline">
+                            <input type="hidden" name="action" value="toggle_video">
+                            <input type="hidden" name="video_id" value="<?= $v['id'] ?>">
+                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                            <button class="btn btn-sm btn-outline"><?= $v['activo']?'Desactivar':'Activar' ?></button>
+                        </form>
+                        <form method="POST" style="display:inline" onsubmit="return confirm('¿Eliminar este video?')">
+                            <input type="hidden" name="action" value="delete_video">
+                            <input type="hidden" name="video_id" value="<?= $v['id'] ?>">
+                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                            <button class="btn btn-sm btn-danger">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+
+        <?php elseif ($section === 'canales'): ?>
+            <h1>Canales</h1>
+            <div class="card">
+                <h2>Nuevo canal</h2>
+                <form method="POST">
+                    <input type="hidden" name="action" value="add_channel">
+                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <div class="form-row">
+                        <div class="form-group"><label>Nombre *</label><input type="text" name="nombre" required></div>
+                        <div class="form-group"><label>YouTube Channel ID</label><input type="text" name="youtube_channel_id" placeholder="UC..."></div>
+                        <div class="form-group"><label>Código</label><input type="text" name="codigo" value="CH" maxlength="4"></div>
+                        <div class="form-group"><label>Color</label><input type="color" name="color" value="#2e8b47"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Descripción</label><textarea name="descripcion"></textarea></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Crear canal</button>
+                </form>
+            </div>
+            <table>
+                <tr><th>Nombre</th><th>Código</th><th>Channel ID</th><th>Color</th></tr>
+                <?php foreach ($canales as $c): ?>
+                <tr>
+                    <td><?= e($c['nombre']) ?></td>
+                    <td><?= e($c['codigo']) ?></td>
+                    <td><?= e($c['youtube_channel_id']) ?></td>
+                    <td><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:<?= e($c['color']) ?>"></span> <?= e($c['color']) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+
+        <?php elseif ($section === 'categorias'): ?>
+            <h1>Categorías</h1>
+            <div class="card">
+                <h2>Nueva categoría</h2>
+                <form method="POST">
+                    <input type="hidden" name="action" value="add_categoria">
+                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <div class="form-row">
+                        <div class="form-group"><label>Nombre *</label><input type="text" name="nombre" required></div>
+                        <div class="form-group"><label>Icono (emoji)</label><input type="text" name="icono" value="📚"></div>
+                        <div class="form-group"><label>Orden</label><input type="number" name="orden" value="0"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Crear categoría</button>
+                </form>
+            </div>
+            <table>
+                <tr><th>Icono</th><th>Nombre</th><th>Orden</th></tr>
+                <?php foreach ($categorias as $c): ?>
+                <tr><td><?= $c['icono'] ?></td><td><?= e($c['nombre']) ?></td><td><?= $c['orden'] ?></td></tr>
+                <?php endforeach; ?>
+            </table>
+
+        <?php elseif ($section === 'password'): ?>
+            <h1>Cambiar contraseña</h1>
+            <div class="card">
+                <form method="POST">
+                    <input type="hidden" name="action" value="change_password">
+                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <div class="form-group" style="max-width:400px;">
+                        <label>Nueva contraseña (mínimo 8 caracteres)</label>
+                        <input type="password" name="new_password" required minlength="8">
+                    </div>
+                    <br>
+                    <button type="submit" class="btn btn-primary">Actualizar contraseña</button>
+                </form>
+            </div>
+        <?php endif; ?>
+    </main>
+</div>
+</body>
+</html>

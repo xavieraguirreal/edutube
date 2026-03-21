@@ -8,8 +8,8 @@
 
     <!-- SEO -->
     <meta name="description" content="EduTube: plataforma de videos educativos curados para contextos con restricciones de acceso a redes sociales. Sin comentarios, sin algoritmos. Solo educación.">
-    <meta name="keywords" content="videos educativos, plataforma educativa, educación en contextos de encierro, Universidad Liberté">
-    <meta name="author" content="Universidad Liberté">
+    <meta name="keywords" content="videos educativos, plataforma educativa, educación en contextos de encierro, Comité de Convivencia Mario Juliano">
+    <meta name="author" content="Comité de Convivencia Mario Juliano">
     <link rel="canonical" href="https://edutube.universidadliberte.org/">
 
     <!-- Open Graph -->
@@ -111,7 +111,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
     </div>
     <div class="sidebar-footer">
         <strong>EduTube</strong> — Plataforma de Videos Educativos<br>
-        Universidad Liberté &copy; 2026
+        Comité de Convivencia Mario Juliano &copy; 2026
     </div>
 </nav>
 
