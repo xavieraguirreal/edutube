@@ -81,11 +81,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Canales</div>
-        <div id="sidebar-channels"><!-- se llena dinámicamente --></div>
-    </div>
-    <div class="sidebar-section">
-        <div class="sidebar-title">Listas de reproducción</div>
-        <div id="sidebar-playlists"><!-- se llena dinámicamente --></div>
+        <div id="sidebar-channels"><!-- canales + sus playlists --></div>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Tu actividad</div>
@@ -182,6 +178,7 @@ function formatViews(n) {
 // ── Data from API ──
 var ALL_VIDEOS = [];
 var ALL_CHANNELS = [];
+var ALL_PLAYLISTS = [];
 
 function loadVideos() {
     fetch('api.php?action=videos')
@@ -189,25 +186,46 @@ function loadVideos() {
         .then(function(data) {
             ALL_VIDEOS = data.videos || [];
             ALL_CHANNELS = data.canales || [];
-            buildSidebarChannels();
+            ALL_PLAYLISTS = data.playlists || [];
+            buildSidebar();
             buildChips();
             renderGrid();
-            loadPlaylists();
             updateBadges();
         });
 }
 
-function buildSidebarChannels() {
+function buildSidebar() {
     var container = document.getElementById('sidebar-channels');
     var html = '';
     ALL_CHANNELS.forEach(function(c) {
         html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '">' +
             '<span class="si-icon" style="color:' + c.color + '">●</span>' +
             '<span class="si-label">' + c.nombre + '</span></a>';
+        // Playlists de este canal (indentadas)
+        ALL_PLAYLISTS.forEach(function(p) {
+            if (String(p.canal_id) === String(c.id) && parseInt(p.total_videos) > 0) {
+                html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '" style="padding-left:2.5rem;font-size:0.82rem;">' +
+                    '<span class="si-icon" style="font-size:0.85rem;">📋</span>' +
+                    '<span class="si-label">' + p.nombre + '</span>' +
+                    '<span class="si-badge">' + p.total_videos + '</span></a>';
+            }
+        });
+    });
+    // Playlists sin canal
+    ALL_PLAYLISTS.forEach(function(p) {
+        if (!p.canal_id && parseInt(p.total_videos) > 0) {
+            html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '">' +
+                '<span class="si-icon">📋</span>' +
+                '<span class="si-label">' + p.nombre + '</span>' +
+                '<span class="si-badge">' + p.total_videos + '</span></a>';
+        }
     });
     container.innerHTML = html;
-    container.querySelectorAll('.sidebar-item').forEach(function(s) {
+    container.querySelectorAll('.sidebar-item[data-canal]').forEach(function(s) {
         s.addEventListener('click', function(e) { e.preventDefault(); filterCanal(this.getAttribute('data-canal')); closeSidebar(); });
+    });
+    container.querySelectorAll('.sidebar-item[data-playlist]').forEach(function(s) {
+        s.addEventListener('click', function(e) { e.preventDefault(); filterPlaylist(this.getAttribute('data-playlist')); closeSidebar(); });
     });
 }
 
@@ -221,31 +239,6 @@ function buildChips() {
     container.querySelectorAll('.chip').forEach(function(c) {
         c.addEventListener('click', function() { filterCanal(this.getAttribute('data-canal')); });
     });
-}
-
-function loadPlaylists() {
-    fetch('api.php?action=playlists')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            var pls = data.playlists || [];
-            var container = document.getElementById('sidebar-playlists');
-            if (pls.length === 0) { container.innerHTML = '<div style="padding:0.3rem 0.75rem;font-size:0.8rem;color:var(--text-muted);">Sin listas</div>'; return; }
-            var html = '';
-            pls.forEach(function(p) {
-                html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '">' +
-                    '<span class="si-icon">📋</span>' +
-                    '<span class="si-label">' + p.nombre + '</span>' +
-                    '<span class="si-badge">' + p.total_videos + '</span></a>';
-            });
-            container.innerHTML = html;
-            container.querySelectorAll('.sidebar-item').forEach(function(s) {
-                s.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    filterPlaylist(this.getAttribute('data-playlist'));
-                    closeSidebar();
-                });
-            });
-        });
 }
 
 function filterPlaylist(plId) {

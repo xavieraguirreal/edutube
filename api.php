@@ -28,7 +28,17 @@ if ($action === 'videos') {
     $canalesStmt = $db->query("SELECT id, nombre, codigo, color FROM canales WHERE activo = 1 ORDER BY nombre");
     $canales = $canalesStmt->fetchAll();
 
-    echo json_encode(['videos' => $videos, 'canales' => $canales], JSON_UNESCAPED_UNICODE);
+    // Playlists grouped by channel
+    $playlistsStmt = $db->query("
+        SELECT p.id, p.nombre, p.canal_id,
+               (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = p.id) AS total_videos
+        FROM playlists p
+        WHERE p.activa = 1
+        ORDER BY p.nombre
+    ");
+    $playlists = $playlistsStmt->fetchAll();
+
+    echo json_encode(['videos' => $videos, 'canales' => $canales, 'playlists' => $playlists], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
