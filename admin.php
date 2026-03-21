@@ -180,10 +180,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $canal = $stmt->fetch();
 
                 if (!$canal) {
-                    // Create channel
-                    $nombre = $_POST['canal_nombre'] ?? 'Canal importado';
-                    $codigo = $_POST['canal_codigo'] ?? 'CH';
-                    $color = $_POST['canal_color'] ?? '#2e8b47';
+                    // Get channel name from RSS feed
+                    $rssUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=" . urlencode($channelId);
+                    $rssXml = @simplexml_load_file($rssUrl);
+                    $autoNombre = $rssXml ? (string)$rssXml->title : '';
+
+                    $nombre = $_POST['canal_nombre'] ?: ($autoNombre ?: 'Canal importado');
+                    // Auto-generate code from name (first letters of each word, max 4)
+                    $palabras = preg_split('/\s+/', $nombre);
+                    $autoCodigo = '';
+                    foreach ($palabras as $p) { $autoCodigo .= mb_strtoupper(mb_substr($p, 0, 1)); }
+                    $autoCodigo = mb_substr($autoCodigo, 0, 4);
+
+                    $codigo = $_POST['canal_codigo'] !== 'CH' ? $_POST['canal_codigo'] : ($autoCodigo ?: 'CH');
+                    // Random color if not specified
+                    $colores = ['#2e8b47','#e63946','#9b5de5','#f77f00','#00b4d8','#e76f51','#6a994e','#bc4749'];
+                    $color = $_POST['canal_color'] !== '#2e8b47' ? $_POST['canal_color'] : $colores[array_rand($colores)];
+
                     $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color) VALUES (?, ?, ?, ?)");
                     $stmt->execute([$nombre, $channelId, $codigo, $color]);
                     $canalDbId = $db->lastInsertId();
@@ -439,6 +452,7 @@ $section = $_GET['s'] ?? 'dashboard';
             <h1>Importar canal</h1>
             <div class="card">
                 <h2>Importar últimos videos de un canal</h2>
+                <p style="font-size:0.85rem;color:#888;margin-bottom:1rem;">Solo necesitás pegar la URL. El nombre, código y color se autocompletan desde YouTube.</p>
                 <form method="POST">
                     <input type="hidden" name="action" value="import_channel">
                     <input type="hidden" name="csrf" value="<?= $csrf ?>">
@@ -447,28 +461,31 @@ $section = $_GET['s'] ?? 'dashboard';
                             <label>URL del canal *</label>
                             <input type="text" name="channel_url" placeholder="https://www.youtube.com/@canal" required>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" style="max-width:150px;">
                             <label>Cantidad de videos</label>
                             <input type="number" name="limit" value="15" min="1" max="50">
                         </div>
                     </div>
+                    <details style="margin-bottom:1rem;">
+                        <summary style="font-size:0.85rem;color:#555;cursor:pointer;margin-bottom:0.75rem;">Opciones avanzadas (se autocompletan si están vacías)</summary>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nombre del canal (auto)</label>
+                                <input type="text" name="canal_nombre" placeholder="Se obtiene de YouTube">
+                            </div>
+                            <div class="form-group" style="max-width:130px;">
+                                <label>Código (auto)</label>
+                                <input type="text" name="canal_codigo" value="CH" maxlength="4">
+                            </div>
+                            <div class="form-group" style="max-width:80px;">
+                                <label>Color (auto)</label>
+                                <input type="color" name="canal_color" value="#2e8b47">
+                            </div>
+                        </div>
+                    </details>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Nombre del canal</label>
-                            <input type="text" name="canal_nombre" placeholder="Nombre visible">
-                        </div>
-                        <div class="form-group">
-                            <label>Código (2-4 letras)</label>
-                            <input type="text" name="canal_codigo" value="CH" maxlength="4">
-                        </div>
-                        <div class="form-group">
-                            <label>Color</label>
-                            <input type="color" name="canal_color" value="#2e8b47">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Categoría por defecto</label>
+                            <label>Categoría por defecto (opcional)</label>
                             <select name="categoria_id">
                                 <option value="">— Sin categoría —</option>
                                 <?php foreach ($categorias as $c): ?>
