@@ -190,7 +190,7 @@ function loadVideos() {
             ALL_PLAYLISTS = data.playlists || [];
             buildSidebar();
             buildChips();
-            renderGrid();
+            showVideosWithSort(ALL_VIDEOS);
             updateBadges();
             document.getElementById('video-count').textContent = ALL_VIDEOS.length + ' videos';
         });
@@ -269,7 +269,7 @@ function filterPlaylist(plId) {
     if (side) side.classList.add('active');
     fetch('api.php?action=playlist&id=' + plId)
         .then(function(r) { return r.json(); })
-        .then(function(data) { renderGrid(data.videos || []); });
+        .then(function(data) { showVideosWithSort(data.videos || []); });
 }
 
 // ── Render ──
@@ -326,7 +326,7 @@ function clearAllActive() {
 function filterAll() {
     clearAllActive();
     document.querySelector('.chip[data-cat="todos"]').classList.add('active');
-    renderGrid();
+    showVideosWithSort(ALL_VIDEOS);
 }
 
 function filterCanal(canalId) {
@@ -387,9 +387,43 @@ function filterCanal(canalId) {
     if (btnAll) {
         btnAll.addEventListener('click', function() {
             var cid = this.getAttribute('data-canal');
-            renderGrid(ALL_VIDEOS.filter(function(v) { return String(v.canal_id) === String(cid); }));
+            showVideosWithSort(ALL_VIDEOS.filter(function(v) { return String(v.canal_id) === String(cid); }));
         });
     }
+}
+
+// ── Sort ──
+function sortVideos(videos, sortBy) {
+    var sorted = videos.slice();
+    switch (sortBy) {
+        case 'newest': sorted.sort(function(a,b) { return (b.fecha_yt||'').localeCompare(a.fecha_yt||''); }); break;
+        case 'oldest': sorted.sort(function(a,b) { return (a.fecha_yt||'').localeCompare(b.fecha_yt||''); }); break;
+        case 'popular': sorted.sort(function(a,b) { return (parseInt(b.vistas_yt)||0) - (parseInt(a.vistas_yt)||0); }); break;
+        case 'az': sorted.sort(function(a,b) { return (a.titulo||'').localeCompare(b.titulo||''); }); break;
+    }
+    return sorted;
+}
+
+function showVideosWithSort(videos, activeSort) {
+    activeSort = activeSort || 'newest';
+    var grid = document.getElementById('video-grid');
+    var sortBar = '<div class="sort-bar">' +
+        '<span class="sort-label">' + videos.length + ' videos · Ordenar por:</span>' +
+        '<button class="sort-btn' + (activeSort==='newest'?' active':'') + '" data-sort="newest">Más recientes</button>' +
+        '<button class="sort-btn' + (activeSort==='popular'?' active':'') + '" data-sort="popular">Más vistos</button>' +
+        '<button class="sort-btn' + (activeSort==='oldest'?' active':'') + '" data-sort="oldest">Más antiguos</button>' +
+        '<button class="sort-btn' + (activeSort==='az'?' active':'') + '" data-sort="az">A-Z</button>' +
+    '</div>';
+    var sorted = sortVideos(videos, activeSort);
+    // Temporarily render to get HTML
+    renderGrid(sorted);
+    grid.insertAdjacentHTML('afterbegin', sortBar);
+
+    grid.querySelectorAll('.sort-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            showVideosWithSort(videos, this.getAttribute('data-sort'));
+        });
+    });
 }
 
 function filterSpecial(type) {
@@ -397,7 +431,7 @@ function filterSpecial(type) {
     var chip = document.querySelector('.chip[data-filter="' + type + '"]');
     if (chip) chip.classList.add('active');
     var list = getStore(type);
-    renderGrid(ALL_VIDEOS.filter(function(v) { return list.indexOf(v.youtube_id) > -1; }));
+    showVideosWithSort(ALL_VIDEOS.filter(function(v) { return list.indexOf(v.youtube_id) > -1; }));
 }
 
 function doSearch(q) {

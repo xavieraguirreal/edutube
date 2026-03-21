@@ -394,6 +394,45 @@ button { font-family: inherit; }
 }
 
 /* ══════════════════════════════
+   SORT BAR
+   ══════════════════════════════ */
+.sort-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.sort-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-right: 0.3rem;
+}
+
+.sort-btn {
+    padding: 0.3rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sort-btn:hover { background: var(--bg-active); color: var(--text); }
+.sort-btn.active { background: var(--text); color: #fff; }
+
+@media (max-width: 768px) {
+    .sort-bar { padding: 0.4rem 0.75rem; }
+}
+
+/* ══════════════════════════════
    CHANNEL PAGE (inside grid)
    ══════════════════════════════ */
 .channel-header {
