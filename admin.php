@@ -289,8 +289,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $selectedPlaylists = $_POST['playlists'] ?? [];
                     }
                 $playlistsImported = 0;
+                $maxVideosPerRun = 50;
+                $totalNewVideos = 0;
 
                 foreach ($selectedPlaylists as $plYtId) {
+                    // Stop if we hit the limit
+                    if ($totalNewVideos >= $maxVideosPerRun) break;
+
                     // Get playlist info from YouTube API
                     $plData = youtubeApiGet('playlists', ['part' => 'snippet,contentDetails', 'id' => $plYtId]);
                     if (!$plData || empty($plData['items'])) continue;
@@ -319,6 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     // Get metadata for new videos
                     $newPlVideoIds = [];
                     foreach ($plVideoIds as $vid) {
+                        if ($totalNewVideos + count($newPlVideoIds) >= $maxVideosPerRun) break;
                         $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
                         $stmt->execute([$vid]);
                         if (!$stmt->fetch()) $newPlVideoIds[] = $vid;
@@ -343,6 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 $_SESSION['admin_nombre'] ?? 'admin'
                             ]);
                             $imported++;
+                            $totalNewVideos++;
                         }
                     }
 
@@ -367,6 +374,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     if ($selectedCount > 0 && $playlistsImported === 0) $parts[] = "$selectedCount playlists actualizadas";
                     if (!empty($parts)) {
                         $msg = "Importación completada: " . implode(', ', $parts) . ".";
+                        if ($totalNewVideos >= $maxVideosPerRun) {
+                            $msg .= " Se alcanzó el límite de $maxVideosPerRun videos por ejecución. Ejecutá de nuevo para continuar.";
+                        }
                     } else if (empty($msg)) {
                         $msg = "Todo al día. No hay contenido nuevo para importar.";
                     }
@@ -665,15 +675,15 @@ $section = $_GET['s'] ?? 'dashboard';
 
                     <!-- Sync all button -->
                     <div style="background:#eef7f0;border:1px solid #c3e6cb;border-radius:8px;padding:1rem;margin-bottom:1rem;">
-                        <div style="font-size:0.95rem;font-weight:600;margin-bottom:0.3rem;">⚡ Sincronizar canal completo</div>
-                        <div style="font-size:0.8rem;color:#555;margin-bottom:0.75rem;">Importa todas las playlists. Saltea las que ya están completas, actualiza las que tienen videos nuevos, y crea las que faltan.</div>
+                        <div style="font-size:0.95rem;font-weight:600;margin-bottom:0.3rem;">⚡ Sincronizar canal</div>
+                        <div style="font-size:0.8rem;color:#555;margin-bottom:0.75rem;">Importa todas las playlists (máx 50 videos nuevos por vez). Saltea las completas. Ejecutá varias veces hasta que esté todo sincronizado.</div>
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;margin-bottom:0.5rem;">
                             <input type="checkbox" name="sync_all" value="1">
-                            Sincronizar todas las playlists
+                            Sincronizar todas las playlists (máx 50 videos por ejecución)
                         </label>
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;">
                             <input type="checkbox" name="import_latest" value="1">
-                            + Últimos 50 videos sueltos del canal
+                            + Últimos videos sueltos del canal
                             <input type="hidden" name="limit" value="50">
                         </label>
                     </div>
