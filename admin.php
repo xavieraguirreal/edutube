@@ -144,6 +144,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     // Get metadata via YouTube API
                     $apiDetails = getVideoDetailsAPI([$ytId]);
                     $meta = $apiDetails[$ytId] ?? null;
+                    if (!$meta && empty($_POST['titulo'])) {
+                        $msg = 'El video no está disponible (puede ser privado o eliminado).'; $msgType = 'error';
+                    } else {
                     $titulo = $_POST['titulo'] ?: ($meta ? $meta['titulo'] : 'Sin título');
                     $desc = $_POST['descripcion'] ?: ($meta ? $meta['descripcion'] : '');
                     $duracion = $meta ? $meta['duracion'] : '';
@@ -165,6 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                     $msg = 'Video "' . e($titulo) . '" agregado correctamente.';
                     $msgType = 'success';
+                    }
                 }
             }
         }
@@ -224,16 +228,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                 $apiDetails = getVideoDetailsAPI($newIds);
                                 foreach ($newIds as $ytId) {
                                     $meta = $apiDetails[$ytId] ?? null;
+                                    if (!$meta) continue; // Skip private/deleted
                                     $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                                     $stmt->execute([
                                         $ytId,
-                                        $meta ? $meta['titulo'] : 'Sin título',
-                                        $meta ? $meta['descripcion'] : '',
+                                        $meta['titulo'],
+                                        $meta['descripcion'],
                                         $canalDbId, $catId,
-                                        $meta ? $meta['duracion'] : '',
-                                        $meta ? $meta['vistas'] : 0,
-                                        $meta ? $meta['fecha'] : date('Y-m-d'),
-                                        $meta ? $meta['tags'] : '',
+                                        $meta['duracion'],
+                                        $meta['vistas'],
+                                        $meta['fecha'],
+                                        $meta['tags'],
                                         $_SESSION['admin_nombre'] ?? 'admin'
                                     ]);
                                     $imported++;
@@ -334,18 +339,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $apiDetails = getVideoDetailsAPI($newPlVideoIds);
                         foreach ($newPlVideoIds as $vid) {
                             $meta = $apiDetails[$vid] ?? null;
-                            $embedding = null;
-                            $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                            // Skip private/deleted videos (API returns no data)
+                            if (!$meta) continue;
+                            $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                             $stmt->execute([
                                 $vid,
-                                $meta ? $meta['titulo'] : 'Sin título',
-                                $meta ? $meta['descripcion'] : '',
+                                $meta['titulo'],
+                                $meta['descripcion'],
                                 $canalDbId, $catId,
-                                $meta ? $meta['duracion'] : '',
-                                $meta ? $meta['vistas'] : 0,
-                                $meta ? $meta['fecha'] : date('Y-m-d'),
-                                $meta ? $meta['tags'] : '',
-                                $embedding ? json_encode($embedding) : null,
+                                $meta['duracion'],
+                                $meta['vistas'],
+                                $meta['fecha'],
+                                $meta['tags'],
                                 $_SESSION['admin_nombre'] ?? 'admin'
                             ]);
                             $imported++;
