@@ -462,7 +462,7 @@ $section = $_GET['s'] ?? 'dashboard';
                             <textarea name="descripcion"></textarea>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Agregar video</button>
+                    <button type="submit" class="btn btn-primary" onclick="this.disabled=true;this.innerHTML='⏳ Agregando...';this.form.submit();">Agregar video</button>
                 </form>
             </div>
 
@@ -563,7 +563,7 @@ $section = $_GET['s'] ?? 'dashboard';
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Importar <?= e($preview['nombre']) ?></button>
+                    <button type="submit" class="btn btn-primary" id="btn-import" onclick="this.disabled=true;this.innerHTML='⏳ Importando... esto puede tardar un momento';this.form.submit();">Importar <?= e($preview['nombre']) ?></button>
                 </form>
             </div>
             <?php endif; ?>
