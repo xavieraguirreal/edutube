@@ -46,6 +46,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <a href="index.php" class="logo">
             <img src="loguito-edutube.png" alt="EduTube" class="logo-icon">
             <span class="logo-text">EduTube</span>
+            <span class="logo-count" id="video-count"></span>
         </a>
     </div>
     <div class="topbar-center">
@@ -191,6 +192,7 @@ function loadVideos() {
             buildChips();
             renderGrid();
             updateBadges();
+            document.getElementById('video-count').textContent = ALL_VIDEOS.length + ' videos';
         });
 }
 
