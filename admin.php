@@ -241,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
                                 // Create auto-playlist for loose videos
                                 $canalNombre = $_POST['canal_nombre'] ?: $chInfo['nombre'];
-                                $autoPlName = $canalNombre . ' — Videos recientes';
+                                $autoPlName = $canalNombre . ' — Sin lista';
                                 $stmt = $db->prepare("SELECT id FROM playlists WHERE nombre = ? AND canal_id = ?");
                                 $stmt->execute([$autoPlName, $canalDbId]);
                                 $autoPlRow = $stmt->fetch();
@@ -255,8 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     $playlistsImported++;
                                 }
 
-                                // Link videos to auto-playlist
-                                // Get max order
+                                // Link ONLY videos not in any other playlist
                                 $stmt = $db->prepare("SELECT COALESCE(MAX(orden), -1) FROM playlist_videos WHERE playlist_id = ?");
                                 $stmt->execute([$autoPlId]);
                                 $maxOrden = intval($stmt->fetchColumn());
@@ -266,9 +265,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                     $stmt->execute([$vid]);
                                     $vRow = $stmt->fetch();
                                     if ($vRow) {
-                                        $maxOrden++;
-                                        $stmt = $db->prepare("INSERT IGNORE INTO playlist_videos (playlist_id, video_id, orden) VALUES (?, ?, ?)");
-                                        $stmt->execute([$autoPlId, $vRow['id'], $maxOrden]);
+                                        // Check if video is in any other playlist
+                                        $stmt2 = $db->prepare("SELECT COUNT(*) FROM playlist_videos WHERE video_id = ? AND playlist_id != ?");
+                                        $stmt2->execute([$vRow['id'], $autoPlId]);
+                                        if (intval($stmt2->fetchColumn()) === 0) {
+                                            $maxOrden++;
+                                            $stmt3 = $db->prepare("INSERT IGNORE INTO playlist_videos (playlist_id, video_id, orden) VALUES (?, ?, ?)");
+                                            $stmt3->execute([$autoPlId, $vRow['id'], $maxOrden]);
+                                        }
                                     }
                                 }
                             }
