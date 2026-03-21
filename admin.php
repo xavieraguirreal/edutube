@@ -139,8 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if ($stmt->fetch()) {
                     $msg = 'Este video ya está indexado.'; $msgType = 'error';
                 } else {
-                    // Try yt-dlp metadata
-                    $meta = getYouTubeMetadata($ytId);
+                    // Get metadata via YouTube API
+                    $apiDetails = getVideoDetailsAPI([$ytId]);
+                    $meta = $apiDetails[$ytId] ?? null;
                     $titulo = $_POST['titulo'] ?: ($meta ? $meta['titulo'] : 'Sin título');
                     $desc = $_POST['descripcion'] ?: ($meta ? $meta['descripcion'] : '');
                     $duracion = $meta ? $meta['duracion'] : '';
@@ -148,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $fecha = $meta ? $meta['fecha'] : date('Y-m-d');
                     $canalId = $_POST['canal_id'] ?: null;
                     $catId = $_POST['categoria_id'] ?: null;
-                    $tags = $_POST['tags'] ?? '';
+                    $tags = $_POST['tags'] ?: ($meta ? $meta['tags'] : '');
 
                     // Generate embedding
                     $embeddingText = $titulo . ' ' . $desc . ' ' . $tags;
@@ -204,38 +205,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $canalDbId = $canal['id'];
                 }
 
-                // Fetch videos from RSS
-                $videos = getChannelVideos($channelId, intval($_POST['limit'] ?? 15));
+                // Fetch video IDs from RSS
+                $rssVideos = getChannelVideos($channelId, intval($_POST['limit'] ?? 15));
                 $imported = 0;
                 $catId = $_POST['categoria_id'] ?: null;
 
-                foreach ($videos as $v) {
+                // Filter out already indexed
+                $newVideoIds = [];
+                foreach ($rssVideos as $v) {
                     $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
                     $stmt->execute([$v['youtube_id']]);
-                    if ($stmt->fetch()) continue;
-
-                    // Get metadata
-                    $meta = getYouTubeMetadata($v['youtube_id']);
-                    $titulo = $meta ? $meta['titulo'] : $v['titulo'];
-                    $desc = $meta ? $meta['descripcion'] : '';
-                    $duracion = $meta ? $meta['duracion'] : '';
-                    $vistas = $meta ? $meta['vistas'] : 0;
-                    $fecha = $meta ? $meta['fecha'] : $v['fecha'];
-
-                    // Embedding
-                    $embedding = getEmbedding($titulo . ' ' . $desc);
-
-                    $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([
-                        $v['youtube_id'], $titulo, $desc, $canalDbId, $catId,
-                        $duracion, $vistas, $fecha,
-                        $embedding ? json_encode($embedding) : null,
-                        $_SESSION['admin_nombre'] ?? 'admin'
-                    ]);
-                    $imported++;
+                    if (!$stmt->fetch()) {
+                        $newVideoIds[] = $v['youtube_id'];
+                    }
                 }
-                $msg = "Canal importado: $imported videos nuevos agregados.";
-                $msgType = 'success';
+
+                if (empty($newVideoIds)) {
+                    $msg = "No hay videos nuevos para importar (todos ya estaban indexados).";
+                    $msgType = 'success';
+                } else {
+                    // Get metadata in batch via YouTube API (much faster than yt-dlp)
+                    $apiDetails = getVideoDetailsAPI($newVideoIds);
+
+                    foreach ($newVideoIds as $ytId) {
+                        $meta = $apiDetails[$ytId] ?? null;
+                        $rssData = null;
+                        foreach ($rssVideos as $rv) { if ($rv['youtube_id'] === $ytId) { $rssData = $rv; break; } }
+
+                        $titulo = $meta ? $meta['titulo'] : ($rssData ? $rssData['titulo'] : 'Sin título');
+                        $desc = $meta ? $meta['descripcion'] : '';
+                        $duracion = $meta ? $meta['duracion'] : '';
+                        $vistas = $meta ? $meta['vistas'] : 0;
+                        $fecha = $meta ? $meta['fecha'] : ($rssData ? $rssData['fecha'] : date('Y-m-d'));
+                        $tags = $meta ? $meta['tags'] : '';
+
+                        // Embedding via OpenAI
+                        $embedding = getEmbedding($titulo . ' ' . $desc . ' ' . $tags);
+
+                        $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([
+                            $ytId, $titulo, $desc, $canalDbId, $catId,
+                            $duracion, $vistas, $fecha, $tags,
+                            $embedding ? json_encode($embedding) : null,
+                            $_SESSION['admin_nombre'] ?? 'admin'
+                        ]);
+                        $imported++;
+                    }
+                    $msg = "Canal importado: $imported videos nuevos agregados.";
+                    $msgType = 'success';
+                }
             }
         }
 
