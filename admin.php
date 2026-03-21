@@ -205,203 +205,203 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $canalDbId = $canal['id'];
                     }
 
-                    $imported = 0;
                     $catId = $_POST['categoria_id'] ?: null;
 
-                    // Import latest videos via uploads playlist (API only, no RSS)
-                    if (isset($_POST['import_latest'])) {
-                        $limit = intval($_POST['limit'] ?? 15);
-                        $uploadsPlaylist = $chInfo['uploads_playlist'] ?? '';
+                    // Fallback to channel's default category
+                    if (!$catId) {
+                        $stmtDefCat = $db->prepare("SELECT default_categoria_id FROM canales WHERE id = ?");
+                        $stmtDefCat->execute([$canalDbId]);
+                        $defCat = $stmtDefCat->fetchColumn();
+                        if ($defCat) $catId = $defCat;
+                    }
 
-                        if ($uploadsPlaylist) {
-                            $videoIds = getPlaylistVideoIds($uploadsPlaylist, $limit);
+                    $imported = 0;
+                    $playlistsImported = 0;
+                    $totalNewVideos = 0;
+                    $msgType = 'success';
 
-                            // Filter already indexed
-                            $newIds = [];
-                            foreach ($videoIds as $vid) {
-                                $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
-                                $stmt->execute([$vid]);
-                                if (!$stmt->fetch()) $newIds[] = $vid;
+                    if (isset($_POST['sync_all'])) {
+                        // Use shared sync function
+                        $syncResult = syncChannelAll($db, $channelId, $canalDbId, $catId, $_SESSION['admin_nombre'] ?? 'admin');
+                        $imported = $syncResult['imported'];
+                        $playlistsImported = $syncResult['playlists_imported'];
+                        $totalNewVideos = $syncResult['total_new'];
+
+                        $parts = [];
+                        if ($imported > 0) $parts[] = "$imported videos nuevos";
+                        if ($playlistsImported > 0) $parts[] = "$playlistsImported playlists nuevas";
+                        if (!empty($parts)) {
+                            $msg = "Importación completada: " . implode(', ', $parts) . ".";
+                            if ($syncResult['hit_limit']) {
+                                $msg .= " Se alcanzó el límite de 50 videos por ejecución. Ejecutá de nuevo para continuar.";
                             }
+                        } else {
+                            $msg = "Todo al día. No hay contenido nuevo para importar.";
+                        }
+                    } else {
+                        // Manual selection of playlists / loose videos
+                        $selectedPlaylists = $_POST['playlists'] ?? [];
+                        $maxVideosPerRun = 50;
 
-                            if (!empty($newIds)) {
-                                $apiDetails = getVideoDetailsAPI($newIds);
+                        // Import loose videos if selected
+                        if (isset($_POST['import_latest'])) {
+                            $limit = intval($_POST['limit'] ?? 15);
+                            $uploadsPlaylist = $chInfo['uploads_playlist'] ?? '';
 
-                                // Sort newest first
-                                usort($newIds, function($a, $b) use ($apiDetails) {
-                                    $fa = isset($apiDetails[$a]) ? $apiDetails[$a]['fecha'] : '';
-                                    $fb = isset($apiDetails[$b]) ? $apiDetails[$b]['fecha'] : '';
-                                    return strcmp($fb, $fa);
-                                });
+                            if ($uploadsPlaylist) {
+                                $videoIds = getPlaylistVideoIds($uploadsPlaylist, $limit);
 
-                                foreach ($newIds as $ytId) {
-                                    $meta = $apiDetails[$ytId] ?? null;
-                                    if (!$meta) continue;
-                                    $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                                    $stmt->execute([
-                                        $ytId,
-                                        $meta['titulo'],
-                                        $meta['descripcion'],
-                                        $canalDbId, $catId,
-                                        $meta['duracion'],
-                                        $meta['vistas'],
-                                        $meta['fecha'],
-                                        $meta['tags'],
-                                        $_SESSION['admin_nombre'] ?? 'admin'
-                                    ]);
-                                    $imported++;
-                                }
-
-                                // Create auto-playlist for loose videos
-                                $canalNombre = $_POST['canal_nombre'] ?: $chInfo['nombre'];
-                                $autoPlName = $canalNombre . ' — Sin lista';
-                                $stmt = $db->prepare("SELECT id FROM playlists WHERE nombre = ? AND canal_id = ?");
-                                $stmt->execute([$autoPlName, $canalDbId]);
-                                $autoPlRow = $stmt->fetch();
-
-                                if ($autoPlRow) {
-                                    $autoPlId = $autoPlRow['id'];
-                                } else {
-                                    $stmt = $db->prepare("INSERT INTO playlists (nombre, descripcion, canal_id) VALUES (?, ?, ?)");
-                                    $stmt->execute([$autoPlName, 'Videos importados del canal que no pertenecen a una playlist específica.', $canalDbId]);
-                                    $autoPlId = $db->lastInsertId();
-                                    $playlistsImported++;
-                                }
-
-                                // Link ONLY videos not in any other playlist
-                                $stmt = $db->prepare("SELECT COALESCE(MAX(orden), -1) FROM playlist_videos WHERE playlist_id = ?");
-                                $stmt->execute([$autoPlId]);
-                                $maxOrden = intval($stmt->fetchColumn());
-
+                                $newIds = [];
                                 foreach ($videoIds as $vid) {
                                     $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
                                     $stmt->execute([$vid]);
-                                    $vRow = $stmt->fetch();
-                                    if ($vRow) {
-                                        // Check if video is in any other playlist
-                                        $stmt2 = $db->prepare("SELECT COUNT(*) FROM playlist_videos WHERE video_id = ? AND playlist_id != ?");
-                                        $stmt2->execute([$vRow['id'], $autoPlId]);
-                                        if (intval($stmt2->fetchColumn()) === 0) {
-                                            $maxOrden++;
-                                            $stmt3 = $db->prepare("INSERT IGNORE INTO playlist_videos (playlist_id, video_id, orden) VALUES (?, ?, ?)");
-                                            $stmt3->execute([$autoPlId, $vRow['id'], $maxOrden]);
+                                    if (!$stmt->fetch()) $newIds[] = $vid;
+                                }
+
+                                if (!empty($newIds)) {
+                                    $apiDetails = getVideoDetailsAPI($newIds);
+
+                                    usort($newIds, function($a, $b) use ($apiDetails) {
+                                        $fa = isset($apiDetails[$a]) ? $apiDetails[$a]['fecha'] : '';
+                                        $fb = isset($apiDetails[$b]) ? $apiDetails[$b]['fecha'] : '';
+                                        return strcmp($fb, $fa);
+                                    });
+
+                                    foreach ($newIds as $ytId) {
+                                        $meta = $apiDetails[$ytId] ?? null;
+                                        if (!$meta) continue;
+                                        $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                        $stmt->execute([
+                                            $ytId, $meta['titulo'], $meta['descripcion'],
+                                            $canalDbId, $catId, $meta['duracion'],
+                                            $meta['vistas'], $meta['fecha'], $meta['tags'],
+                                            $_SESSION['admin_nombre'] ?? 'admin'
+                                        ]);
+                                        $imported++;
+                                        $totalNewVideos++;
+                                    }
+
+                                    // Create auto-playlist for loose videos
+                                    $canalNombre = $_POST['canal_nombre'] ?: $chInfo['nombre'];
+                                    $autoPlName = $canalNombre . ' — Sin lista';
+                                    $stmt = $db->prepare("SELECT id FROM playlists WHERE nombre = ? AND canal_id = ?");
+                                    $stmt->execute([$autoPlName, $canalDbId]);
+                                    $autoPlRow = $stmt->fetch();
+
+                                    if ($autoPlRow) {
+                                        $autoPlId = $autoPlRow['id'];
+                                    } else {
+                                        $stmt = $db->prepare("INSERT INTO playlists (nombre, descripcion, canal_id) VALUES (?, ?, ?)");
+                                        $stmt->execute([$autoPlName, 'Videos del canal que no pertenecen a una playlist específica.', $canalDbId]);
+                                        $autoPlId = $db->lastInsertId();
+                                        $playlistsImported++;
+                                    }
+
+                                    $stmt = $db->prepare("SELECT COALESCE(MAX(orden), -1) FROM playlist_videos WHERE playlist_id = ?");
+                                    $stmt->execute([$autoPlId]);
+                                    $maxOrden = intval($stmt->fetchColumn());
+
+                                    foreach ($videoIds as $vid) {
+                                        $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                                        $stmt->execute([$vid]);
+                                        $vRow = $stmt->fetch();
+                                        if ($vRow) {
+                                            $stmt2 = $db->prepare("SELECT COUNT(*) FROM playlist_videos WHERE video_id = ? AND playlist_id != ?");
+                                            $stmt2->execute([$vRow['id'], $autoPlId]);
+                                            if (intval($stmt2->fetchColumn()) === 0) {
+                                                $maxOrden++;
+                                                $stmt3 = $db->prepare("INSERT IGNORE INTO playlist_videos (playlist_id, video_id, orden) VALUES (?, ?, ?)");
+                                                $stmt3->execute([$autoPlId, $vRow['id'], $maxOrden]);
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    $msgType = 'success';
-
-                    // Sync all: select all playlists + loose videos
-                    if (isset($_POST['sync_all'])) {
-                        $allPlaylists = getChannelPlaylists($channelId);
-                        $selectedPlaylists = array_column($allPlaylists, 'youtube_id');
-                        $_POST['import_latest'] = '1'; // Also import loose videos
-                        $_POST['limit'] = 50;
-                    } else {
-                        $selectedPlaylists = $_POST['playlists'] ?? [];
-                    }
-                $playlistsImported = 0;
-                $maxVideosPerRun = 50;
-                $totalNewVideos = 0;
-
-                foreach ($selectedPlaylists as $plYtId) {
-                    // Stop if we hit the limit
-                    if ($totalNewVideos >= $maxVideosPerRun) break;
-
-                    // Get playlist info from YouTube API
-                    $plData = youtubeApiGet('playlists', ['part' => 'snippet,contentDetails', 'id' => $plYtId]);
-                    if (!$plData || empty($plData['items'])) continue;
-                    $plInfo = $plData['items'][0];
-                    $plNombre = $plInfo['snippet']['title'] ?? 'Playlist';
-                    $plDesc = $plInfo['snippet']['description'] ?? '';
-
-                    // Create playlist in DB (or get existing)
-                    $stmt = $db->prepare("SELECT id FROM playlists WHERE youtube_playlist_id = ?");
-                    $stmt->execute([$plYtId]);
-                    $existingPl = $stmt->fetch();
-
-                    if ($existingPl) {
-                        $plDbId = $existingPl['id'];
-                    } else {
-                        $stmt = $db->prepare("INSERT INTO playlists (nombre, descripcion, canal_id, youtube_playlist_id) VALUES (?, ?, ?, ?)");
-                        $stmt->execute([$plNombre, $plDesc, $canalDbId, $plYtId]);
-                        $plDbId = $db->lastInsertId();
-                        $playlistsImported++;
-                    }
-
-                    // Get ALL video IDs from playlist
-                    $plVideoIds = getPlaylistVideoIds($plYtId);
-                    if (empty($plVideoIds)) continue;
-
-                    // Get metadata for new videos
-                    $newPlVideoIds = [];
-                    foreach ($plVideoIds as $vid) {
-                        if ($totalNewVideos + count($newPlVideoIds) >= $maxVideosPerRun) break;
-                        $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
-                        $stmt->execute([$vid]);
-                        if (!$stmt->fetch()) $newPlVideoIds[] = $vid;
-                    }
-
-                    if (!empty($newPlVideoIds)) {
-                        $apiDetails = getVideoDetailsAPI($newPlVideoIds);
-
-                        // Sort by date newest first so limit cuts oldest
-                        usort($newPlVideoIds, function($a, $b) use ($apiDetails) {
-                            $fa = isset($apiDetails[$a]) ? $apiDetails[$a]['fecha'] : '';
-                            $fb = isset($apiDetails[$b]) ? $apiDetails[$b]['fecha'] : '';
-                            return strcmp($fb, $fa);
-                        });
-
-                        foreach ($newPlVideoIds as $vid) {
+                        // Import selected playlists
+                        foreach ($selectedPlaylists as $plYtId) {
                             if ($totalNewVideos >= $maxVideosPerRun) break;
-                            $meta = $apiDetails[$vid] ?? null;
-                            if (!$meta) continue;
-                            $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                            $stmt->execute([
-                                $vid,
-                                $meta['titulo'],
-                                $meta['descripcion'],
-                                $canalDbId, $catId,
-                                $meta['duracion'],
-                                $meta['vistas'],
-                                $meta['fecha'],
-                                $meta['tags'],
-                                $_SESSION['admin_nombre'] ?? 'admin'
-                            ]);
-                            $imported++;
-                            $totalNewVideos++;
-                        }
-                    }
 
-                    // Link all playlist videos (existing + new)
-                    $orden = 0;
-                    foreach ($plVideoIds as $vid) {
-                        $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
-                        $stmt->execute([$vid]);
-                        $videoRow = $stmt->fetch();
-                        if ($videoRow) {
-                            $stmt = $db->prepare("INSERT IGNORE INTO playlist_videos (playlist_id, video_id, orden) VALUES (?, ?, ?)");
-                            $stmt->execute([$plDbId, $videoRow['id'], $orden]);
-                        }
-                        $orden++;
-                    }
-                }
+                            $plData = youtubeApiGet('playlists', ['part' => 'snippet,contentDetails', 'id' => $plYtId]);
+                            if (!$plData || empty($plData['items'])) continue;
+                            $plInfo = $plData['items'][0];
 
-                    $parts = [];
-                    if ($imported > 0) $parts[] = "$imported videos nuevos";
-                    if ($playlistsImported > 0) $parts[] = "$playlistsImported playlists nuevas";
-                    $selectedCount = count($selectedPlaylists);
-                    if ($selectedCount > 0 && $playlistsImported === 0) $parts[] = "$selectedCount playlists actualizadas";
-                    if (!empty($parts)) {
-                        $msg = "Importación completada: " . implode(', ', $parts) . ".";
-                        if ($totalNewVideos >= $maxVideosPerRun) {
-                            $msg .= " Se alcanzó el límite de $maxVideosPerRun videos por ejecución. Ejecutá de nuevo para continuar.";
+                            $stmt = $db->prepare("SELECT id FROM playlists WHERE youtube_playlist_id = ?");
+                            $stmt->execute([$plYtId]);
+                            $existingPl = $stmt->fetch();
+
+                            if ($existingPl) {
+                                $plDbId = $existingPl['id'];
+                            } else {
+                                $stmt = $db->prepare("INSERT INTO playlists (nombre, descripcion, canal_id, youtube_playlist_id) VALUES (?, ?, ?, ?)");
+                                $stmt->execute([$plInfo['snippet']['title'] ?? 'Playlist', $plInfo['snippet']['description'] ?? '', $canalDbId, $plYtId]);
+                                $plDbId = $db->lastInsertId();
+                                $playlistsImported++;
+                            }
+
+                            $plVideoIds = getPlaylistVideoIds($plYtId);
+                            if (empty($plVideoIds)) continue;
+
+                            $newPlVideoIds = [];
+                            foreach ($plVideoIds as $vid) {
+                                if ($totalNewVideos + count($newPlVideoIds) >= $maxVideosPerRun) break;
+                                $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                                $stmt->execute([$vid]);
+                                if (!$stmt->fetch()) $newPlVideoIds[] = $vid;
+                            }
+
+                            if (!empty($newPlVideoIds)) {
+                                $apiDetails = getVideoDetailsAPI($newPlVideoIds);
+
+                                usort($newPlVideoIds, function($a, $b) use ($apiDetails) {
+                                    $fa = isset($apiDetails[$a]) ? $apiDetails[$a]['fecha'] : '';
+                                    $fb = isset($apiDetails[$b]) ? $apiDetails[$b]['fecha'] : '';
+                                    return strcmp($fb, $fa);
+                                });
+
+                                foreach ($newPlVideoIds as $vid) {
+                                    if ($totalNewVideos >= $maxVideosPerRun) break;
+                                    $meta = $apiDetails[$vid] ?? null;
+                                    if (!$meta) continue;
+                                    $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                    $stmt->execute([
+                                        $vid, $meta['titulo'], $meta['descripcion'],
+                                        $canalDbId, $catId, $meta['duracion'],
+                                        $meta['vistas'], $meta['fecha'], $meta['tags'],
+                                        $_SESSION['admin_nombre'] ?? 'admin'
+                                    ]);
+                                    $imported++;
+                                    $totalNewVideos++;
+                                }
+                            }
+
+                            $orden = 0;
+                            foreach ($plVideoIds as $vid) {
+                                $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                                $stmt->execute([$vid]);
+                                $videoRow = $stmt->fetch();
+                                if ($videoRow) {
+                                    $stmt = $db->prepare("INSERT IGNORE INTO playlist_videos (playlist_id, video_id, orden) VALUES (?, ?, ?)");
+                                    $stmt->execute([$plDbId, $videoRow['id'], $orden]);
+                                }
+                                $orden++;
+                            }
                         }
-                    } else if (empty($msg)) {
-                        $msg = "Todo al día. No hay contenido nuevo para importar.";
+
+                        $parts = [];
+                        if ($imported > 0) $parts[] = "$imported videos nuevos";
+                        if ($playlistsImported > 0) $parts[] = "$playlistsImported playlists nuevas";
+                        $selectedCount = count($selectedPlaylists);
+                        if ($selectedCount > 0 && $playlistsImported === 0) $parts[] = "$selectedCount playlists actualizadas";
+                        if (!empty($parts)) {
+                            $msg = "Importación completada: " . implode(', ', $parts) . ".";
+                            if ($totalNewVideos >= $maxVideosPerRun) {
+                                $msg .= " Se alcanzó el límite de $maxVideosPerRun videos por ejecución. Ejecutá de nuevo para continuar.";
+                            }
+                        } else if (empty($msg)) {
+                            $msg = "Todo al día. No hay contenido nuevo para importar.";
+                        }
                     }
                 }
             }
@@ -409,13 +409,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Add channel ──
         if ($action === 'add_channel') {
-            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion) VALUES (?, ?, ?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, auto_sync, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
-                $_POST['descripcion'] ?? ''
+                $_POST['descripcion'] ?? '',
+                isset($_POST['auto_sync']) ? 1 : 0,
+                $_POST['default_categoria_id'] ?: null
             ]);
             $msg = 'Canal creado correctamente.'; $msgType = 'success';
+        }
+
+        // ── Edit channel ──
+        if ($action === 'edit_channel') {
+            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, auto_sync=?, default_categoria_id=? WHERE id=?");
+            $stmt->execute([
+                $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
+                $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
+                $_POST['descripcion'] ?? '',
+                isset($_POST['auto_sync']) ? 1 : 0,
+                $_POST['default_categoria_id'] ?: null,
+                $_POST['canal_id']
+            ]);
+            $msg = 'Canal actualizado.'; $msgType = 'success';
         }
 
         // ── Add category ──
@@ -841,31 +857,74 @@ $section = $_GET['s'] ?? 'dashboard';
 
         <?php elseif ($section === 'canales'): ?>
             <h1>Canales</h1>
+
+            <?php
+            $editCanal = null;
+            if (isset($_GET['edit'])) {
+                $stmtEdit = $db->prepare("SELECT * FROM canales WHERE id = ?");
+                $stmtEdit->execute([$_GET['edit']]);
+                $editCanal = $stmtEdit->fetch();
+            }
+            ?>
+
             <div class="card">
-                <h2>Nuevo canal</h2>
+                <h2><?= $editCanal ? 'Editar canal' : 'Nuevo canal' ?></h2>
                 <form method="POST">
-                    <input type="hidden" name="action" value="add_channel">
+                    <input type="hidden" name="action" value="<?= $editCanal ? 'edit_channel' : 'add_channel' ?>">
                     <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <?php if ($editCanal): ?>
+                        <input type="hidden" name="canal_id" value="<?= $editCanal['id'] ?>">
+                    <?php endif; ?>
                     <div class="form-row">
-                        <div class="form-group"><label>Nombre *</label><input type="text" name="nombre" required></div>
-                        <div class="form-group"><label>YouTube Channel ID</label><input type="text" name="youtube_channel_id" placeholder="UC..."></div>
-                        <div class="form-group"><label>Código</label><input type="text" name="codigo" value="CH" maxlength="4"></div>
-                        <div class="form-group"><label>Color</label><input type="color" name="color" value="#2e8b47"></div>
+                        <div class="form-group"><label>Nombre *</label><input type="text" name="nombre" value="<?= e($editCanal['nombre'] ?? '') ?>" required></div>
+                        <div class="form-group"><label>YouTube Channel ID</label><input type="text" name="youtube_channel_id" placeholder="UC..." value="<?= e($editCanal['youtube_channel_id'] ?? '') ?>"></div>
+                        <div class="form-group"><label>Código</label><input type="text" name="codigo" value="<?= e($editCanal['codigo'] ?? 'CH') ?>" maxlength="4"></div>
+                        <div class="form-group"><label>Color</label><input type="color" name="color" value="<?= e($editCanal['color'] ?? '#2e8b47') ?>"></div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group"><label>Descripción</label><textarea name="descripcion"></textarea></div>
+                        <div class="form-group"><label>Descripción</label><textarea name="descripcion"><?= e($editCanal['descripcion'] ?? '') ?></textarea></div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Crear canal</button>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Categoría por defecto</label>
+                            <select name="default_categoria_id">
+                                <option value="">— Sin categoría —</option>
+                                <?php foreach ($categorias as $cat): ?>
+                                    <option value="<?= $cat['id'] ?>" <?= ($editCanal && $editCanal['default_categoria_id'] == $cat['id']) ? 'selected' : '' ?>><?= e($cat['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
+                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                                <input type="checkbox" name="auto_sync" value="1" <?= ($editCanal && $editCanal['auto_sync']) ? 'checked' : '' ?>>
+                                Sincronizar automático (cron)
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><?= $editCanal ? 'Guardar cambios' : 'Crear canal' ?></button>
+                    <?php if ($editCanal): ?>
+                        <a href="?s=canales" class="btn btn-outline" style="margin-left:0.5rem;">Cancelar</a>
+                    <?php endif; ?>
                 </form>
             </div>
             <table>
-                <tr><th>Nombre</th><th>Código</th><th>Channel ID</th><th>Color</th></tr>
-                <?php foreach ($canales as $c): ?>
+                <tr><th>Nombre</th><th>Código</th><th>Channel ID</th><th>Categoría</th><th>Auto-sync</th><th>Color</th><th>Acciones</th></tr>
+                <?php foreach ($canales as $c):
+                    $catNombre = '—';
+                    if (!empty($c['default_categoria_id'])) {
+                        foreach ($categorias as $cat) {
+                            if ($cat['id'] == $c['default_categoria_id']) { $catNombre = $cat['nombre']; break; }
+                        }
+                    }
+                ?>
                 <tr>
                     <td><?= e($c['nombre']) ?></td>
                     <td><?= e($c['codigo']) ?></td>
-                    <td><?= e($c['youtube_channel_id']) ?></td>
-                    <td><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:<?= e($c['color']) ?>"></span> <?= e($c['color']) ?></td>
+                    <td style="font-size:0.78rem;"><?= e($c['youtube_channel_id']) ?></td>
+                    <td><?= e($catNombre) ?></td>
+                    <td><span class="badge <?= !empty($c['auto_sync']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['auto_sync']) ? 'Sí' : 'No' ?></span></td>
+                    <td><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:<?= e($c['color']) ?>"></span></td>
+                    <td><a href="?s=canales&edit=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a></td>
                 </tr>
                 <?php endforeach; ?>
             </table>

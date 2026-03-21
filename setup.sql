@@ -18,7 +18,10 @@ CREATE TABLE canales (
     color VARCHAR(10) NOT NULL DEFAULT '#2e8b47',
     descripcion TEXT,
     activo TINYINT(1) NOT NULL DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    auto_sync TINYINT(1) NOT NULL DEFAULT 0,
+    default_categoria_id INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (default_categoria_id) REFERENCES categorias(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ── Categorías ──
@@ -114,6 +117,18 @@ CREATE TABLE busquedas (
     resultados INT NOT NULL DEFAULT 0,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_busquedas_fecha (fecha)
+) ENGINE=InnoDB;
+
+-- ── Log de sincronizaciones ──
+CREATE TABLE sync_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    canal_id INT,
+    videos_importados INT NOT NULL DEFAULT 0,
+    playlists_importadas INT NOT NULL DEFAULT 0,
+    errores TEXT,
+    ejecutado_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (canal_id) REFERENCES canales(id) ON DELETE SET NULL,
+    INDEX idx_sync_log_fecha (ejecutado_at)
 ) ENGINE=InnoDB;
 
 -- ── Login attempts (rate limiting) ──
