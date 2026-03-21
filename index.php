@@ -5,9 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTube — Videos Educativos</title>
     <link rel="icon" type="image/png" href="loguito-edutube.png">
+
+    <!-- SEO -->
+    <meta name="description" content="EduTube: plataforma de videos educativos curados para contextos con restricciones de acceso a redes sociales. Sin comentarios, sin algoritmos. Solo educación.">
+    <meta name="keywords" content="videos educativos, plataforma educativa, educación en contextos de encierro, Universidad Liberté">
+    <meta name="author" content="Universidad Liberté">
+    <link rel="canonical" href="https://edutube.universidadliberte.org/">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="EduTube — Videos Educativos">
+    <meta property="og:description" content="Contenido audiovisual educativo curado. Sin comentarios, sin algoritmos. Solo educación.">
+    <meta property="og:image" content="https://edutube.universidadliberte.org/loguito-edutube.png">
+    <meta property="og:url" content="https://edutube.universidadliberte.org">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="EduTube">
+    <meta property="og:locale" content="es_AR">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="EduTube — Videos Educativos">
+    <meta name="twitter:description" content="Contenido audiovisual educativo curado. Sin comentarios, sin algoritmos. Solo educación.">
+    <meta name="twitter:image" content="https://edutube.universidadliberte.org/loguito-edutube.png">
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<script>
+// Redirect first-time visitors to landing page
+if (!localStorage.getItem('edutube_welcomed')) {
+    window.location.replace('landing.php');
+}
+</script>
 
 <!-- ── TOPBAR ── -->
 <header class="topbar">
@@ -170,7 +198,7 @@ function renderGrid(filterFn) {
         var ch = CHANNELS[v.canal];
         var isWL = isInStore('watchlater', id);
         html += '<div class="video-card" data-id="' + id + '">' +
-            '<a href="ver.php?id=' + id + '" class="thumb">' +
+            '<a href="watch?v=' + id + '" class="thumb">' +
                 '<img src="https://img.youtube.com/vi/' + id + '/mqdefault.jpg" alt="" loading="lazy">' +
                 '<span class="duration-badge">' + v.duracion + '</span>' +
                 '<div class="thumb-actions">' +
@@ -180,7 +208,7 @@ function renderGrid(filterFn) {
             '<div class="card-info">' +
                 '<div class="channel-avatar" style="background:' + ch.color + '">' + ch.code + '</div>' +
                 '<div class="card-text">' +
-                    '<a href="ver.php?id=' + id + '" class="card-title">' + v.titulo + '</a>' +
+                    '<a href="watch?v=' + id + '" class="card-title">' + v.titulo + '</a>' +
                     '<div class="card-channel">' + ch.nombre + '</div>' +
                     '<div class="card-stats">' + formatViews(v.vistas) + ' reproducciones · ' + timeAgo(v.fecha) + '</div>' +
                 '</div>' +

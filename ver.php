@@ -13,6 +13,14 @@
     ">
     <title>EduTube</title>
     <link rel="icon" type="image/png" href="loguito-edutube.png">
+
+    <!-- SEO base (se actualiza dinámicamente con JS) -->
+    <meta name="description" content="Video educativo en EduTube — Plataforma de videos educativos curados.">
+    <meta property="og:site_name" content="EduTube">
+    <meta property="og:type" content="video.other">
+    <meta property="og:locale" content="es_AR">
+    <meta name="twitter:card" content="summary_large_image">
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -94,6 +102,23 @@ function formatDate(dateStr) {
     var ch = CHANNELS[video.canal];
     document.title = video.titulo + ' — EduTube';
 
+    // Update meta tags for sharing
+    function setMeta(attr, val, content) {
+        var el = document.querySelector('meta[' + attr + '="' + val + '"]');
+        if (el) el.setAttribute('content', content);
+        else { el = document.createElement('meta'); el.setAttribute(attr, val); el.setAttribute('content', content); document.head.appendChild(el); }
+    }
+    var shareUrl = window.location.origin + '/watch?v=' + videoId;
+    var thumbUrl = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
+    setMeta('name', 'description', video.titulo + ' — ' + ch.nombre + ' en EduTube');
+    setMeta('property', 'og:title', video.titulo);
+    setMeta('property', 'og:description', video.descripcion);
+    setMeta('property', 'og:image', thumbUrl);
+    setMeta('property', 'og:url', shareUrl);
+    setMeta('name', 'twitter:title', video.titulo);
+    setMeta('name', 'twitter:description', video.descripcion);
+    setMeta('name', 'twitter:image', thumbUrl);
+
     // Save to history
     var hist = getStore('history');
     hist = hist.filter(function(h) { return h !== videoId; });
@@ -115,7 +140,7 @@ function formatDate(dateStr) {
     relatedIds.forEach(function(id) {
         var v = VIDEOS[id];
         var rc = CHANNELS[v.canal];
-        relacionados += '<a href="ver.php?id=' + id + '" class="related-card">' +
+        relacionados += '<a href="watch?v=' + id + '" class="related-card">' +
             '<div class="r-thumb">' +
                 '<img src="https://img.youtube.com/vi/' + id + '/mqdefault.jpg" alt="" loading="lazy">' +
                 '<span class="r-duration">' + v.duracion + '</span>' +
