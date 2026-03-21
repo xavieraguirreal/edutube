@@ -380,7 +380,7 @@
         </div>
         <h1>Educación audiovisual <em>sin barreras</em></h1>
         <p>Una plataforma de videos educativos curados, diseñada para contextos donde el acceso a redes sociales está restringido. Sin comentarios, sin algoritmos, sin distracciones. Solo contenido que transforma.</p>
-        <a href="index.php" class="hero-cta" id="enter-btn">
+        <a href="/" class="hero-cta" id="enter-btn">
             Ingresar a EduTube →
         </a>
     </div>
@@ -501,7 +501,7 @@
         Plataforma desarrollada por <strong>VERUMax</strong> para la Universidad Liberté, solicitado por el Comité de Convivencia Mario Juliano.<br>
         Provincia de Buenos Aires, Argentina.
     </p>
-    <a href="index.php" class="footer-cta" id="enter-btn-footer">Ingresar a EduTube →</a>
+    <a href="/" class="footer-cta" id="enter-btn-footer">Ingresar a EduTube →</a>
 </footer>
 
 <script>

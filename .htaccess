@@ -1,4 +1,10 @@
 RewriteEngine On
 
-# /watch?v=VIDEO_ID → ver.php (query string passes through via QSA)
+# Default page: index.php (so / loads index.php without showing filename)
+DirectoryIndex index.php
+
+# /watch?v=VIDEO_ID → ver.php
 RewriteRule ^watch$ ver.php [QSA,L]
+
+# /landing → landing.php
+RewriteRule ^landing$ landing.php [L]

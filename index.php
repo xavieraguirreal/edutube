@@ -33,7 +33,7 @@
 <script>
 // Redirect first-time visitors to landing page
 if (!localStorage.getItem('edutube_welcomed')) {
-    window.location.replace('landing.php');
+    window.location.replace('landing');
 }
 </script>
 
