@@ -245,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $msg = $imported > 0 ? "Canal importado: $imported videos nuevos." : "No hay videos nuevos para importar.";
                     $msgType = 'success';
 
-                // Import selected playlists
+                    // Import selected playlists
                 $selectedPlaylists = $_POST['playlists'] ?? [];
                 $playlistsImported = 0;
 
@@ -319,8 +319,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                 }
 
-                if ($playlistsImported > 0) {
-                    $msg .= " + $playlistsImported playlists creadas.";
+                    if ($playlistsImported > 0) {
+                        $msg .= " + $playlistsImported playlists creadas.";
+                    }
                 }
             }
         }
