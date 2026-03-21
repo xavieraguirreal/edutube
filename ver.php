@@ -90,7 +90,7 @@ function formatDate(dateStr) {
 // ── Main ──
 (function() {
     var params = new URLSearchParams(window.location.search);
-    var videoId = params.get('id');
+    var videoId = params.get('v') || params.get('id');
     var video = VIDEOS[videoId];
     var page = document.getElementById('player-page');
 
