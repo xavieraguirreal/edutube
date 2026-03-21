@@ -19,12 +19,14 @@ if (php_sapi_name() !== 'cli' && ($_GET['token'] ?? '') !== $cronToken) {
 set_time_limit(600);
 ini_set('memory_limit', '256M');
 
-// Log buffer para output web
+// Log: buffer + archivo local
 $logBuffer = [];
+$logFile = __DIR__ . '/cron-sync.log';
 function logMsg($msg) {
-    global $logBuffer;
+    global $logBuffer, $logFile;
     $line = date('Y-m-d H:i:s') . " | $msg";
     $logBuffer[] = $line;
+    file_put_contents($logFile, $line . "\n", FILE_APPEND);
 }
 
 require_once __DIR__ . '/config.php';

@@ -10,6 +10,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Logs
+cron-sync.log
+
 # Misc
 *.docx
 Captura de pantalla*
