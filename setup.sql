@@ -3,11 +3,11 @@
 -- Ejecutar en MySQL 5.7+ / MariaDB
 -- ═══════════════════════════════════════════
 
-CREATE DATABASE IF NOT EXISTS edutube
+CREATE DATABASE IF NOT EXISTS ulib_edutube
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-USE edutube;
+USE ulib_edutube;
 
 -- ── Canales ──
 CREATE TABLE canales (
