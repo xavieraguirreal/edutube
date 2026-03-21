@@ -37,102 +37,24 @@
 
 <main class="main player-page" id="player-page"></main>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<script src="videos.js"></script>
 <script>
-var VIDEOS = {
-    'Xw2zGp-Fjr8': {
-        titulo: 'Adultocentrismo y producción de subjetividad en contextos de exclusión',
-        descripcion: 'Encuentro Liberté del 28/02/2026. Análisis sobre adultocentrismo y la producción de subjetividad en contextos de exclusión social. Se abordan las dinámicas de poder intergeneracionales y su impacto en personas en situación de vulnerabilidad.',
-        categoria: 'Encuentros Liberté', catCode: 'EL',
-        duracion: '2:13:18', vistas: 101, fecha: '2026-03-01',
-        tags: ['adultocentrismo', 'subjetividad', 'exclusión']
-    },
-    'iTGbnWacFxw': {
-        titulo: '5ta Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '5ta clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina. Se analizan las condiciones de detención y los marcos legales que afectan a mujeres en el sistema penitenciario latinoamericano.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:55:29', vistas: 163, fecha: '2026-02-21',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género']
-    },
-    'bKnEOaW1hsc': {
-        titulo: '4ta Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '4ta clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:53:42', vistas: 147, fecha: '2026-02-20',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género']
-    },
-    'hHYjl0R0F3I': {
-        titulo: '3er Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '3er clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:54:10', vistas: 180, fecha: '2026-02-19',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género']
-    },
-    'T4XPU8vvviw': {
-        titulo: '2da Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '2da clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:49:17', vistas: 206, fecha: '2026-02-18',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género']
-    },
-    '9-6TrW8JBWg': {
-        titulo: '1er Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '1er clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:48:40', vistas: 339, fecha: '2026-02-17',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género']
-    },
-    'pqs4xltUE48': {
-        titulo: 'Encuentro Liberté — 31/01/2026',
-        descripcion: 'Encuentro Liberté del 31 de enero de 2026. Espacio de debate y reflexión sobre temas de interés social y educativo.',
-        categoria: 'Encuentros Liberté', catCode: 'EL',
-        duracion: '2:11:00', vistas: 124, fecha: '2026-02-01',
-        tags: ['encuentro', 'liberté', 'debate']
-    },
-    'BRHahRFVmQ8': {
-        titulo: 'Clase 15 — Cambio de Paradigma',
-        descripcion: 'Clase 15 del curso Cambio de Paradigma. Última clase del ciclo donde se reflexiona sobre los aprendizajes y se proyectan nuevos desafíos.',
-        categoria: 'Cambio de Paradigma', catCode: 'CP',
-        duracion: '3:00:36', vistas: 236, fecha: '2025-12-14',
-        tags: ['paradigma', 'cambio', 'sociedad']
-    },
-    'ZbSTrUSRU-4': {
-        titulo: 'Clase 14 — Salud Mental',
-        descripcion: 'Clase 14 sobre Salud Mental. Abordaje de la salud mental en contextos de privación de libertad y estrategias de acompañamiento.',
-        categoria: 'Cambio de Paradigma', catCode: 'CP',
-        duracion: '3:00:01', vistas: 396, fecha: '2025-11-30',
-        tags: ['salud mental', 'bienestar', 'paradigma']
-    },
-    'hO0V0y_Yn2U': {
-        titulo: 'Clase 9 — Última Jornada',
-        descripcion: 'Clase 9, última jornada del curso. Cierre del primer ciclo de formación.',
-        categoria: 'Cambio de Paradigma', catCode: 'CP',
-        duracion: '1:29:26', vistas: 107, fecha: '2025-11-29',
-        tags: ['jornada', 'paradigma', 'cierre']
-    }
-};
-
 // ── Helpers ──
 function getStore(key) { try { return JSON.parse(localStorage.getItem('edutube_' + key)) || []; } catch(e) { return []; } }
 function setStore(key, val) { localStorage.setItem('edutube_' + key, JSON.stringify(val)); }
 function toggleStore(key, id) {
-    var list = getStore(key);
-    var i = list.indexOf(id);
+    var list = getStore(key); var i = list.indexOf(id);
     if (i > -1) list.splice(i, 1); else list.push(id);
-    setStore(key, list);
-    return i === -1;
+    setStore(key, list); return i === -1;
 }
 function isInStore(key, id) { return getStore(key).indexOf(id) > -1; }
 
 var toastTimer;
 function showToast(msg) {
-    var t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2500);
+    var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2500);
 }
 
 function timeAgo(dateStr) {
@@ -169,6 +91,7 @@ function formatDate(dateStr) {
         return;
     }
 
+    var ch = CHANNELS[video.canal];
     document.title = video.titulo + ' — EduTube';
 
     // Save to history
@@ -178,19 +101,20 @@ function formatDate(dateStr) {
     if (hist.length > 50) hist = hist.slice(0, 50);
     setStore('history', hist);
 
-    // Related
-    var sameCat = [], otherCat = [];
+    // Related: same channel first, then others
+    var sameCh = [], otherCh = [];
     Object.keys(VIDEOS).forEach(function(id) {
         if (id !== videoId) {
-            if (VIDEOS[id].categoria === video.categoria) sameCat.push(id);
-            else otherCat.push(id);
+            if (VIDEOS[id].canal === video.canal) sameCh.push(id);
+            else otherCh.push(id);
         }
     });
-    var relatedIds = sameCat.concat(otherCat).slice(0, 8);
+    var relatedIds = sameCh.concat(otherCh).slice(0, 10);
 
     var relacionados = '';
     relatedIds.forEach(function(id) {
         var v = VIDEOS[id];
+        var rc = CHANNELS[v.canal];
         relacionados += '<a href="ver.php?id=' + id + '" class="related-card">' +
             '<div class="r-thumb">' +
                 '<img src="https://img.youtube.com/vi/' + id + '/mqdefault.jpg" alt="" loading="lazy">' +
@@ -198,7 +122,7 @@ function formatDate(dateStr) {
             '</div>' +
             '<div class="r-info">' +
                 '<div class="r-title">' + v.titulo + '</div>' +
-                '<div class="r-meta">Cooperativa Liberté</div>' +
+                '<div class="r-meta">' + rc.nombre + '</div>' +
                 '<div class="r-meta">' + formatViews(v.vistas) + ' repr. · ' + timeAgo(v.fecha) + '</div>' +
             '</div></a>';
     });
@@ -223,9 +147,7 @@ function formatDate(dateStr) {
                         '<div class="yt-shield-bottom"></div>' +
                     '</div>' +
                     '<div class="custom-controls">' +
-                        '<button id="btn-play" class="ctrl-btn" title="Reproducir">' +
-                            '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' +
-                        '</button>' +
+                        '<button id="btn-play" class="ctrl-btn" title="Reproducir"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>' +
                         '<div class="ctrl-vol-group">' +
                             '<button id="btn-mute" class="ctrl-btn" title="Silenciar">' +
                                 '<svg id="icon-vol" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>' +
@@ -240,35 +162,20 @@ function formatDate(dateStr) {
                             '<input type="range" id="progress-bar" class="ctrl-progress" min="0" max="1000" value="0">' +
                             '<div class="ctrl-progress-fill" id="progress-fill"></div>' +
                         '</div>' +
-                        '<button id="btn-fullscreen" class="ctrl-btn" title="Pantalla completa">' +
-                            '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>' +
-                        '</button>' +
+                        '<button id="btn-fullscreen" class="ctrl-btn" title="Pantalla completa"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>' +
                     '</div>' +
                 '</div>' +
-
                 '<div class="video-info">' +
                     '<h1>' + video.titulo + '</h1>' +
                     '<div class="video-info-row">' +
                         '<div class="video-info-channel">' +
-                            '<div class="ch-avatar">' + video.catCode + '</div>' +
-                            '<div>' +
-                                '<div class="ch-name">Cooperativa Liberté</div>' +
-                                '<div class="ch-subs">' + video.categoria + '</div>' +
-                            '</div>' +
+                            '<div class="ch-avatar" style="background:' + ch.color + '">' + ch.code + '</div>' +
+                            '<div><div class="ch-name">' + ch.nombre + '</div><div class="ch-subs">' + video.categoria + '</div></div>' +
                         '</div>' +
                         '<div class="video-actions">' +
-                            '<button class="action-btn' + (isLiked ? ' active' : '') + '" id="btn-like">' +
-                                '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>' +
-                                '<span id="like-label">' + (isLiked ? 'Te gusta' : 'Me gusta') + '</span>' +
-                            '</button>' +
-                            '<button class="action-btn' + (isWL ? ' active' : '') + '" id="btn-save">' +
-                                '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>' +
-                                '<span id="save-label">' + (isWL ? 'Guardado' : 'Ver después') + '</span>' +
-                            '</button>' +
-                            '<a href="index.php" class="action-btn">' +
-                                '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>' +
-                                'Inicio' +
-                            '</a>' +
+                            '<button class="action-btn' + (isLiked ? ' active' : '') + '" id="btn-like"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><span id="like-label">' + (isLiked ? 'Te gusta' : 'Me gusta') + '</span></button>' +
+                            '<button class="action-btn' + (isWL ? ' active' : '') + '" id="btn-save"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg><span id="save-label">' + (isWL ? 'Guardado' : 'Ver después') + '</span></button>' +
+                            '<a href="index.php" class="action-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Inicio</a>' +
                         '</div>' +
                     '</div>' +
                     '<div class="video-description" id="video-desc">' +
@@ -278,31 +185,25 @@ function formatDate(dateStr) {
                     '</div>' +
                 '</div>' +
             '</div>' +
-
             '<div class="player-sidebar">' +
-                '<div class="related-chips">' +
-                    '<button class="chip active">Todos</button>' +
-                    '<button class="chip">' + video.categoria + '</button>' +
-                '</div>' +
+                '<div class="related-title">Videos relacionados</div>' +
                 '<div class="related-list">' + relacionados + '</div>' +
             '</div>' +
         '</div>';
 
-    // ── Description toggle ──
+    // Description toggle
     document.getElementById('video-desc').addEventListener('click', function() {
         this.classList.toggle('expanded');
         document.getElementById('desc-toggle').textContent = this.classList.contains('expanded') ? 'Mostrar menos' : 'Mostrar más';
     });
 
-    // ── Like ──
+    // Like & Save
     document.getElementById('btn-like').addEventListener('click', function() {
         var added = toggleStore('liked', videoId);
         this.classList.toggle('active', added);
         document.getElementById('like-label').textContent = added ? 'Te gusta' : 'Me gusta';
         showToast(added ? 'Agregado a Me gusta' : 'Quitado de Me gusta');
     });
-
-    // ── Watch later ──
     document.getElementById('btn-save').addEventListener('click', function() {
         var added = toggleStore('watchlater', videoId);
         this.classList.toggle('active', added);
@@ -310,16 +211,13 @@ function formatDate(dateStr) {
         showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');
     });
 
-    // ── Search redirect ──
+    // Search redirect
     document.getElementById('search-top-btn').addEventListener('click', function() {
         var q = document.getElementById('search-top').value.trim();
         if (q) window.location.href = 'index.php?q=' + encodeURIComponent(q);
     });
     document.getElementById('search-top').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            var q = this.value.trim();
-            if (q) window.location.href = 'index.php?q=' + encodeURIComponent(q);
-        }
+        if (e.key === 'Enter') { var q = this.value.trim(); if (q) window.location.href = 'index.php?q=' + encodeURIComponent(q); }
     });
 
     // ── YouTube IFrame API ──
@@ -330,12 +228,8 @@ function formatDate(dateStr) {
     var player, progressInterval, isMuted = false;
 
     window.onYouTubeIframeAPIReady = function() {
-        player = new YT.Player('yt-player', {
-            events: { onReady: onReady, onStateChange: onState }
-        });
+        player = new YT.Player('yt-player', { events: { onReady: function() { updateTotal(); setTimeout(updateTotal, 2000); }, onStateChange: onState } });
     };
-
-    function onReady() { updateTotal(); setTimeout(updateTotal, 2000); }
 
     function onState(e) {
         var btn = document.getElementById('btn-play');
@@ -373,14 +267,13 @@ function formatDate(dateStr) {
 
     document.getElementById('btn-play').addEventListener('click', function() {
         if (!player) return;
-        if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
-        else player.playVideo();
+        if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo(); else player.playVideo();
     });
 
     document.getElementById('btn-mute').addEventListener('click', function() {
         if (!player) return;
         isMuted = !isMuted;
-        if (isMuted) { player.mute(); } else { player.unMute(); }
+        if (isMuted) player.mute(); else player.unMute();
         document.getElementById('icon-vol').style.display = isMuted ? 'none' : '';
         document.getElementById('icon-muted').style.display = isMuted ? '' : 'none';
         document.getElementById('volume-slider').value = isMuted ? 0 : player.getVolume();
@@ -388,10 +281,8 @@ function formatDate(dateStr) {
 
     document.getElementById('volume-slider').addEventListener('input', function() {
         if (!player) return;
-        var v = parseInt(this.value);
-        player.setVolume(v);
-        if (v === 0) { player.mute(); isMuted = true; }
-        else if (isMuted) { player.unMute(); isMuted = false; }
+        var v = parseInt(this.value); player.setVolume(v);
+        if (v === 0) { player.mute(); isMuted = true; } else if (isMuted) { player.unMute(); isMuted = false; }
         document.getElementById('icon-vol').style.display = isMuted ? 'none' : '';
         document.getElementById('icon-muted').style.display = isMuted ? '' : 'none';
     });

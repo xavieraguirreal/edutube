@@ -29,7 +29,6 @@
         </div>
     </div>
     <div class="topbar-right">
-        <!-- Mobile search toggle -->
         <button class="icon-btn mobile-search-btn" id="mobile-search-toggle" title="Buscar">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         </button>
@@ -41,7 +40,7 @@
     <button class="icon-btn" id="mobile-search-close">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
     </button>
-    <input type="text" class="search-input" id="mobile-search-input" placeholder="Buscar videos..." autofocus>
+    <input type="text" class="search-input" id="mobile-search-input" placeholder="Buscar videos...">
 </div>
 
 <!-- ── SIDEBAR ── -->
@@ -49,52 +48,37 @@
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-section">
         <a href="index.php" class="sidebar-item active" data-cat="todos">
-            <span class="si-icon">🏠</span>
-            <span class="si-label">Inicio</span>
+            <span class="si-icon">🏠</span><span class="si-label">Inicio</span>
         </a>
     </div>
     <div class="sidebar-section">
-        <div class="sidebar-title">Categorías</div>
-        <a href="#" class="sidebar-item" data-cat="Cursos">
-            <span class="si-icon">📖</span>
-            <span class="si-label">Cursos</span>
+        <div class="sidebar-title">Canales</div>
+        <a href="#" class="sidebar-item" data-canal="liberte">
+            <span class="si-icon">🟢</span><span class="si-label">Cooperativa Liberté</span>
         </a>
-        <a href="#" class="sidebar-item" data-cat="Encuentros Liberté">
-            <span class="si-icon">🎓</span>
-            <span class="si-label">Encuentros Liberté</span>
+        <a href="#" class="sidebar-item" data-canal="infobae">
+            <span class="si-icon">🔴</span><span class="si-label">Infobae</span>
         </a>
-        <a href="#" class="sidebar-item" data-cat="Cambio de Paradigma">
-            <span class="si-icon">🔄</span>
-            <span class="si-label">Cambio de Paradigma</span>
+        <a href="#" class="sidebar-item" data-canal="aterciopelados">
+            <span class="si-icon">🟣</span><span class="si-label">Aterciopelados</span>
+        </a>
+        <a href="#" class="sidebar-item" data-canal="a24">
+            <span class="si-icon">🟠</span><span class="si-label">A24</span>
         </a>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Tu actividad</div>
         <a href="#" class="sidebar-item" id="nav-history">
-            <span class="si-icon">⏱️</span>
-            <span class="si-label">Historial</span>
+            <span class="si-icon">⏱️</span><span class="si-label">Historial</span>
             <span class="si-badge" id="history-count" style="display:none">0</span>
         </a>
         <a href="#" class="sidebar-item" id="nav-watchlater">
-            <span class="si-icon">🕐</span>
-            <span class="si-label">Ver después</span>
+            <span class="si-icon">🕐</span><span class="si-label">Ver después</span>
             <span class="si-badge" id="watchlater-count" style="display:none">0</span>
         </a>
         <a href="#" class="sidebar-item" id="nav-liked">
-            <span class="si-icon">👍</span>
-            <span class="si-label">Videos que me gustan</span>
+            <span class="si-icon">👍</span><span class="si-label">Videos que me gustan</span>
             <span class="si-badge" id="liked-count" style="display:none">0</span>
-        </a>
-    </div>
-    <div class="sidebar-section">
-        <div class="sidebar-title">Listas de reproducción</div>
-        <a href="#" class="sidebar-item" data-playlist="mujeres-al">
-            <span class="si-icon">📋</span>
-            <span class="si-label">Mujeres en América Latina</span>
-        </a>
-        <a href="#" class="sidebar-item" data-playlist="cambio-paradigma">
-            <span class="si-icon">📋</span>
-            <span class="si-label">Cambio de Paradigma</span>
         </a>
     </div>
     <div class="sidebar-footer">
@@ -107,14 +91,14 @@
 <main class="main" id="main-content">
     <div class="chips" id="chips">
         <button class="chip active" data-cat="todos">Todos</button>
-        <button class="chip" data-cat="Cursos">Cursos</button>
-        <button class="chip" data-cat="Encuentros Liberté">Encuentros</button>
-        <button class="chip" data-cat="Cambio de Paradigma">Cambio de Paradigma</button>
+        <button class="chip" data-canal="liberte">Liberté</button>
+        <button class="chip" data-canal="infobae">Infobae</button>
+        <button class="chip" data-canal="aterciopelados">Aterciopelados</button>
+        <button class="chip" data-canal="a24">A24</button>
         <button class="chip" data-filter="watchlater">🕐 Ver después</button>
         <button class="chip" data-filter="liked">👍 Me gusta</button>
         <button class="chip" data-filter="history">⏱ Historial</button>
     </div>
-
     <div class="video-grid" id="video-grid"></div>
 </main>
 
@@ -138,122 +122,36 @@
     </button>
 </nav>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<script src="videos.js"></script>
 <script>
-// ── Data ──
-var VIDEOS = {
-    'Xw2zGp-Fjr8': {
-        titulo: 'Adultocentrismo y producción de subjetividad en contextos de exclusión',
-        descripcion: 'Encuentro Liberté del 28/02/2026. Análisis sobre adultocentrismo y la producción de subjetividad en contextos de exclusión social.',
-        categoria: 'Encuentros Liberté', catCode: 'EL',
-        duracion: '2:13:18', vistas: 101, fecha: '2026-03-01',
-        tags: ['adultocentrismo', 'subjetividad', 'exclusión', 'derechos']
-    },
-    'iTGbnWacFxw': {
-        titulo: '5ta Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '5ta clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:55:29', vistas: 163, fecha: '2026-02-21',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género', 'cárceles']
-    },
-    'bKnEOaW1hsc': {
-        titulo: '4ta Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '4ta clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:53:42', vistas: 147, fecha: '2026-02-20',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género', 'cárceles']
-    },
-    'hHYjl0R0F3I': {
-        titulo: '3er Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '3er clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:54:10', vistas: 180, fecha: '2026-02-19',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género', 'cárceles']
-    },
-    'T4XPU8vvviw': {
-        titulo: '2da Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '2da clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:49:17', vistas: 206, fecha: '2026-02-18',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género', 'cárceles']
-    },
-    '9-6TrW8JBWg': {
-        titulo: '1er Clase — Mujeres Privadas de la Libertad en América Latina',
-        descripcion: '1er clase del 4to curso sobre Mujeres Privadas de la Libertad en América Latina.',
-        categoria: 'Cursos', catCode: 'CL',
-        duracion: '1:48:40', vistas: 339, fecha: '2026-02-17',
-        tags: ['mujeres', 'libertad', 'latinoamérica', 'género', 'cárceles']
-    },
-    'pqs4xltUE48': {
-        titulo: 'Encuentro Liberté — 31/01/2026',
-        descripcion: 'Encuentro Liberté del 31 de enero de 2026.',
-        categoria: 'Encuentros Liberté', catCode: 'EL',
-        duracion: '2:11:00', vistas: 124, fecha: '2026-02-01',
-        tags: ['encuentro', 'liberté', 'debate']
-    },
-    'BRHahRFVmQ8': {
-        titulo: 'Clase 15 — Cambio de Paradigma',
-        descripcion: 'Clase 15 del curso Cambio de Paradigma. Sábado 13/12/2025.',
-        categoria: 'Cambio de Paradigma', catCode: 'CP',
-        duracion: '3:00:36', vistas: 236, fecha: '2025-12-14',
-        tags: ['paradigma', 'cambio', 'sociedad', 'educación']
-    },
-    'ZbSTrUSRU-4': {
-        titulo: 'Clase 14 — Salud Mental',
-        descripcion: 'Clase 14 sobre Salud Mental. Sábado 29/11/2025.',
-        categoria: 'Cambio de Paradigma', catCode: 'CP',
-        duracion: '3:00:01', vistas: 396, fecha: '2025-11-30',
-        tags: ['salud mental', 'bienestar', 'paradigma']
-    },
-    'hO0V0y_Yn2U': {
-        titulo: 'Clase 9 — Última Jornada',
-        descripcion: 'Clase 9, última jornada del curso.',
-        categoria: 'Cambio de Paradigma', catCode: 'CP',
-        duracion: '1:29:26', vistas: 107, fecha: '2025-11-29',
-        tags: ['jornada', 'paradigma', 'cierre']
-    }
-};
-
-// ── localStorage helpers ──
-function getStore(key) {
-    try { return JSON.parse(localStorage.getItem('edutube_' + key)) || []; }
-    catch(e) { return []; }
-}
+// ── Helpers ──
+function getStore(key) { try { return JSON.parse(localStorage.getItem('edutube_' + key)) || []; } catch(e) { return []; } }
 function setStore(key, val) { localStorage.setItem('edutube_' + key, JSON.stringify(val)); }
 function toggleStore(key, id) {
-    var list = getStore(key);
-    var i = list.indexOf(id);
-    if (i > -1) { list.splice(i, 1); } else { list.push(id); }
-    setStore(key, list);
-    return i === -1; // true if added
+    var list = getStore(key); var i = list.indexOf(id);
+    if (i > -1) list.splice(i, 1); else list.push(id);
+    setStore(key, list); return i === -1;
 }
 function isInStore(key, id) { return getStore(key).indexOf(id) > -1; }
 
-// ── Toast ──
 var toastTimer;
 function showToast(msg) {
-    var t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2500);
+    var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2500);
 }
 
-// ── Time ago ──
 function timeAgo(dateStr) {
-    var now = new Date();
-    var date = new Date(dateStr);
-    var diff = Math.floor((now - date) / 1000);
+    var diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
     if (diff < 60) return 'hace un momento';
     if (diff < 3600) return 'hace ' + Math.floor(diff/60) + ' min';
     if (diff < 86400) return 'hace ' + Math.floor(diff/3600) + ' h';
-    var days = Math.floor(diff / 86400);
-    if (days < 7) return 'hace ' + days + (days === 1 ? ' día' : ' días');
-    if (days < 30) return 'hace ' + Math.floor(days/7) + (Math.floor(days/7) === 1 ? ' semana' : ' semanas');
-    if (days < 365) return 'hace ' + Math.floor(days/30) + (Math.floor(days/30) === 1 ? ' mes' : ' meses');
-    return 'hace ' + Math.floor(days/365) + (Math.floor(days/365) === 1 ? ' año' : ' años');
+    var d = Math.floor(diff / 86400);
+    if (d < 7) return 'hace ' + d + (d===1?' día':' días');
+    if (d < 30) return 'hace ' + Math.floor(d/7) + (Math.floor(d/7)===1?' semana':' semanas');
+    if (d < 365) return 'hace ' + Math.floor(d/30) + (Math.floor(d/30)===1?' mes':' meses');
+    return 'hace ' + Math.floor(d/365) + (Math.floor(d/365)===1?' año':' años');
 }
 
 function formatViews(n) {
@@ -262,19 +160,16 @@ function formatViews(n) {
     return n.toString();
 }
 
-// ── Render Grid ──
+// ── Render ──
 function renderGrid(filterFn) {
     var grid = document.getElementById('video-grid');
     var html = '';
-    var ids = Object.keys(VIDEOS);
-
-    ids.forEach(function(id) {
+    Object.keys(VIDEOS).forEach(function(id) {
         var v = VIDEOS[id];
         if (filterFn && !filterFn(id, v)) return;
-
+        var ch = CHANNELS[v.canal];
         var isWL = isInStore('watchlater', id);
-
-        html += '<div class="video-card" data-id="' + id + '" data-cat="' + v.categoria + '">' +
+        html += '<div class="video-card" data-id="' + id + '">' +
             '<a href="ver.php?id=' + id + '" class="thumb">' +
                 '<img src="https://img.youtube.com/vi/' + id + '/mqdefault.jpg" alt="" loading="lazy">' +
                 '<span class="duration-badge">' + v.duracion + '</span>' +
@@ -283,25 +178,20 @@ function renderGrid(filterFn) {
                 '</div>' +
             '</a>' +
             '<div class="card-info">' +
-                '<div class="channel-avatar">' + v.catCode + '</div>' +
+                '<div class="channel-avatar" style="background:' + ch.color + '">' + ch.code + '</div>' +
                 '<div class="card-text">' +
                     '<a href="ver.php?id=' + id + '" class="card-title">' + v.titulo + '</a>' +
-                    '<div class="card-channel">Cooperativa Liberté</div>' +
+                    '<div class="card-channel">' + ch.nombre + '</div>' +
                     '<div class="card-stats">' + formatViews(v.vistas) + ' reproducciones · ' + timeAgo(v.fecha) + '</div>' +
                 '</div>' +
             '</div>' +
         '</div>';
     });
-
     grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron videos</p>';
-
-    // Watch later buttons
     grid.querySelectorAll('.btn-wl').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var vid = this.getAttribute('data-id');
-            var added = toggleStore('watchlater', vid);
+            e.preventDefault(); e.stopPropagation();
+            var added = toggleStore('watchlater', this.getAttribute('data-id'));
             this.classList.toggle('saved', added);
             showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');
             updateBadges();
@@ -309,52 +199,54 @@ function renderGrid(filterFn) {
     });
 }
 
-// ── Update sidebar badges ──
 function updateBadges() {
-    var h = getStore('history').length;
-    var w = getStore('watchlater').length;
-    var l = getStore('liked').length;
-    var hBadge = document.getElementById('history-count');
-    var wBadge = document.getElementById('watchlater-count');
-    var lBadge = document.getElementById('liked-count');
-    if (h > 0) { hBadge.textContent = h; hBadge.style.display = ''; } else { hBadge.style.display = 'none'; }
-    if (w > 0) { wBadge.textContent = w; wBadge.style.display = ''; } else { wBadge.style.display = 'none'; }
-    if (l > 0) { lBadge.textContent = l; lBadge.style.display = ''; } else { lBadge.style.display = 'none'; }
+    ['history','watchlater','liked'].forEach(function(key) {
+        var n = getStore(key).length;
+        var el = document.getElementById(key + '-count');
+        if (n > 0) { el.textContent = n; el.style.display = ''; } else { el.style.display = 'none'; }
+    });
 }
 
-// ── Search ──
 function doSearch(q) {
     q = q.toLowerCase().trim();
     if (!q) { renderGrid(); return; }
     renderGrid(function(id, v) {
+        var ch = CHANNELS[v.canal];
         return v.titulo.toLowerCase().includes(q) ||
                v.descripcion.toLowerCase().includes(q) ||
                v.categoria.toLowerCase().includes(q) ||
+               ch.nombre.toLowerCase().includes(q) ||
                (v.tags && v.tags.some(function(t) { return t.includes(q); }));
     });
 }
 
-// ── Filter by category ──
-var currentFilter = 'todos';
+function clearAllActive() {
+    document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+    document.querySelectorAll('.sidebar-item').forEach(function(s) { s.classList.remove('active'); });
+}
+
 function filterCat(cat) {
-    currentFilter = cat;
-    document.querySelectorAll('.chip').forEach(function(c) {
-        c.classList.toggle('active', c.getAttribute('data-cat') === cat);
-    });
-    document.querySelectorAll('[data-filter]').forEach(function(c) { c.classList.remove('active'); });
-    document.querySelectorAll('.sidebar-item[data-cat]').forEach(function(s) {
-        s.classList.toggle('active', s.getAttribute('data-cat') === cat);
-    });
+    clearAllActive();
+    document.querySelector('.chip[data-cat="' + cat + '"]').classList.add('active');
+    var sideItem = document.querySelector('.sidebar-item[data-cat="' + cat + '"]');
+    if (sideItem) sideItem.classList.add('active');
     if (cat === 'todos') renderGrid();
     else renderGrid(function(id, v) { return v.categoria === cat; });
 }
 
+function filterCanal(canal) {
+    clearAllActive();
+    var chip = document.querySelector('.chip[data-canal="' + canal + '"]');
+    if (chip) chip.classList.add('active');
+    var sideItem = document.querySelector('.sidebar-item[data-canal="' + canal + '"]');
+    if (sideItem) sideItem.classList.add('active');
+    renderGrid(function(id, v) { return v.canal === canal; });
+}
+
 function filterSpecial(type) {
-    document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
-    document.querySelectorAll('.sidebar-item[data-cat]').forEach(function(s) { s.classList.remove('active'); });
-    document.querySelectorAll('[data-filter]').forEach(function(c) {
-        c.classList.toggle('active', c.getAttribute('data-filter') === type);
-    });
+    clearAllActive();
+    var chip = document.querySelector('.chip[data-filter="' + type + '"]');
+    if (chip) chip.classList.add('active');
     var list = getStore(type);
     renderGrid(function(id) { return list.indexOf(id) > -1; });
 }
@@ -364,24 +256,23 @@ renderGrid();
 updateBadges();
 
 // Chips
-document.querySelectorAll('.chip[data-cat]').forEach(function(chip) {
-    chip.addEventListener('click', function() { filterCat(this.getAttribute('data-cat')); });
+document.querySelectorAll('.chip[data-cat]').forEach(function(c) {
+    c.addEventListener('click', function() { filterCat(this.getAttribute('data-cat')); });
+});
+document.querySelectorAll('.chip[data-canal]').forEach(function(c) {
+    c.addEventListener('click', function() { filterCanal(this.getAttribute('data-canal')); });
+});
+document.querySelectorAll('.chip[data-filter]').forEach(function(c) {
+    c.addEventListener('click', function() { filterSpecial(this.getAttribute('data-filter')); });
 });
 
-document.querySelectorAll('.chip[data-filter]').forEach(function(chip) {
-    chip.addEventListener('click', function() { filterSpecial(this.getAttribute('data-filter')); });
+// Sidebar
+document.querySelectorAll('.sidebar-item[data-cat]').forEach(function(s) {
+    s.addEventListener('click', function(e) { e.preventDefault(); filterCat(this.getAttribute('data-cat')); closeSidebar(); });
 });
-
-// Sidebar category
-document.querySelectorAll('.sidebar-item[data-cat]').forEach(function(item) {
-    item.addEventListener('click', function(e) {
-        e.preventDefault();
-        filterCat(this.getAttribute('data-cat'));
-        closeSidebar();
-    });
+document.querySelectorAll('.sidebar-item[data-canal]').forEach(function(s) {
+    s.addEventListener('click', function(e) { e.preventDefault(); filterCanal(this.getAttribute('data-canal')); closeSidebar(); });
 });
-
-// Sidebar special filters
 document.getElementById('nav-history').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('history'); closeSidebar(); });
 document.getElementById('nav-watchlater').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('watchlater'); closeSidebar(); });
 document.getElementById('nav-liked').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('liked'); closeSidebar(); });
@@ -390,9 +281,11 @@ document.getElementById('nav-liked').addEventListener('click', function(e) { e.p
 document.getElementById('search').addEventListener('input', function() { doSearch(this.value); });
 
 // Mobile search
-document.getElementById('mobile-search-toggle').addEventListener('click', function() {
-    document.getElementById('mobile-search-overlay').classList.add('open');
-    document.getElementById('mobile-search-input').focus();
+['mobile-search-toggle','mobile-search-trigger'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        document.getElementById('mobile-search-overlay').classList.add('open');
+        document.getElementById('mobile-search-input').focus();
+    });
 });
 document.getElementById('mobile-search-close').addEventListener('click', function() {
     document.getElementById('mobile-search-overlay').classList.remove('open');
@@ -400,12 +293,6 @@ document.getElementById('mobile-search-close').addEventListener('click', functio
     renderGrid();
 });
 document.getElementById('mobile-search-input').addEventListener('input', function() { doSearch(this.value); });
-document.getElementById('mobile-search-trigger').addEventListener('click', function() {
-    document.getElementById('mobile-search-overlay').classList.add('open');
-    document.getElementById('mobile-search-input').focus();
-});
-
-// Mobile bottom nav
 document.getElementById('mobile-watchlater-nav').addEventListener('click', function() { filterSpecial('watchlater'); });
 document.getElementById('mobile-history-nav').addEventListener('click', function() { filterSpecial('history'); });
 
@@ -416,23 +303,15 @@ function closeSidebar() {
         document.getElementById('sidebar-backdrop').classList.remove('open');
     }
 }
-
 document.getElementById('menu-toggle').addEventListener('click', function() {
-    var sb = document.getElementById('sidebar');
-    var bd = document.getElementById('sidebar-backdrop');
-    sb.classList.toggle('open');
-    bd.classList.toggle('open');
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-backdrop').classList.toggle('open');
 });
-
 document.getElementById('sidebar-backdrop').addEventListener('click', closeSidebar);
 
-// Show mobile search btn only on mobile
-var mobileSearchBtn = document.getElementById('mobile-search-toggle');
-function checkMobileSearch() {
-    mobileSearchBtn.style.display = window.innerWidth <= 768 ? '' : 'none';
-}
-checkMobileSearch();
-window.addEventListener('resize', checkMobileSearch);
+var msb = document.getElementById('mobile-search-toggle');
+function chkMobile() { msb.style.display = window.innerWidth <= 768 ? '' : 'none'; }
+chkMobile(); window.addEventListener('resize', chkMobile);
 </script>
 
 </body>
