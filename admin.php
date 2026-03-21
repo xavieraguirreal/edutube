@@ -1,4 +1,6 @@
 <?php
+set_time_limit(300); // 5 minutes for imports
+ini_set('memory_limit', '256M');
 session_start();
 require_once __DIR__ . '/config.php';
 
@@ -151,9 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $catId = $_POST['categoria_id'] ?: null;
                     $tags = $_POST['tags'] ?: ($meta ? $meta['tags'] : '');
 
-                    // Generate embedding
-                    $embeddingText = $titulo . ' ' . $desc . ' ' . $tags;
-                    $embedding = getEmbedding($embeddingText);
+                    // Embedding se genera después en background
+                    $embedding = null;
 
                     $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
@@ -255,8 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $fecha = $meta ? $meta['fecha'] : ($rssData ? $rssData['fecha'] : date('Y-m-d'));
                         $tags = $meta ? $meta['tags'] : '';
 
-                        // Embedding via OpenAI
-                        $embedding = getEmbedding($titulo . ' ' . $desc . ' ' . $tags);
+                        $embedding = null;
 
                         $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                         $stmt->execute([
@@ -313,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $apiDetails = getVideoDetailsAPI($newPlVideoIds);
                         foreach ($newPlVideoIds as $vid) {
                             $meta = $apiDetails[$vid] ?? null;
-                            $embedding = getEmbedding(($meta ? $meta['titulo'] . ' ' . $meta['descripcion'] : ''));
+                            $embedding = null;
                             $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                             $stmt->execute([
                                 $vid,
