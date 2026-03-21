@@ -15,12 +15,17 @@ if ($action === 'videos') {
     $stmt = $db->query("
         SELECT v.youtube_id, v.titulo, v.descripcion, v.duracion, v.vistas_yt, v.fecha_yt, v.tags,
                c.nombre AS canal_nombre, c.codigo AS canal_codigo, c.color AS canal_color, c.id AS canal_id,
-               cat.nombre AS categoria_nombre
+               COALESCE(cat.nombre, dcat.nombre) AS categoria_nombre
         FROM videos v
         LEFT JOIN canales c ON v.canal_id = c.id
         LEFT JOIN categorias cat ON v.categoria_id = cat.id
+        LEFT JOIN categorias dcat ON c.default_categoria_id = dcat.id
         WHERE v.activo = 1
-        ORDER BY CASE WHEN cat.nombre IN ('Cursos', 'Cultura') THEN 0 ELSE 1 END,
+        ORDER BY CASE
+                    WHEN COALESCE(cat.nombre, dcat.nombre) = 'Cursos' THEN 0
+                    WHEN COALESCE(cat.nombre, dcat.nombre) IN ('Cultural', 'Cultura') THEN 1
+                    ELSE 2
+                 END,
                  v.fecha_yt DESC
     ");
     $videos = $stmt->fetchAll();

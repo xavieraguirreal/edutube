@@ -3,10 +3,10 @@
  * EduTube — Sincronización automática por cron
  *
  * Sincroniza todos los canales que tengan auto_sync = 1.
- * Ejecutar desde CLI: php /path/to/cron-sync.php
+ * Se puede ejecutar via CLI o via curl con token.
  *
- * Crontab ejemplo (cada 6 horas):
- *   0 */6 * * * /usr/bin/php /path/to/edutube/cron-sync.php >> /var/log/edutube-sync.log 2>&1
+ * Crontab:
+ *   curl -A "Mozilla/5.0" --silent "https://edutube.universidadliberte.org/cron-sync.php?token=edutube-sync-2026"
  */
 
 // Protección: solo permitir CLI o requests con token secreto
@@ -18,6 +18,14 @@ if (php_sapi_name() !== 'cli' && ($_GET['token'] ?? '') !== $cronToken) {
 
 set_time_limit(600);
 ini_set('memory_limit', '256M');
+
+// Log buffer para output web
+$logBuffer = [];
+function logMsg($msg) {
+    global $logBuffer;
+    $line = date('Y-m-d H:i:s') . " | $msg";
+    $logBuffer[] = $line;
+}
 
 require_once __DIR__ . '/config.php';
 
@@ -31,6 +39,7 @@ $canales = $db->query("SELECT * FROM canales WHERE auto_sync = 1 AND activo = 1"
 
 if (empty($canales)) {
     logMsg("No hay canales con auto_sync activado.");
+    outputLog();
     exit(0);
 }
 
@@ -83,8 +92,15 @@ foreach ($canales as $canal) {
 
 $elapsed = time() - $startTime;
 logMsg("=== Fin: $totalVideos videos, $totalPlaylists playlists en {$elapsed}s ===");
-logMsg("");
 
-function logMsg($msg) {
-    fwrite(STDOUT, date('Y-m-d H:i:s') . " | $msg\n");
+outputLog();
+
+function outputLog() {
+    global $logBuffer;
+    if (php_sapi_name() === 'cli') {
+        foreach ($logBuffer as $line) fwrite(STDOUT, $line . "\n");
+    } else {
+        header('Content-Type: text/plain; charset=utf-8');
+        echo implode("\n", $logBuffer) . "\n";
+    }
 }
