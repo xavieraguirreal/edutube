@@ -335,7 +335,61 @@ function filterCanal(canalId) {
     if (chip) chip.classList.add('active');
     var side = document.querySelector('.sidebar-item[data-canal="' + canalId + '"]');
     if (side) side.classList.add('active');
-    renderGrid(ALL_VIDEOS.filter(function(v) { return String(v.canal_id) === String(canalId); }));
+
+    // Find channel info
+    var canal = null;
+    ALL_CHANNELS.forEach(function(c) { if (String(c.id) === String(canalId)) canal = c; });
+    if (!canal) return;
+
+    // Get playlists for this channel
+    var chPlaylists = ALL_PLAYLISTS.filter(function(p) { return String(p.canal_id) === String(canalId) && parseInt(p.total_videos) > 0; });
+    var totalVideos = ALL_VIDEOS.filter(function(v) { return String(v.canal_id) === String(canalId); }).length;
+
+    var grid = document.getElementById('video-grid');
+    var html = '';
+
+    // Channel header
+    html += '<div class="channel-header">' +
+        '<div class="channel-header-avatar" style="background:' + canal.color + '">' + canal.codigo + '</div>' +
+        '<div class="channel-header-info">' +
+            '<div class="channel-header-name">' + canal.nombre + '</div>' +
+            '<div class="channel-header-stats">' + totalVideos + ' videos · ' + chPlaylists.length + ' listas</div>' +
+        '</div>' +
+        '<button class="btn-all-videos" data-canal="' + canalId + '">Ver todos los videos</button>' +
+    '</div>';
+
+    // Playlists as cards
+    if (chPlaylists.length > 0) {
+        html += '<div class="playlist-grid">';
+        chPlaylists.forEach(function(p) {
+            html += '<a href="#" class="playlist-card" data-playlist="' + p.id + '">' +
+                '<div class="playlist-card-icon">📋</div>' +
+                '<div class="playlist-card-info">' +
+                    '<div class="playlist-card-name">' + p.nombre + '</div>' +
+                    '<div class="playlist-card-count">' + p.total_videos + ' videos</div>' +
+                '</div>' +
+            '</a>';
+        });
+        html += '</div>';
+    }
+
+    grid.innerHTML = html;
+
+    // Bind events
+    grid.querySelectorAll('.playlist-card').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            e.preventDefault();
+            filterPlaylist(this.getAttribute('data-playlist'));
+        });
+    });
+
+    var btnAll = grid.querySelector('.btn-all-videos');
+    if (btnAll) {
+        btnAll.addEventListener('click', function() {
+            var cid = this.getAttribute('data-canal');
+            renderGrid(ALL_VIDEOS.filter(function(v) { return String(v.canal_id) === String(cid); }));
+        });
+    }
 }
 
 function filterSpecial(type) {
