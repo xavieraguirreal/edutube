@@ -137,31 +137,40 @@ function formatDate(dateStr) {
     if (hist.length > 50) hist = hist.slice(0, 50);
     setStore('history', hist);
 
-    // Related: same channel first, then others
-    var sameCh = [], otherCh = [];
-    Object.keys(VIDEOS).forEach(function(id) {
-        if (id !== videoId) {
-            if (VIDEOS[id].canal === video.canal) sameCh.push(id);
-            else otherCh.push(id);
-        }
-    });
-    var relatedIds = sameCh.concat(otherCh).slice(0, 10);
+    // Build related lists
+    function buildCardList(ids) {
+        var html = '';
+        ids.forEach(function(id) {
+            var v = VIDEOS[id];
+            var rc = CHANNELS[v.canal];
+            html += '<a href="watch?v=' + id + '" class="related-card">' +
+                '<div class="r-thumb">' +
+                    '<img src="https://img.youtube.com/vi/' + id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                    '<span class="r-duration">' + v.duracion + '</span>' +
+                '</div>' +
+                '<div class="r-info">' +
+                    '<div class="r-title">' + v.titulo + '</div>' +
+                    '<div class="r-meta">' + rc.nombre + '</div>' +
+                    '<div class="r-meta">' + formatViews(v.vistas) + ' repr. · ' + timeAgo(v.fecha) + '</div>' +
+                '</div></a>';
+        });
+        return html;
+    }
 
-    var relacionados = '';
-    relatedIds.forEach(function(id) {
-        var v = VIDEOS[id];
-        var rc = CHANNELS[v.canal];
-        relacionados += '<a href="watch?v=' + id + '" class="related-card">' +
-            '<div class="r-thumb">' +
-                '<img src="https://img.youtube.com/vi/' + id + '/mqdefault.jpg" alt="" loading="lazy">' +
-                '<span class="r-duration">' + v.duracion + '</span>' +
-            '</div>' +
-            '<div class="r-info">' +
-                '<div class="r-title">' + v.titulo + '</div>' +
-                '<div class="r-meta">' + rc.nombre + '</div>' +
-                '<div class="r-meta">' + formatViews(v.vistas) + ' repr. · ' + timeAgo(v.fecha) + '</div>' +
-            '</div></a>';
+    // Same channel videos
+    var sameChIds = [];
+    Object.keys(VIDEOS).forEach(function(id) {
+        if (id !== videoId && VIDEOS[id].canal === video.canal) sameChIds.push(id);
     });
+
+    // All others (related)
+    var otherIds = [];
+    Object.keys(VIDEOS).forEach(function(id) {
+        if (id !== videoId && VIDEOS[id].canal !== video.canal) otherIds.push(id);
+    });
+
+    var canalHtml = buildCardList(sameChIds.slice(0, 10));
+    var relacionadosHtml = buildCardList(otherIds.slice(0, 10));
 
     var origin = window.location.protocol + '//' + window.location.host;
     var embedSrc = 'https://www.youtube-nocookie.com/embed/' + videoId +
@@ -222,10 +231,25 @@ function formatDate(dateStr) {
                 '</div>' +
             '</div>' +
             '<div class="player-sidebar">' +
-                '<div class="related-title">Videos relacionados</div>' +
-                '<div class="related-list">' + relacionados + '</div>' +
+                '<div class="related-tabs">' +
+                    '<button class="related-tab active" data-tab="canal">Del canal</button>' +
+                    '<button class="related-tab" data-tab="relacionados">Relacionados</button>' +
+                '</div>' +
+                '<div class="related-list" id="related-canal">' + canalHtml + '</div>' +
+                '<div class="related-list" id="related-relacionados" style="display:none">' + relacionadosHtml + '</div>' +
             '</div>' +
         '</div>';
+
+    // Related tabs
+    document.querySelectorAll('.related-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.related-tab').forEach(function(t) { t.classList.remove('active'); });
+            this.classList.add('active');
+            var target = this.getAttribute('data-tab');
+            document.getElementById('related-canal').style.display = target === 'canal' ? '' : 'none';
+            document.getElementById('related-relacionados').style.display = target === 'relacionados' ? '' : 'none';
+        });
+    });
 
     // Description toggle
     document.getElementById('video-desc').addEventListener('click', function() {

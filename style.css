@@ -3,15 +3,15 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-    --bg: #0f0f0f;
-    --bg-secondary: #1a1a1a;
-    --bg-hover: #272727;
-    --bg-active: #3a3a3a;
-    --surface: #212121;
-    --border: #303030;
-    --text: #f1f1f1;
-    --text-secondary: #aaa;
-    --text-muted: #717171;
+    --bg: #ffffff;
+    --bg-secondary: #f2f2f2;
+    --bg-hover: #f2f2f2;
+    --bg-active: #e5e5e5;
+    --surface: #f9f9f9;
+    --border: #e0e0e0;
+    --text: #0f0f0f;
+    --text-secondary: #606060;
+    --text-muted: #909090;
     --primary: #2e8b47;
     --primary-light: #38a555;
     --primary-dark: #1f6e34;
@@ -260,7 +260,7 @@ button { font-family: inherit; }
 }
 
 .chip:hover { background: var(--bg-active); }
-.chip.active { background: var(--text); color: var(--bg); }
+.chip.active { background: var(--text); color: #fff; }
 
 /* ══════════════════════════════
    VIDEO GRID
@@ -702,21 +702,30 @@ button { font-family: inherit; }
 /* ── Related sidebar ── */
 .player-sidebar { min-width: 0; }
 
-.related-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-}
-
-.related-chips {
+.related-tabs {
     display: flex;
     gap: 0.35rem;
     margin-bottom: 0.75rem;
-    overflow-x: auto;
-    scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
 }
 
-.related-chips::-webkit-scrollbar { display: none; }
+.related-tab {
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: var(--bg-hover);
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    border: none;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+
+.related-tab:hover { background: var(--bg-active); }
+.related-tab.active { background: var(--text); color: #fff; }
 
 .related-list {
     display: flex;
