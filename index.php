@@ -198,13 +198,13 @@ function buildSidebar() {
     var container = document.getElementById('sidebar-channels');
     var html = '';
     ALL_CHANNELS.forEach(function(c) {
-        html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '">' +
+        html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '" title="' + c.nombre + '">' +
             '<span class="si-icon" style="color:' + c.color + '">●</span>' +
             '<span class="si-label">' + c.nombre + '</span></a>';
         // Playlists de este canal (indentadas)
         ALL_PLAYLISTS.forEach(function(p) {
             if (String(p.canal_id) === String(c.id) && parseInt(p.total_videos) > 0) {
-                html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '" style="padding-left:2.5rem;font-size:0.82rem;">' +
+                html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '" title="' + p.nombre + '" style="padding-left:2.5rem;font-size:0.82rem;">' +
                     '<span class="si-icon" style="font-size:0.85rem;">📋</span>' +
                     '<span class="si-label">' + p.nombre + '</span>' +
                     '<span class="si-badge">' + p.total_videos + '</span></a>';
@@ -214,7 +214,7 @@ function buildSidebar() {
     // Playlists sin canal
     ALL_PLAYLISTS.forEach(function(p) {
         if (!p.canal_id && parseInt(p.total_videos) > 0) {
-            html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '">' +
+            html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '" title="' + p.nombre + '">' +
                 '<span class="si-icon">📋</span>' +
                 '<span class="si-label">' + p.nombre + '</span>' +
                 '<span class="si-badge">' + p.total_videos + '</span></a>';
