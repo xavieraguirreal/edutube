@@ -700,9 +700,21 @@ $section = $_GET['s'] ?? 'dashboard';
                         // Check if "Sin lista" playlist exists
                         $stmtSL = $db->prepare("SELECT id, (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = playlists.id) AS cnt FROM playlists WHERE nombre LIKE ? AND canal_id = ?");
                         $canalNombreCheck = $_POST['canal_nombre'] ?? $preview['nombre'];
-                        $stmtSL->execute(['%Sin lista%', $canalDbId ?? 0]);
+                        // Get channel DB id if exists
+                        $stmtChDb = $db->prepare("SELECT id FROM canales WHERE youtube_channel_id = ?");
+                        $stmtChDb->execute([$previewChId]);
+                        $chDbRow = $stmtChDb->fetch();
+                        $canalDbIdPreview = $chDbRow ? $chDbRow['id'] : 0;
+
+                        $stmtSL = $db->prepare("SELECT id, (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = playlists.id) AS cnt FROM playlists WHERE nombre LIKE ? AND canal_id = ?");
+                        $stmtSL->execute(['%Sin lista%', $canalDbIdPreview]);
                         $sinListaRow = $stmtSL->fetch();
                         $sinListaCount = $sinListaRow ? intval($sinListaRow['cnt']) : 0;
+
+                        // Total videos in playlists (to estimate loose videos)
+                        $totalEnPlaylists = 0;
+                        foreach ($preview['playlists'] as $pl) $totalEnPlaylists += $pl['total_videos'];
+                        $estimadoSueltos = max(0, $preview['total_videos'] - $totalEnPlaylists);
                     ?>
                     <div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;font-weight:500;margin-bottom:0.5rem;">
@@ -710,14 +722,19 @@ $section = $_GET['s'] ?? 'dashboard';
                         </label>
                         <div style="max-height:350px;overflow-y:auto;">
                             <!-- Sin lista (loose videos) -->
-                            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;font-size:0.85rem;cursor:pointer;font-weight:500;border-bottom:1px solid #e0e0e0;margin-bottom:0.3rem;padding-bottom:0.5rem;">
-                                <input type="checkbox" name="import_latest" value="1">
+                            <?php
+                                $sinListaComplete = $sinListaCount > 0 && $estimadoSueltos > 0 && ($sinListaCount / max($estimadoSueltos, 1) >= 0.95);
+                            ?>
+                            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;font-size:0.85rem;cursor:pointer;font-weight:500;border-bottom:1px solid #e0e0e0;margin-bottom:0.3rem;padding-bottom:0.5rem;<?= $sinListaComplete ? 'opacity:0.5;' : '' ?>">
+                                <input type="checkbox" name="import_latest" value="1" <?= $sinListaComplete ? 'disabled' : '' ?>>
                                 📂 Sin lista (videos sueltos)
                                 <span style="margin-left:auto;font-size:0.78rem;">
-                                    <?php if ($sinListaCount > 0): ?>
-                                        <span style="color:#2e8b47;"><?= $sinListaCount ?> importados</span>
+                                    <?php if ($sinListaComplete): ?>
+                                        <span style="color:#2e8b47;">✓ <?= $sinListaCount ?></span>
+                                    <?php elseif ($sinListaCount > 0): ?>
+                                        <span style="color:#f77f00;">↻ <?= $sinListaCount ?>/~<?= $estimadoSueltos ?></span>
                                     <?php else: ?>
-                                        <span style="color:#888;">últimos 50</span>
+                                        <span style="color:#888;">~<?= $estimadoSueltos ?> videos</span>
                                     <?php endif; ?>
                                 </span>
                                 <input type="hidden" name="limit" value="50">
