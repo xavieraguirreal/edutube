@@ -450,42 +450,93 @@ $section = $_GET['s'] ?? 'dashboard';
 
         <?php elseif ($section === 'import'): ?>
             <h1>Importar canal</h1>
+
+            <?php
+            // ── Preview mode ──
+            $preview = null;
+            $previewChId = '';
+            if (isset($_GET['preview_url'])) {
+                $previewChId = extractChannelId($_GET['preview_url']);
+                if ($previewChId) {
+                    $preview = getChannelInfo($previewChId);
+                    if ($preview) {
+                        $preview['playlists'] = getChannelPlaylists($previewChId);
+                        $preview['channel_id'] = $previewChId;
+                    }
+                }
+            }
+            ?>
+
+            <!-- Step 1: Enter URL -->
             <div class="card">
-                <h2>Importar últimos videos de un canal</h2>
-                <p style="font-size:0.85rem;color:#888;margin-bottom:1rem;">Solo necesitás pegar la URL. El nombre, código y color se autocompletan desde YouTube.</p>
+                <h2>1. Pegar URL del canal</h2>
+                <form method="GET" action="admin.php">
+                    <input type="hidden" name="s" value="import">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <input type="text" name="preview_url" placeholder="https://www.youtube.com/@canal" value="<?= e($_GET['preview_url'] ?? '') ?>" required>
+                        </div>
+                        <div><button type="submit" class="btn btn-primary" style="margin-top:2px;">Obtener info</button></div>
+                    </div>
+                </form>
+            </div>
+
+            <?php if (isset($_GET['preview_url']) && !$preview): ?>
+                <div class="msg msg-error">No se pudo obtener información del canal. Verificá la URL.</div>
+            <?php endif; ?>
+
+            <?php if ($preview): ?>
+            <!-- Step 2: Preview -->
+            <div class="card">
+                <h2>2. Información del canal</h2>
+                <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;">
+                    <?php if ($preview['thumbnail']): ?>
+                        <img src="<?= e($preview['thumbnail']) ?>" style="width:64px;height:64px;border-radius:50%;">
+                    <?php endif; ?>
+                    <div>
+                        <div style="font-size:1.1rem;font-weight:600;"><?= e($preview['nombre']) ?></div>
+                        <div style="font-size:0.85rem;color:#888;">
+                            <?= number_format($preview['suscriptores']) ?> suscriptores ·
+                            <?= number_format($preview['total_videos']) ?> videos
+                        </div>
+                        <div style="font-size:0.8rem;color:#aaa;">Channel ID: <?= e($previewChId) ?></div>
+                    </div>
+                </div>
+                <?php if ($preview['descripcion']): ?>
+                    <div style="font-size:0.85rem;color:#666;margin-bottom:1rem;max-height:80px;overflow:hidden;"><?= nl2br(e(mb_substr($preview['descripcion'], 0, 300))) ?></div>
+                <?php endif; ?>
+
+                <?php if (!empty($preview['playlists'])): ?>
+                    <h3 style="font-size:0.95rem;margin-bottom:0.5rem;">Playlists del canal (<?= count($preview['playlists']) ?>)</h3>
+                    <div style="max-height:200px;overflow-y:auto;margin-bottom:1rem;">
+                        <table>
+                            <tr><th>Playlist</th><th>Videos</th></tr>
+                            <?php foreach ($preview['playlists'] as $pl): ?>
+                                <tr><td><?= e($pl['nombre']) ?></td><td><?= $pl['total_videos'] ?></td></tr>
+                            <?php endforeach; ?>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Step 3: Confirm import -->
+            <div class="card">
+                <h2>3. Confirmar importación</h2>
                 <form method="POST">
                     <input type="hidden" name="action" value="import_channel">
                     <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <input type="hidden" name="channel_url" value="<?= e($_GET['preview_url']) ?>">
+                    <input type="hidden" name="canal_nombre" value="<?= e($preview['nombre']) ?>">
+                    <input type="hidden" name="canal_codigo" value="CH">
+                    <input type="hidden" name="canal_color" value="#2e8b47">
                     <div class="form-row">
+                        <div class="form-group" style="max-width:200px;">
+                            <label>Cantidad de videos a importar</label>
+                            <input type="number" name="limit" value="<?= min($preview['total_videos'], 15) ?>" min="1" max="50">
+                            <div style="font-size:0.75rem;color:#888;margin-top:0.2rem;">Máximo 50 por vez. El canal tiene <?= number_format($preview['total_videos']) ?>.</div>
+                        </div>
                         <div class="form-group">
-                            <label>URL del canal *</label>
-                            <input type="text" name="channel_url" placeholder="https://www.youtube.com/@canal" required>
-                        </div>
-                        <div class="form-group" style="max-width:150px;">
-                            <label>Cantidad de videos</label>
-                            <input type="number" name="limit" value="15" min="1" max="50">
-                        </div>
-                    </div>
-                    <details style="margin-bottom:1rem;">
-                        <summary style="font-size:0.85rem;color:#555;cursor:pointer;margin-bottom:0.75rem;">Opciones avanzadas (se autocompletan si están vacías)</summary>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Nombre del canal (auto)</label>
-                                <input type="text" name="canal_nombre" placeholder="Se obtiene de YouTube">
-                            </div>
-                            <div class="form-group" style="max-width:130px;">
-                                <label>Código (auto)</label>
-                                <input type="text" name="canal_codigo" value="CH" maxlength="4">
-                            </div>
-                            <div class="form-group" style="max-width:80px;">
-                                <label>Color (auto)</label>
-                                <input type="color" name="canal_color" value="#2e8b47">
-                            </div>
-                        </div>
-                    </details>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Categoría por defecto (opcional)</label>
+                            <label>Categoría por defecto</label>
                             <select name="categoria_id">
                                 <option value="">— Sin categoría —</option>
                                 <?php foreach ($categorias as $c): ?>
@@ -494,9 +545,10 @@ $section = $_GET['s'] ?? 'dashboard';
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Importar canal</button>
+                    <button type="submit" class="btn btn-primary">Importar <?= e($preview['nombre']) ?></button>
                 </form>
             </div>
+            <?php endif; ?>
 
         <?php elseif ($section === 'videos'): ?>
             <h1>Videos (<?= $totalVideos ?>)</h1>
