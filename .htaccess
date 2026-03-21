@@ -1,8 +1,4 @@
 RewriteEngine On
 
-# /watch?v=VIDEO_ID → ver.php?id=VIDEO_ID
-RewriteRule ^watch$ ver.php [L,QSA]
-
-# Map v= parameter to id= parameter
-RewriteCond %{QUERY_STRING} ^v=([^&]+)
-RewriteRule ^watch$ ver.php?id=%1 [L]
+# /watch?v=VIDEO_ID → ver.php (query string passes through via QSA)
+RewriteRule ^watch$ ver.php [QSA,L]
