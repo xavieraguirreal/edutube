@@ -20,7 +20,8 @@ if ($action === 'videos') {
         LEFT JOIN canales c ON v.canal_id = c.id
         LEFT JOIN categorias cat ON v.categoria_id = cat.id
         WHERE v.activo = 1
-        ORDER BY v.fecha_yt DESC
+        ORDER BY CASE WHEN cat.nombre IN ('Cursos', 'Cultura') THEN 0 ELSE 1 END,
+                 v.fecha_yt DESC
     ");
     $videos = $stmt->fetchAll();
 
