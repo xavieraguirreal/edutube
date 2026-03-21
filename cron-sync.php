@@ -9,10 +9,11 @@
  *   0 */6 * * * /usr/bin/php /path/to/edutube/cron-sync.php >> /var/log/edutube-sync.log 2>&1
  */
 
-// Solo permitir ejecución desde CLI
-if (php_sapi_name() !== 'cli') {
+// Protección: solo permitir CLI o requests con token secreto
+$cronToken = 'edutube-sync-2026';
+if (php_sapi_name() !== 'cli' && ($_GET['token'] ?? '') !== $cronToken) {
     http_response_code(403);
-    die('Acceso denegado. Solo ejecución por CLI.');
+    die('Acceso denegado.');
 }
 
 set_time_limit(600);
