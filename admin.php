@@ -242,7 +242,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         }
                     }
 
-                    $msg = $imported > 0 ? "Canal importado: $imported videos nuevos." : "No hay videos nuevos para importar.";
+                    if ($imported > 0) {
+                        $msg = "$imported videos nuevos importados.";
+                    }
                     $msgType = 'success';
 
                     // Import selected playlists
@@ -319,8 +321,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                 }
 
-                    if ($playlistsImported > 0) {
-                        $msg .= " + $playlistsImported playlists creadas.";
+                    if ($playlistsImported > 0 || $imported > 0) {
+                        $parts = [];
+                        if ($imported > 0) $parts[] = "$imported videos";
+                        if ($playlistsImported > 0) $parts[] = "$playlistsImported playlists";
+                        $msg = "Importación completada: " . implode(' + ', $parts) . ".";
+                    } else if (empty($msg)) {
+                        $msg = "No se seleccionó nada para importar.";
                     }
                 }
             }
@@ -611,13 +618,12 @@ $section = $_GET['s'] ?? 'dashboard';
                     <!-- Option A: Latest videos -->
                     <div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
                         <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;font-weight:500;">
-                            <input type="checkbox" name="import_latest" value="1" checked>
-                            Últimos videos del canal
+                            <input type="checkbox" name="import_latest" value="1">
+                            Últimos videos del canal (sueltos, no de playlists)
                         </label>
-                        <div style="margin-left:1.5rem;margin-top:0.5rem;">
-                            <label style="font-size:0.8rem;color:#555;">Cantidad:</label>
-                            <input type="number" name="limit" value="15" min="1" max="50" style="width:70px;padding:0.3rem;border:1px solid #ddd;border-radius:4px;font-size:0.85rem;">
-                            <span style="font-size:0.75rem;color:#888;">(máx 50 por vez)</span>
+                        <div style="margin-left:1.5rem;margin-top:0.5rem;font-size:0.78rem;color:#888;">
+                            Importa los últimos videos publicados, sin importar a qué playlist pertenecen.
+                            <br>Cantidad: <input type="number" name="limit" value="15" min="1" max="50" style="width:60px;padding:0.2rem;border:1px solid #ddd;border-radius:4px;font-size:0.8rem;"> (máx 50 por vez)
                         </div>
                     </div>
 
