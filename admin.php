@@ -176,100 +176,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if (!$channelId) {
                 $msg = 'No se pudo obtener el Channel ID.'; $msgType = 'error';
             } else {
-                // Check if channel exists
-                $stmt = $db->prepare("SELECT id FROM canales WHERE youtube_channel_id = ?");
-                $stmt->execute([$channelId]);
-                $canal = $stmt->fetch();
-
-                if (!$canal) {
-                    // Get channel name from RSS feed
-                    $rssUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=" . urlencode($channelId);
-                    $rssXml = @simplexml_load_file($rssUrl);
-                    $autoNombre = $rssXml ? (string)$rssXml->title : '';
-
-                    $nombre = $_POST['canal_nombre'] ?: ($autoNombre ?: 'Canal importado');
-                    // Auto-generate code from name (first letters of each word, max 4)
-                    $palabras = preg_split('/\s+/', $nombre);
-                    $autoCodigo = '';
-                    foreach ($palabras as $p) { $autoCodigo .= mb_strtoupper(mb_substr($p, 0, 1)); }
-                    $autoCodigo = mb_substr($autoCodigo, 0, 4);
-
-                    $codigo = $_POST['canal_codigo'] !== 'CH' ? $_POST['canal_codigo'] : ($autoCodigo ?: 'CH');
-                    // Random color if not specified
-                    $colores = ['#2e8b47','#e63946','#9b5de5','#f77f00','#00b4d8','#e76f51','#6a994e','#bc4749'];
-                    $color = $_POST['canal_color'] !== '#2e8b47' ? $_POST['canal_color'] : $colores[array_rand($colores)];
-
-                    $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color) VALUES (?, ?, ?, ?)");
-                    $stmt->execute([$nombre, $channelId, $codigo, $color]);
-                    $canalDbId = $db->lastInsertId();
+                // Get channel info from YouTube API
+                $chInfo = getChannelInfo($channelId);
+                if (!$chInfo) {
+                    $msg = 'No se pudo obtener información del canal.'; $msgType = 'error';
                 } else {
-                    $canalDbId = $canal['id'];
-                }
+                    // Check if channel exists in DB
+                    $stmt = $db->prepare("SELECT id FROM canales WHERE youtube_channel_id = ?");
+                    $stmt->execute([$channelId]);
+                    $canal = $stmt->fetch();
 
-                // Use uploads playlist via API if checkbox, otherwise RSS
-                $importLatest = isset($_POST['import_latest']);
-                $rssVideos = [];
+                    if (!$canal) {
+                        $nombre = $_POST['canal_nombre'] ?: $chInfo['nombre'];
+                        $palabras = preg_split('/\s+/', $nombre);
+                        $autoCodigo = '';
+                        foreach ($palabras as $p) { $autoCodigo .= mb_strtoupper(mb_substr($p, 0, 1)); }
+                        $autoCodigo = mb_substr($autoCodigo, 0, 4) ?: 'CH';
+                        $colores = ['#2e8b47','#e63946','#9b5de5','#f77f00','#00b4d8','#e76f51','#6a994e','#bc4749'];
 
-                if ($importLatest) {
-                    $limit = intval($_POST['limit'] ?? 15);
-                    // Try to get from uploads playlist (more than 15)
-                    $chInfo = getChannelInfo($channelId);
-                    $uploadsPlaylist = $chInfo ? $chInfo['uploads_playlist'] : '';
-                    if ($uploadsPlaylist && $limit > 15) {
-                        $plIds = getPlaylistVideoIds($uploadsPlaylist, $limit);
-                        foreach ($plIds as $vid) {
-                            $rssVideos[] = ['youtube_id' => $vid, 'titulo' => '', 'fecha' => ''];
-                        }
+                        $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color) VALUES (?, ?, ?, ?)");
+                        $stmt->execute([$nombre, $channelId, $autoCodigo, $colores[array_rand($colores)]]);
+                        $canalDbId = $db->lastInsertId();
                     } else {
-                        $rssVideos = getChannelVideos($channelId, $limit);
+                        $canalDbId = $canal['id'];
                     }
-                }
-                $imported = 0;
-                $catId = $_POST['categoria_id'] ?: null;
 
-                // Filter out already indexed
-                $newVideoIds = [];
-                foreach ($rssVideos as $v) {
-                    $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
-                    $stmt->execute([$v['youtube_id']]);
-                    if (!$stmt->fetch()) {
-                        $newVideoIds[] = $v['youtube_id'];
+                    $imported = 0;
+                    $catId = $_POST['categoria_id'] ?: null;
+
+                    // Import latest videos via uploads playlist (API only, no RSS)
+                    if (isset($_POST['import_latest'])) {
+                        $limit = intval($_POST['limit'] ?? 15);
+                        $uploadsPlaylist = $chInfo['uploads_playlist'] ?? '';
+
+                        if ($uploadsPlaylist) {
+                            $videoIds = getPlaylistVideoIds($uploadsPlaylist, $limit);
+
+                            // Filter already indexed
+                            $newIds = [];
+                            foreach ($videoIds as $vid) {
+                                $stmt = $db->prepare("SELECT id FROM videos WHERE youtube_id = ?");
+                                $stmt->execute([$vid]);
+                                if (!$stmt->fetch()) $newIds[] = $vid;
+                            }
+
+                            if (!empty($newIds)) {
+                                $apiDetails = getVideoDetailsAPI($newIds);
+                                foreach ($newIds as $ytId) {
+                                    $meta = $apiDetails[$ytId] ?? null;
+                                    $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                    $stmt->execute([
+                                        $ytId,
+                                        $meta ? $meta['titulo'] : 'Sin título',
+                                        $meta ? $meta['descripcion'] : '',
+                                        $canalDbId, $catId,
+                                        $meta ? $meta['duracion'] : '',
+                                        $meta ? $meta['vistas'] : 0,
+                                        $meta ? $meta['fecha'] : date('Y-m-d'),
+                                        $meta ? $meta['tags'] : '',
+                                        $_SESSION['admin_nombre'] ?? 'admin'
+                                    ]);
+                                    $imported++;
+                                }
+                            }
+                        }
                     }
-                }
 
-                if (empty($newVideoIds)) {
-                    $msg = "No hay videos nuevos para importar (todos ya estaban indexados).";
+                    $msg = $imported > 0 ? "Canal importado: $imported videos nuevos." : "No hay videos nuevos para importar.";
                     $msgType = 'success';
-                } else {
-                    // Get metadata in batch via YouTube API (much faster than yt-dlp)
-                    $apiDetails = getVideoDetailsAPI($newVideoIds);
-
-                    foreach ($newVideoIds as $ytId) {
-                        $meta = $apiDetails[$ytId] ?? null;
-                        $rssData = null;
-                        foreach ($rssVideos as $rv) { if ($rv['youtube_id'] === $ytId) { $rssData = $rv; break; } }
-
-                        $titulo = $meta ? $meta['titulo'] : ($rssData ? $rssData['titulo'] : 'Sin título');
-                        $desc = $meta ? $meta['descripcion'] : '';
-                        $duracion = $meta ? $meta['duracion'] : '';
-                        $vistas = $meta ? $meta['vistas'] : 0;
-                        $fecha = $meta ? $meta['fecha'] : ($rssData ? $rssData['fecha'] : date('Y-m-d'));
-                        $tags = $meta ? $meta['tags'] : '';
-
-                        $embedding = null;
-
-                        $stmt = $db->prepare("INSERT INTO videos (youtube_id, titulo, descripcion, canal_id, categoria_id, duracion, vistas_yt, fecha_yt, tags, embedding, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([
-                            $ytId, $titulo, $desc, $canalDbId, $catId,
-                            $duracion, $vistas, $fecha, $tags,
-                            $embedding ? json_encode($embedding) : null,
-                            $_SESSION['admin_nombre'] ?? 'admin'
-                        ]);
-                        $imported++;
-                    }
-                    $msg = "Canal importado: $imported videos nuevos agregados.";
-                    $msgType = 'success';
-                }
 
                 // Import selected playlists
                 $selectedPlaylists = $_POST['playlists'] ?? [];
