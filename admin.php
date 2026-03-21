@@ -273,8 +273,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $playlistsImported++;
                     }
 
-                    // Get video IDs from playlist
-                    $plVideoIds = getPlaylistVideoIds($plYtId, 50);
+                    // Get ALL video IDs from playlist
+                    $plVideoIds = getPlaylistVideoIds($plYtId);
                     if (empty($plVideoIds)) continue;
 
                     // Get metadata for new videos
