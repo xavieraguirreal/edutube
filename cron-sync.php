@@ -16,18 +16,33 @@ if (php_sapi_name() !== 'cli' && ($_GET['token'] ?? '') !== $cronToken) {
     die('Acceso denegado.');
 }
 
+// Capturar TODOS los errores en archivo local
+$logFile = __DIR__ . '/cron-sync.log';
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/cron-error.log');
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    global $logFile;
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " | PHP ERROR: $errstr en $errfile:$errline\n", FILE_APPEND);
+});
+set_exception_handler(function($e) {
+    global $logFile;
+    file_put_contents($logFile, date('Y-m-d H:i:s') . " | EXCEPCION: " . $e->getMessage() . " en " . $e->getFile() . ":" . $e->getLine() . "\n", FILE_APPEND);
+});
+
 set_time_limit(600);
 ini_set('memory_limit', '256M');
 
 // Log: buffer + archivo local
 $logBuffer = [];
-$logFile = __DIR__ . '/cron-sync.log';
 function logMsg($msg) {
     global $logBuffer, $logFile;
     $line = date('Y-m-d H:i:s') . " | $msg";
     $logBuffer[] = $line;
     file_put_contents($logFile, $line . "\n", FILE_APPEND);
 }
+
+file_put_contents($logFile, date('Y-m-d H:i:s') . " | === Script iniciado ===\n", FILE_APPEND);
 
 require_once __DIR__ . '/config.php';
 
