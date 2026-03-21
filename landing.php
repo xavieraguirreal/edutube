@@ -58,27 +58,10 @@
             justify-content: center;
             text-align: center;
             padding: 2rem;
-            background: linear-gradient(135deg, #0a2e14 0%, #1a5632 40%, #2e8b47 100%);
-            color: #fff;
+            background: #fff;
+            color: var(--text);
             position: relative;
             overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(46,139,71,0.2) 0%, transparent 40%);
-            animation: drift 20s ease-in-out infinite alternate;
-        }
-
-        @keyframes drift {
-            from { transform: translate(0, 0) rotate(0deg); }
-            to { transform: translate(-2%, 2%) rotate(2deg); }
         }
 
         .hero-content {
@@ -98,13 +81,13 @@
         .hero-logo img {
             width: 64px;
             height: auto;
-            filter: brightness(0) invert(1);
         }
 
         .hero-logo span {
             font-size: 3rem;
             font-weight: 800;
             letter-spacing: -1px;
+            color: var(--green);
         }
 
         .hero h1 {
@@ -116,12 +99,12 @@
 
         .hero h1 em {
             font-style: normal;
-            color: rgba(255,255,255,0.6);
+            color: var(--text-light);
         }
 
         .hero p {
             font-size: 1.15rem;
-            color: rgba(255,255,255,0.8);
+            color: var(--text-light);
             max-width: 600px;
             margin: 0 auto 2.5rem;
             line-height: 1.7;
@@ -132,8 +115,8 @@
             align-items: center;
             gap: 0.5rem;
             padding: 1rem 2.5rem;
-            background: #fff;
-            color: var(--green-dark);
+            background: var(--green);
+            color: #fff;
             font-size: 1.1rem;
             font-weight: 700;
             border-radius: 50px;
@@ -151,7 +134,7 @@
             position: absolute;
             bottom: 2rem;
             z-index: 1;
-            color: rgba(255,255,255,0.4);
+            color: var(--text-light);
             font-size: 0.8rem;
             display: flex;
             flex-direction: column;
@@ -409,17 +392,17 @@
 <section>
     <div class="section-label">¿Qué es EduTube?</div>
     <h2>Contenido educativo curado en un entorno seguro</h2>
-    <p class="subtitle">EduTube permite acceder a videos educativos seleccionados por equipos pedagógicos, sin exponer a los usuarios a las funcionalidades de red social de las plataformas de origen.</p>
+    <p class="subtitle">EduTube permite acceder a videos educativos y culturales seleccionados por equipos pedagógicos, sin exponer a los usuarios a las funcionalidades de red social de las plataformas de origen.</p>
 
     <div class="features-grid">
         <div class="feature-card">
             <div class="feature-icon">🎓</div>
             <h3>Contenido seleccionado</h3>
-            <p>Cada video es revisado y aprobado por administradores antes de estar disponible. No hay contenido aleatorio ni recomendaciones algorítmicas.</p>
+            <p>Cada canal o lista de videos es revisada y aprobada por administradores/as antes de estar disponible. No hay contenido aleatorio ni recomendaciones algorítmicas.</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">🔒</div>
-            <h3>Entorno controlado</h3>
+            <h3>Entorno seguro</h3>
             <p>Los usuarios solo pueden ver los videos aprobados. No pueden navegar libremente, buscar fuera del catálogo ni acceder a contenido externo.</p>
         </div>
         <div class="feature-card">
@@ -430,12 +413,12 @@
         <div class="feature-card">
             <div class="feature-icon">🚫</div>
             <h3>Sin interacción social</h3>
-            <p>No hay comentarios, no hay likes públicos, no hay mensajes entre usuarios. La plataforma es unidireccional: solo reproducción de contenido.</p>
+            <p>No hay comentarios, no hay likes públicos, no hay mensajes entre usuarios/as. La plataforma es unidireccional: solo reproducción de contenido.</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">⚡</div>
             <h3>Reproductor propio</h3>
-            <p>Controles de reproducción diseñados por nosotros. Sin enlaces a plataformas externas, sin branding de terceros, sin redirecciones.</p>
+            <p>Controles de reproducción diseñados por nosotros/as. Sin enlaces a plataformas externas, sin branding de terceros/as, sin redirecciones.</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">📊</div>
@@ -455,19 +438,19 @@
             <div class="comp-col">
                 <h3>🚫 Lo que NO tiene EduTube</h3>
                 <ul class="comp-list">
-                    <li><span class="icon">✕</span> No tiene registro de usuarios ni perfiles públicos</li>
+                    <li><span class="icon">✕</span> No tiene registro de usuarios/as ni perfiles públicos</li>
                     <li><span class="icon">✕</span> No tiene comentarios ni sistema de mensajería</li>
-                    <li><span class="icon">✕</span> No permite subir contenido por parte de los usuarios</li>
-                    <li><span class="icon">✕</span> No tiene sistema de seguidores ni suscripciones sociales</li>
+                    <li><span class="icon">✕</span> No permite subir contenido por parte de los/as usuarios/as</li>
+                    <li><span class="icon">✕</span> No tiene sistema de seguidores/as ni suscripciones sociales</li>
                     <li><span class="icon">✕</span> No tiene feed algorítmico ni recomendaciones personalizadas</li>
-                    <li><span class="icon">✕</span> No tiene likes, shares ni reacciones visibles a otros</li>
-                    <li><span class="icon">✕</span> No permite interacción entre usuarios de ningún tipo</li>
+                    <li><span class="icon">✕</span> No tiene likes, shares ni reacciones visibles a otros/as</li>
+                    <li><span class="icon">✕</span> No permite interacción entre usuarios/as de ningún tipo</li>
                 </ul>
             </div>
             <div class="comp-col">
                 <h3>✅ Lo que SÍ tiene EduTube</h3>
                 <ul class="comp-list">
-                    <li><span class="icon">✓</span> Catálogo de videos seleccionados por administradores</li>
+                    <li><span class="icon">✓</span> Catálogo seleccionado por administradores/as</li>
                     <li><span class="icon">✓</span> Reproductor integrado con controles propios</li>
                     <li><span class="icon">✓</span> Organización por categorías y canales temáticos</li>
                     <li><span class="icon">✓</span> Búsqueda dentro del catálogo aprobado</li>
@@ -483,23 +466,23 @@
 <section>
     <div class="section-label">Cumplimiento normativo</div>
     <h2>Respeto a las políticas de YouTube</h2>
-    <p class="subtitle">EduTube utiliza exclusivamente los mecanismos oficiales de incrustación (embed) provistos por YouTube, respetando todas sus políticas de uso.</p>
+    <p class="subtitle">EduTube utiliza exclusivamente los mecanismos oficiales provistos por YouTube, respetando todas sus políticas de uso.</p>
 
     <div class="compliance-cards">
         <div class="compliance-card">
             <div class="cc-icon">📜</div>
             <h4>Términos de Servicio</h4>
-            <p>Se utiliza el mecanismo de embed oficial de YouTube (iframe API), permitido explícitamente en sus Términos de Servicio.</p>
+            <p>Se utiliza el mecanismo oficial de YouTube (API), permitido explícitamente en sus Términos de Servicio.</p>
         </div>
         <div class="compliance-card">
             <div class="cc-icon">🔐</div>
             <h4>Privacidad mejorada</h4>
-            <p>Se usa el dominio youtube-nocookie.com, la versión de privacidad mejorada que YouTube ofrece para embeds sin tracking.</p>
+            <p>Se usa la versión privada mejorada de dominio que YouTube ofrece para reproducciones sin tracking.</p>
         </div>
         <div class="compliance-card">
             <div class="cc-icon">📈</div>
             <h4>Vistas contabilizadas</h4>
-            <p>Las reproducciones en EduTube se contabilizan como vistas legítimas en YouTube, beneficiando a los creadores de contenido.</p>
+            <p>Las reproducciones en EduTube se contabilizan como vistas legítimas en YouTube, beneficiando a los/as creadores/as de contenido.</p>
         </div>
         <div class="compliance-card">
             <div class="cc-icon">🚫</div>
@@ -515,8 +498,7 @@
         <span>EduTube</span>
     </div>
     <p>
-        Plataforma desarrollada por la <strong>Universidad Liberté</strong> —
-        Espacio Liberté / Comité de Convivencia Mario Juliano.<br>
+        Plataforma desarrollada por <strong>VERUMax</strong> para la Universidad Liberté, solicitado por el Comité de Convivencia Mario Juliano.<br>
         Provincia de Buenos Aires, Argentina.
     </p>
     <a href="index.php" class="footer-cta" id="enter-btn-footer">Ingresar a EduTube →</a>
