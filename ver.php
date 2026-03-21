@@ -1,3 +1,23 @@
+<?php
+// Server-side meta tags for social sharing (crawlers don't execute JS)
+$videoId = isset($_GET['v']) ? $_GET['v'] : (isset($_GET['id']) ? $_GET['id'] : '');
+$videoId = preg_replace('/[^a-zA-Z0-9_-]/', '', $videoId); // sanitize
+
+// Video titles for meta tags (subset of videos.js data)
+$metaData = json_decode(file_get_contents(__DIR__ . '/videos-meta.json'), true);
+
+$title = 'EduTube — Videos Educativos';
+$description = 'Video educativo en EduTube — Plataforma de videos educativos curados.';
+$image = 'https://edutube.universidadliberte.org/loguito-edutube.png';
+$url = 'https://edutube.universidadliberte.org/watch?v=' . $videoId;
+
+if ($videoId && isset($metaData[$videoId])) {
+    $v = $metaData[$videoId];
+    $title = $v['titulo'] . ' — EduTube';
+    $description = $v['descripcion'];
+    $image = 'https://img.youtube.com/vi/' . $videoId . '/hqdefault.jpg';
+}
+?>
 <!DOCTYPE html>
 <html lang="es" class="page-player">
 <head>
@@ -11,15 +31,24 @@
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline' https://www.youtube.com;
     ">
-    <title>EduTube</title>
+    <title><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></title>
     <link rel="icon" type="image/png" href="loguito-edutube.png">
 
-    <!-- SEO base (se actualiza dinámicamente con JS) -->
-    <meta name="description" content="Video educativo en EduTube — Plataforma de videos educativos curados.">
-    <meta property="og:site_name" content="EduTube">
+    <!-- SEO / Open Graph -->
+    <meta name="description" content="<?php echo htmlspecialchars($description, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:title" content="<?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($description, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:image" content="<?php echo $image; ?>">
+    <meta property="og:url" content="<?php echo $url; ?>">
     <meta property="og:type" content="video.other">
+    <meta property="og:site_name" content="EduTube">
     <meta property="og:locale" content="es_AR">
+
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta name="twitter:description" content="<?php echo htmlspecialchars($description, ENT_QUOTES, 'UTF-8'); ?>">
+    <meta name="twitter:image" content="<?php echo $image; ?>">
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -100,24 +129,6 @@ function formatDate(dateStr) {
     }
 
     var ch = CHANNELS[video.canal];
-    document.title = video.titulo + ' — EduTube';
-
-    // Update meta tags for sharing
-    function setMeta(attr, val, content) {
-        var el = document.querySelector('meta[' + attr + '="' + val + '"]');
-        if (el) el.setAttribute('content', content);
-        else { el = document.createElement('meta'); el.setAttribute(attr, val); el.setAttribute('content', content); document.head.appendChild(el); }
-    }
-    var shareUrl = window.location.origin + '/watch?v=' + videoId;
-    var thumbUrl = 'https://img.youtube.com/vi/' + videoId + '/hqdefault.jpg';
-    setMeta('name', 'description', video.titulo + ' — ' + ch.nombre + ' en EduTube');
-    setMeta('property', 'og:title', video.titulo);
-    setMeta('property', 'og:description', video.descripcion);
-    setMeta('property', 'og:image', thumbUrl);
-    setMeta('property', 'og:url', shareUrl);
-    setMeta('name', 'twitter:title', video.titulo);
-    setMeta('name', 'twitter:description', video.descripcion);
-    setMeta('name', 'twitter:image', thumbUrl);
 
     // Save to history
     var hist = getStore('history');
