@@ -72,6 +72,7 @@ foreach ($canales as $canal) {
         continue;
     }
 
+    $canalStart = time();
     logMsg("[{$canal['nombre']}] Iniciando sync...");
 
     try {
@@ -92,7 +93,8 @@ foreach ($canales as $canal) {
         $stmt = $db->prepare("INSERT INTO sync_log (canal_id, videos_importados, playlists_importadas, errores) VALUES (?, ?, ?, ?)");
         $stmt->execute([$canal['id'], $result['imported'], $result['playlists_imported'], $errores]);
 
-        $status = "{$result['imported']} videos, {$result['playlists_imported']} playlists";
+        $canalElapsed = time() - $canalStart;
+        $status = "{$result['imported']} videos, {$result['playlists_imported']} playlists ({$canalElapsed}s)";
         if ($result['hit_limit']) $status .= " (límite alcanzado)";
         if ($errores) $status .= " | ERRORES: $errores";
         logMsg("[{$canal['nombre']}] $status");
