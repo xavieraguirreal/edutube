@@ -437,6 +437,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $msg = 'Canal actualizado.'; $msgType = 'success';
         }
 
+        // ── Reorder channel priority ──
+        if ($action === 'move_channel') {
+            $canalId = intval($_POST['canal_id']);
+            $direction = $_POST['direction']; // 'up' or 'down'
+
+            // Obtener canales con portada ordenados por prioridad desc
+            $allCh = $db->query("
+                SELECT c.id, c.prioridad_portada FROM canales c
+                JOIN categorias cat ON c.default_categoria_id = cat.id
+                WHERE c.activo = 1 AND cat.mostrar_en_portada = 1
+                ORDER BY c.prioridad_portada DESC, c.nombre
+            ")->fetchAll();
+
+            // Encontrar posición actual
+            $pos = -1;
+            foreach ($allCh as $i => $ch) {
+                if ($ch['id'] == $canalId) { $pos = $i; break; }
+            }
+
+            if ($pos >= 0) {
+                $swapPos = ($direction === 'up') ? $pos - 1 : $pos + 1;
+                if ($swapPos >= 0 && $swapPos < count($allCh)) {
+                    // Intercambiar prioridades
+                    $pA = $allCh[$pos]['prioridad_portada'];
+                    $pB = $allCh[$swapPos]['prioridad_portada'];
+                    // Si tienen la misma prioridad, crear diferencia
+                    if ($pA == $pB) {
+                        $pB = ($direction === 'up') ? $pA + 1 : $pA - 1;
+                    }
+                    $db->prepare("UPDATE canales SET prioridad_portada = ? WHERE id = ?")->execute([$pB, $canalId]);
+                    $db->prepare("UPDATE canales SET prioridad_portada = ? WHERE id = ?")->execute([$pA, $allCh[$swapPos]['id']]);
+                    $msg = 'Prioridad actualizada.'; $msgType = 'success';
+                }
+            }
+        }
+
         // ── Add category ──
         if ($action === 'add_categoria') {
             $stmt = $db->prepare("INSERT INTO categorias (nombre, icono, orden, mostrar_en_portada) VALUES (?, ?, ?, ?)");
@@ -574,6 +610,7 @@ $section = $_GET['s'] ?? 'dashboard';
         <a href="?s=import" class="<?= $section==='import'?'active':'' ?>">📥 Importar canal</a>
         <a href="?s=canales" class="<?= $section==='canales'?'active':'' ?>">📺 Canales</a>
         <a href="?s=categorias" class="<?= $section==='categorias'?'active':'' ?>">🏷 Categorías</a>
+        <a href="?s=portada" class="<?= $section==='portada'?'active':'' ?>">🏠 Portada</a>
         <a href="?s=password" class="<?= $section==='password'?'active':'' ?>">🔑 Contraseña</a>
         <a href="/" target="_blank">🌐 Ver sitio</a>
         <a href="?logout=1">🚪 Salir</a>
@@ -909,10 +946,6 @@ $section = $_GET['s'] ?? 'dashboard';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Prioridad portada</label>
-                            <input type="number" name="prioridad_portada" value="<?= $editCanal['prioridad_portada'] ?? 0 ?>" min="0" style="width:80px;">
-                        </div>
                         <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
                             <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
                                 <input type="checkbox" name="auto_sync" value="1" <?= ($editCanal && $editCanal['auto_sync']) ? 'checked' : '' ?>>
@@ -997,6 +1030,60 @@ $section = $_GET['s'] ?? 'dashboard';
                 </tr>
                 <?php endforeach; ?>
             </table>
+
+        <?php elseif ($section === 'portada'): ?>
+            <h1>Orden de Portada</h1>
+            <p style="color:#888;font-size:0.85rem;margin-bottom:1rem;">Canales cuya categoría tiene "Mostrar en portada" activado. Usá las flechas para cambiar el orden.</p>
+
+            <?php
+            $portadaCanales = $db->query("
+                SELECT c.id, c.nombre, c.codigo, c.color, c.prioridad_portada, cat.nombre AS cat_nombre
+                FROM canales c
+                JOIN categorias cat ON c.default_categoria_id = cat.id
+                WHERE c.activo = 1 AND cat.mostrar_en_portada = 1
+                ORDER BY c.prioridad_portada DESC, c.nombre
+            ")->fetchAll();
+            $totalPortada = count($portadaCanales);
+            ?>
+
+            <?php if ($totalPortada === 0): ?>
+                <div class="msg msg-error">No hay canales con categorías de portada. Andá a Categorías y activá "Mostrar en portada" en alguna.</div>
+            <?php else: ?>
+            <table>
+                <tr><th style="width:50px">#</th><th>Canal</th><th>Categoría</th><th>Prioridad</th><th style="width:120px">Orden</th></tr>
+                <?php foreach ($portadaCanales as $i => $pc): ?>
+                <tr>
+                    <td style="font-weight:600;color:#888;"><?= $i + 1 ?></td>
+                    <td>
+                        <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:<?= e($pc['color']) ?>;color:#fff;text-align:center;line-height:24px;font-size:0.65rem;font-weight:700;vertical-align:middle;margin-right:0.4rem;"><?= e($pc['codigo']) ?></span>
+                        <?= e($pc['nombre']) ?>
+                    </td>
+                    <td><?= e($pc['cat_nombre']) ?></td>
+                    <td><?= $pc['prioridad_portada'] ?></td>
+                    <td>
+                        <?php if ($i > 0): ?>
+                        <form method="POST" style="display:inline">
+                            <input type="hidden" name="action" value="move_channel">
+                            <input type="hidden" name="canal_id" value="<?= $pc['id'] ?>">
+                            <input type="hidden" name="direction" value="up">
+                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                            <button class="btn btn-sm btn-outline" title="Subir">▲</button>
+                        </form>
+                        <?php endif; ?>
+                        <?php if ($i < $totalPortada - 1): ?>
+                        <form method="POST" style="display:inline">
+                            <input type="hidden" name="action" value="move_channel">
+                            <input type="hidden" name="canal_id" value="<?= $pc['id'] ?>">
+                            <input type="hidden" name="direction" value="down">
+                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                            <button class="btn btn-sm btn-outline" title="Bajar">▼</button>
+                        </form>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+            <?php endif; ?>
 
         <?php elseif ($section === 'password'): ?>
             <h1>Cambiar contraseña</h1>
