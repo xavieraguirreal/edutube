@@ -424,7 +424,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Edit channel ──
         if ($action === 'edit_channel') {
-            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, prioridad_portada=?, auto_sync=?, default_categoria_id=? WHERE id=?");
+            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, prioridad_portada=?, auto_sync=?, default_categoria_id=?, nota_interna=? WHERE id=?");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
@@ -432,9 +432,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 intval($_POST['prioridad_portada'] ?? 0),
                 isset($_POST['auto_sync']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null,
+                $_POST['nota_interna'] ?? '',
                 $_POST['canal_id']
             ]);
             $msg = 'Canal actualizado.'; $msgType = 'success';
+        }
+
+        // ── Sync channel metadata from YouTube ──
+        if ($action === 'sync_channel_metadata') {
+            $canalId = intval($_POST['canal_id']);
+            $stmtCh = $db->prepare("SELECT youtube_channel_id FROM canales WHERE id = ?");
+            $stmtCh->execute([$canalId]);
+            $ch = $stmtCh->fetch();
+            if ($ch && $ch['youtube_channel_id']) {
+                $info = syncChannelMetadata($db, $ch['youtube_channel_id'], $canalId);
+                if ($info) {
+                    $msg = 'Metadatos sincronizados: thumbnail, banner, stats actualizados.'; $msgType = 'success';
+                } else {
+                    $msg = 'Error al obtener datos de YouTube.'; $msgType = 'error';
+                }
+            } else {
+                $msg = 'El canal no tiene YouTube Channel ID.'; $msgType = 'error';
+            }
         }
 
         // ── Reorder channel priority ──
@@ -940,6 +959,9 @@ $section = $_GET['s'] ?? 'dashboard';
                         <div class="form-group"><label>Descripción</label><textarea name="descripcion"><?= e($editCanal['descripcion'] ?? '') ?></textarea></div>
                     </div>
                     <div class="form-row">
+                        <div class="form-group"><label>Nota interna (solo admin)</label><textarea name="nota_interna" placeholder="Notas privadas sobre este canal..."><?= e($editCanal['nota_interna'] ?? '') ?></textarea></div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label>Categoría por defecto</label>
                             <select name="default_categoria_id">
@@ -956,14 +978,33 @@ $section = $_GET['s'] ?? 'dashboard';
                             </label>
                         </div>
                     </div>
+                    <?php if ($editCanal && !empty($editCanal['thumbnail_url'])): ?>
+                    <div class="form-row" style="align-items:center;gap:1rem;margin-bottom:1rem;">
+                        <img src="<?= e($editCanal['thumbnail_url']) ?>" alt="Thumbnail" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">
+                        <div style="font-size:0.82rem;color:var(--text-secondary);">
+                            <?php if (!empty($editCanal['subscriber_count'])): ?>Suscriptores YT: <?= number_format($editCanal['subscriber_count']) ?> · <?php endif; ?>
+                            <?php if (!empty($editCanal['video_count_yt'])): ?>Videos YT: <?= $editCanal['video_count_yt'] ?> · <?php endif; ?>
+                            <?php if (!empty($editCanal['country'])): ?>País: <?= e($editCanal['country']) ?> · <?php endif; ?>
+                            <?php if (!empty($editCanal['metadata_updated_at'])): ?>Última sync: <?= $editCanal['metadata_updated_at'] ?><?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     <button type="submit" class="btn btn-primary"><?= $editCanal ? 'Guardar cambios' : 'Crear canal' ?></button>
                     <?php if ($editCanal): ?>
                         <a href="?s=canales" class="btn btn-outline" style="margin-left:0.5rem;">Cancelar</a>
                     <?php endif; ?>
                 </form>
+                <?php if ($editCanal && !empty($editCanal['youtube_channel_id'])): ?>
+                <form method="POST" style="margin-top:0.75rem;display:inline;">
+                    <input type="hidden" name="action" value="sync_channel_metadata">
+                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <input type="hidden" name="canal_id" value="<?= $editCanal['id'] ?>">
+                    <button type="submit" class="btn btn-outline" title="Descarga thumbnail, banner y estadísticas de YouTube">Sincronizar metadatos de YouTube</button>
+                </form>
+                <?php endif; ?>
             </div>
             <table>
-                <tr><th>Nombre</th><th>Código</th><th>Channel ID</th><th>Categoría</th><th>Auto-sync</th><th>Color</th><th>Acciones</th></tr>
+                <tr><th></th><th>Nombre</th><th>Channel ID</th><th>Categoría</th><th>Auto-sync</th><th>Metadata</th><th>Acciones</th></tr>
                 <?php foreach ($canales as $c):
                     $catNombre = '—';
                     if (!empty($c['default_categoria_id'])) {
@@ -973,12 +1014,18 @@ $section = $_GET['s'] ?? 'dashboard';
                     }
                 ?>
                 <tr>
-                    <td><?= e($c['nombre']) ?></td>
-                    <td><?= e($c['codigo']) ?></td>
+                    <td>
+                        <?php if (!empty($c['thumbnail_url'])): ?>
+                            <img src="<?= e($c['thumbnail_url']) ?>" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+                        <?php else: ?>
+                            <span style="display:inline-block;width:32px;height:32px;border-radius:50%;background:<?= e($c['color']) ?>;color:#fff;text-align:center;line-height:32px;font-size:0.7rem;font-weight:700;"><?= e($c['codigo']) ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td><a href="canal.php?id=<?= $c['id'] ?>" target="_blank" style="color:var(--text);font-weight:500;"><?= e($c['nombre']) ?></a></td>
                     <td style="font-size:0.78rem;"><?= e($c['youtube_channel_id']) ?></td>
                     <td><?= e($catNombre) ?></td>
                     <td><span class="badge <?= !empty($c['auto_sync']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['auto_sync']) ? 'Sí' : 'No' ?></span></td>
-                    <td><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:<?= e($c['color']) ?>"></span></td>
+                    <td><span class="badge <?= !empty($c['metadata_updated_at']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['metadata_updated_at']) ? date('d/m', strtotime($c['metadata_updated_at'])) : 'Sin sync' ?></span></td>
                     <td><a href="?s=canales&edit=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a></td>
                 </tr>
                 <?php endforeach; ?>

@@ -631,6 +631,167 @@ button { font-family: inherit; }
 }
 
 /* ══════════════════════════════
+   CANAL (CHANNEL) PAGE
+   ══════════════════════════════ */
+.canal-page {
+    margin-left: 0;
+    padding-top: var(--topbar-h);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.canal-banner {
+    width: 100%;
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 0 0 var(--radius) var(--radius);
+    margin-top: var(--topbar-h);
+}
+.canal-banner-gradient {
+    opacity: 0.85;
+}
+.canal-profile-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1.25rem 1.5rem;
+}
+.canal-profile-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex: 1;
+    min-width: 0;
+}
+.canal-profile-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 3px solid var(--surface);
+    margin-top: -30px;
+    background: var(--surface);
+}
+.canal-profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    margin-top: -30px;
+    border: 3px solid var(--surface);
+}
+.canal-profile-info {
+    flex: 1;
+    min-width: 0;
+}
+.canal-profile-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+}
+.canal-profile-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+.canal-profile-yt-stats {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+.canal-description-card {
+    padding: 0 1.5rem 1rem;
+}
+.canal-description-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+.canal-description-text.collapsed {
+    max-height: 4.8em;
+    overflow: hidden;
+}
+.canal-desc-toggle {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.25rem 0;
+    font-family: inherit;
+}
+.canal-category-badge {
+    display: inline-block;
+    margin: 0 1.5rem 1rem;
+    padding: 0.35rem 0.75rem;
+    background: var(--bg-hover);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.canal-section {
+    padding: 0.5rem 1.5rem 1.5rem;
+}
+.canal-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.canal-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+.canal-section-count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.canal-section-more {
+    margin-left: auto;
+    font-size: 0.82rem;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+.canal-section-more:hover {
+    text-decoration: underline;
+}
+.canal-all-videos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+.card-channel-static {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+@media (max-width: 768px) {
+    .canal-banner { height: 120px; }
+    .canal-profile-header { flex-wrap: wrap; padding: 1rem 0.75rem; }
+    .canal-profile-img, .canal-profile-avatar { width: 64px; height: 64px; font-size: 1.2rem; }
+    .canal-profile-name { font-size: 1.2rem; }
+    .canal-section { padding: 0.5rem 0.75rem 1rem; }
+    .canal-description-card { padding: 0 0.75rem 0.75rem; }
+    .canal-category-badge { margin: 0 0.75rem 0.75rem; }
+}
+
+/* ══════════════════════════════
    PLAYER PAGE
    ══════════════════════════════ */
 .page-player .main {

@@ -236,4 +236,59 @@ if ($action === 'video_playlists') {
     exit;
 }
 
+// ── Canal profile ──
+if ($action === 'canal') {
+    $canalId = intval($_GET['id'] ?? 0);
+    $stmt = $db->prepare("SELECT c.*, cat.nombre AS categoria_nombre FROM canales c LEFT JOIN categorias cat ON c.default_categoria_id = cat.id WHERE c.id = ? AND c.activo = 1");
+    $stmt->execute([$canalId]);
+    $canal = $stmt->fetch();
+    if (!$canal) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Canal no encontrado']);
+        exit;
+    }
+    // Remove sensitive fields
+    unset($canal['nota_interna']);
+
+    // EduTube stats
+    $stmtV = $db->prepare("SELECT COUNT(*) FROM videos WHERE canal_id = ? AND activo = 1");
+    $stmtV->execute([$canalId]);
+    $edutube_videos = $stmtV->fetchColumn();
+
+    $stmtP = $db->prepare("SELECT COUNT(*) FROM playlists WHERE canal_id = ? AND activa = 1");
+    $stmtP->execute([$canalId]);
+    $edutube_playlists = $stmtP->fetchColumn();
+
+    // Recent videos
+    $stmtRecent = $db->prepare("
+        SELECT v.youtube_id, v.titulo, v.duracion, v.vistas_yt, v.fecha_yt,
+               c.nombre AS canal_nombre, c.codigo AS canal_codigo, c.color AS canal_color, c.id AS canal_id
+        FROM videos v
+        LEFT JOIN canales c ON v.canal_id = c.id
+        WHERE v.canal_id = ? AND v.activo = 1
+        ORDER BY v.fecha_yt DESC
+    ");
+    $stmtRecent->execute([$canalId]);
+    $allVideos = $stmtRecent->fetchAll();
+
+    // Playlists with preview videos
+    $stmtPl = $db->prepare("
+        SELECT p.id, p.nombre,
+               (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.playlist_id = p.id) AS total_videos
+        FROM playlists p
+        WHERE p.canal_id = ? AND p.activa = 1
+        ORDER BY p.nombre
+    ");
+    $stmtPl->execute([$canalId]);
+    $playlists = $stmtPl->fetchAll();
+
+    echo json_encode([
+        'canal' => $canal,
+        'stats' => ['edutube_videos' => intval($edutube_videos), 'edutube_playlists' => intval($edutube_playlists)],
+        'videos' => $allVideos,
+        'playlists' => $playlists
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 echo json_encode(['error' => 'Acción no válida']);
