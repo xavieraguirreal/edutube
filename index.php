@@ -338,7 +338,7 @@ function videoCardHTML(v) {
             '<div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '?') + '</div>' +
             '<div class="card-text">' +
                 '<a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
-                '<a href="#" class="card-channel" data-canal="' + (v.canal_id || '') + '">' + (v.canal_nombre || '') + '</a>' +
+                '<a href="canal?id=' + (v.canal_id || '') + '" class="card-channel">' + (v.canal_nombre || '') + '</a>' +
                 '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + '</div>' +
             '</div>' +
         '</div>' +
@@ -353,14 +353,6 @@ function bindWatchLaterButtons(container) {
             this.classList.toggle('saved', added);
             showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');
             updateBadges();
-        });
-    });
-    container.querySelectorAll('a.card-channel[data-canal]').forEach(function(link) {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var cid = this.getAttribute('data-canal');
-            if (cid) { isPortadaView = false; filterCanal(cid); }
         });
     });
 }
