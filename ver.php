@@ -33,7 +33,7 @@ if ($videoId) {
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         frame-src https://www.youtube-nocookie.com https://archive.org;
-        img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org;
+        img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org https://*.us.archive.org https://*.archive.org;
         media-src https://archive.org https://*.us.archive.org https://*.archive.org;
         connect-src 'self' https://archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -473,12 +473,6 @@ function formatDate(dateStr) {
         if (d > 0) document.getElementById('time-total').textContent = fmt(d);
     }
 
-    function fmt(s) {
-        var h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=Math.floor(s%60);
-        if (h>0) return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
-        return m+':'+String(sec).padStart(2,'0');
-    }
-
     document.getElementById('btn-play').addEventListener('click', function() {
         if (!player) return;
         if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo(); else player.playVideo();
@@ -517,6 +511,12 @@ function formatDate(dateStr) {
     document.getElementById('player-container').addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
     } // end renderPlayer
+
+    function fmt(s) {
+        var h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=Math.floor(s%60);
+        if (h>0) return h+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+        return m+':'+String(sec).padStart(2,'0');
+    }
 
     // ── Internet Archive Player (HTML5 video with custom controls) ──
     function renderArchivePlayer(video) {
