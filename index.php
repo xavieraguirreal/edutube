@@ -569,7 +569,7 @@ function showVideosWithSort(videos, activeSort) {
     var sorted = sortVideos(videos, activeSort);
 
     // Si estamos en la portada principal, mostrar agrupado por canal
-    if (isPortadaView && !activeSort || activeSort === 'newest') {
+    if (isPortadaView && (!activeSort || activeSort === 'newest')) {
         renderPortadaGrouped(sorted);
         return;
     }
