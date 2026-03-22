@@ -35,7 +35,7 @@ if ($videoId) {
         frame-src https://www.youtube-nocookie.com https://archive.org;
         img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org https://*.us.archive.org https://*.archive.org;
         media-src https://archive.org https://*.us.archive.org https://*.archive.org;
-        connect-src 'self' https://archive.org;
+        connect-src 'self' https://archive.org https://be-api.us.archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline' https://www.youtube.com;
@@ -175,13 +175,18 @@ function formatDate(dateStr) {
         };
         var iaId = iaLookup[videoId] || videoId.substring(3);
 
-        // Fetch metadata from Archive.org
+        // Fetch metadata + views from Archive.org in parallel
         page.innerHTML = '<div style="padding:4rem;text-align:center;color:var(--text-muted);">Cargando película...</div>';
-        fetch('https://archive.org/metadata/' + iaId)
-            .then(function(r) { return r.json(); })
-            .then(function(meta) {
+        Promise.all([
+            fetch('https://archive.org/metadata/' + iaId).then(function(r) { return r.json(); }),
+            fetch('https://be-api.us.archive.org/views/v1/short/' + iaId).then(function(r) { return r.json(); }).catch(function() { return {}; })
+        ])
+            .then(function(results) {
+                var meta = results[0];
+                var viewsData = results[1];
                 var md = meta.metadata || {};
                 var files = meta.files || [];
+                var vistas = (viewsData[iaId] && viewsData[iaId].all_time) || 0;
                 // Find mp4 file
                 var mp4 = '';
                 for (var i = 0; i < files.length; i++) {
@@ -210,7 +215,7 @@ function formatDate(dateStr) {
                     descripcion: desc.replace(/<[^>]*>/g, ''),
                     duracion: '',
                     fecha: md.date || md.year || md.publicdate || '',
-                    vistas: parseInt(md.downloads) || 0,
+                    vistas: vistas,
                     fuente: 'Internet Archive',
                     coleccion: (Array.isArray(md.collection) ? md.collection[0] : md.collection) || 'Movies',
                     licencia: md['licenseurl'] ? 'Creative Commons' : 'Public Domain'
