@@ -1060,7 +1060,12 @@ $section = $_GET['s'] ?? 'dashboard';
                         <span class="badge badge-inactive">—</span>
                         <?php endif; ?>
                     </td>
-                    <td><a href="?s=canales&edit=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a></td>
+                    <td>
+                        <a href="?s=canales&edit=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
+                        <?php if (!empty($c['youtube_channel_id'])): ?>
+                        <a href="?s=import&preview_url=https://www.youtube.com/channel/<?= e($c['youtube_channel_id']) ?>" class="btn btn-sm btn-outline" style="margin-left:0.25rem;" title="Sincronizar videos y playlists">Sync</a>
+                        <?php endif; ?>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </table>
