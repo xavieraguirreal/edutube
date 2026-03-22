@@ -64,11 +64,19 @@ logMsg(count($canales) . " canal(es) para sincronizar.");
 
 $totalVideos = 0;
 $totalPlaylists = 0;
+$maxVideosTotal = 50; // Límite global por ejecución del cron
+$videosRestantes = $maxVideosTotal;
 
 foreach ($canales as $canal) {
-    // Si se excedió la cuota, parar inmediatamente
+    // Si se excedió la cuota, parar
     if (!empty($GLOBALS['youtube_quota_exceeded'])) {
         logMsg("CUOTA EXCEDIDA — se detiene la sincronización. Se resetea a las 4 AM Argentina.");
+        break;
+    }
+
+    // Si ya importamos el máximo, parar
+    if ($videosRestantes <= 0) {
+        logMsg("Límite de $maxVideosTotal videos alcanzado. Ejecutá de nuevo para continuar.");
         break;
     }
 
@@ -79,7 +87,7 @@ foreach ($canales as $canal) {
     }
 
     $canalStart = time();
-    logMsg("[{$canal['nombre']}] Iniciando sync...");
+    logMsg("[{$canal['nombre']}] Iniciando sync (máx $videosRestantes videos)...");
 
     try {
         $result = syncChannelAll(
@@ -88,11 +96,12 @@ foreach ($canales as $canal) {
             $canal['id'],
             $canal['default_categoria_id'],
             'cron',
-            50
+            $videosRestantes
         );
 
         $totalVideos += $result['imported'];
         $totalPlaylists += $result['playlists_imported'];
+        $videosRestantes -= $result['imported'];
 
         // Registrar en sync_log
         $errores = !empty($result['errors']) ? implode('; ', $result['errors']) : null;
@@ -117,6 +126,18 @@ foreach ($canales as $canal) {
 
 $elapsed = time() - $startTime;
 logMsg("=== Fin: $totalVideos videos, $totalPlaylists playlists en {$elapsed}s ===");
+
+// Resumen de llamadas API por key
+$apiStats = youtubeApiGetStats();
+if (!empty($apiStats)) {
+    $totalCalls = array_sum($apiStats);
+    $parts = [];
+    foreach ($apiStats as $key => $count) {
+        $parts[] = "...$key: $count calls";
+    }
+    logMsg("API CALLS: $totalCalls total (" . implode(' | ', $parts) . ")");
+    logMsg("Cuota restante estimada: " . (30000 - $totalCalls) . " de 30,000/día (3 keys)");
+}
 
 outputLog();
 
