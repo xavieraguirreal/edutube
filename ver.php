@@ -35,6 +35,7 @@ if ($videoId) {
         frame-src https://www.youtube-nocookie.com https://archive.org;
         img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org;
         media-src https://archive.org https://*.us.archive.org https://*.archive.org;
+        connect-src 'self' https://archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline' https://www.youtube.com;
@@ -134,20 +135,68 @@ function formatDate(dateStr) {
         return;
     }
 
-    // ── Internet Archive demo (hardcoded) ──
-    if (videoId === 'ia:TheGreatDictator') {
-        renderArchivePlayer({
-            ia_id: 'OGrandeDitadorTheGreatDictatorCharlieChaplin1940',
-            archivo: 'O Grande Ditador [The Great Dictator] - Charlie Chaplin - 1940.mp4',
-            titulo: 'The Great Dictator (1940) — Charlie Chaplin',
-            descripcion: 'The Great Dictator es una película estadounidense de 1940 escrita, dirigida y protagonizada por Charlie Chaplin. Es una sátira política que se burla de Adolf Hitler y el nazismo. Fue la primera película completamente sonora de Chaplin y su mayor éxito comercial. La película incluye el famoso discurso final, considerado uno de los más grandes monólogos en la historia del cine.',
-            duracion: '2:04:37',
-            fecha: '1940-10-15',
-            vistas: 1584203,
-            fuente: 'Internet Archive',
-            coleccion: 'Feature Films',
-            licencia: 'Public Domain'
-        });
+    // ── Internet Archive: any ia:IDENTIFIER ──
+    if (videoId.indexOf('ia:') === 0) {
+        var iaLookup = {
+            'ia:TheGreatDictator': 'OGrandeDitadorTheGreatDictatorCharlieChaplin1940',
+            'ia:Nosferatu': 'Nosferatu_most_complete_version_93_mins',
+            'ia:PhantomOpera': 'ThePhantomoftheOpera',
+            'ia:BattleshipPotemkin': 'BattleshipPotemkin',
+            'ia:Caligari': 'DasKabinettdesDoktorCaligariTheCabinetofDrCaligari',
+            'ia:CyranoDBergerac': 'Cyrano_DeBergerac',
+            'ia:Frankenstein1910': 'FrankensteinfullMovie',
+            'ia:GreatExpectations': 'GreatExpectations1946',
+            'ia:Scrooge1935': 'Scrooge_1935',
+            'ia:MarkOfZorro': 'markofzorro-1920',
+            'ia:HisGirlFriday': 'his_girl_friday',
+            'ia:SherlockHolmes': 'secret_weapon'
+        };
+        var iaId = iaLookup[videoId] || videoId.substring(3);
+
+        // Fetch metadata from Archive.org
+        page.innerHTML = '<div style="padding:4rem;text-align:center;color:var(--text-muted);">Cargando película...</div>';
+        fetch('https://archive.org/metadata/' + iaId)
+            .then(function(r) { return r.json(); })
+            .then(function(meta) {
+                var md = meta.metadata || {};
+                var files = meta.files || [];
+                // Find mp4 file
+                var mp4 = '';
+                for (var i = 0; i < files.length; i++) {
+                    if (files[i].format === 'MPEG4' || (files[i].name && files[i].name.match(/\.mp4$/i))) {
+                        mp4 = files[i].name; break;
+                    }
+                }
+                // Fallback to ogv
+                if (!mp4) {
+                    for (var j = 0; j < files.length; j++) {
+                        if (files[j].format === 'Ogg Video' || (files[j].name && files[j].name.match(/\.ogv$/i))) {
+                            mp4 = files[j].name; break;
+                        }
+                    }
+                }
+                if (!mp4) {
+                    page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">No se encontró archivo de video</h2><a href="/peliculas" class="btn-back">← Volver a Películas</a></div>';
+                    return;
+                }
+                var desc = md.description || '';
+                if (typeof desc === 'object') desc = Array.isArray(desc) ? desc.join('\n') : '';
+                renderArchivePlayer({
+                    ia_id: iaId,
+                    archivo: mp4,
+                    titulo: md.title || iaId,
+                    descripcion: desc.replace(/<[^>]*>/g, ''),
+                    duracion: '',
+                    fecha: md.date || md.year || md.publicdate || '',
+                    vistas: parseInt(md.downloads) || 0,
+                    fuente: 'Internet Archive',
+                    coleccion: (Array.isArray(md.collection) ? md.collection[0] : md.collection) || 'Movies',
+                    licencia: md['licenseurl'] ? 'Creative Commons' : 'Public Domain'
+                });
+            })
+            .catch(function() {
+                page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">Error al cargar la película</h2><a href="/peliculas" class="btn-back">← Volver a Películas</a></div>';
+            });
         return;
     }
 

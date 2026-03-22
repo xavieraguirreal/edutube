@@ -9,5 +9,8 @@ RewriteRule ^watch$ ver.php [QSA,L]
 # /canal?id=ID → canal.php
 RewriteRule ^canal$ canal.php [QSA,L]
 
+# /peliculas → peliculas.php
+RewriteRule ^peliculas$ peliculas.php [QSA,L]
+
 # /landing → landing.php
 RewriteRule ^landing$ landing.php [L]
