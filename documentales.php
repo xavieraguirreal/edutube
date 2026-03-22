@@ -74,6 +74,21 @@ $description = 'Documentales educativos de dominio público en EduTube.';
         <div class="sidebar-title">Temas</div>
         <div id="sidebar-generos"></div>
     </div>
+    <div class="sidebar-section">
+        <div class="sidebar-title">Tu actividad</div>
+        <a href="#" class="sidebar-item" id="nav-history">
+            <span class="si-icon">⏱️</span><span class="si-label">Historial</span>
+            <span class="si-badge" id="history-count" style="display:none">0</span>
+        </a>
+        <a href="#" class="sidebar-item" id="nav-watchlater">
+            <span class="si-icon">🕐</span><span class="si-label">Ver después</span>
+            <span class="si-badge" id="watchlater-count" style="display:none">0</span>
+        </a>
+        <a href="#" class="sidebar-item" id="nav-liked">
+            <span class="si-icon">👍</span><span class="si-label">Videos que me gustan</span>
+            <span class="si-badge" id="liked-count" style="display:none">0</span>
+        </a>
+    </div>
     <div class="sidebar-footer">
         <strong>EduTube</strong> — Plataforma de Videos Educativos<br>
         Fuente: Internet Archive (dominio público)<br>
@@ -260,6 +275,36 @@ document.getElementById('mobile-search-input').addEventListener('keydown', funct
     if (e.key === 'Enter') { searchMovies(this.value); document.getElementById('mobile-search-overlay').classList.remove('open'); }
 });
 
+// ── Activity ──
+function getStore(key) { try { return JSON.parse(localStorage.getItem('edutube_' + key)) || []; } catch(e) { return []; } }
+
+function updateBadges() {
+    var counts = {history: getStore('history').length, watchlater: getStore('watchlater').length, liked: getStore('liked').length};
+    ['history','watchlater','liked'].forEach(function(k) {
+        var el = document.getElementById(k + '-count');
+        if (el) { el.textContent = counts[k]; el.style.display = counts[k] > 0 ? '' : 'none'; }
+    });
+}
+
+function filterActivity(type) {
+    var list = getStore(type);
+    var filtered = documentales.filter(function(p) { return list.indexOf(p.id) > -1; });
+    var grid = document.getElementById('video-grid');
+    grid.style.display = '';
+    var html = '';
+    filtered.forEach(function(p) { html += movieCardHTML(p); });
+    var labels = {history:'historial',watchlater:'ver después',liked:'me gusta'};
+    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No hay documentales en ' + (labels[type]||type) + '</p>';
+    document.getElementById('movie-count').textContent = filtered.length + ' en ' + (labels[type]||type);
+    document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+    document.querySelectorAll('.sidebar-genero').forEach(function(s) { s.classList.remove('active'); });
+}
+
+document.getElementById('nav-history').addEventListener('click', function(e) { e.preventDefault(); filterActivity('history'); closeSidebar(); });
+document.getElementById('nav-watchlater').addEventListener('click', function(e) { e.preventDefault(); filterActivity('watchlater'); closeSidebar(); });
+document.getElementById('nav-liked').addEventListener('click', function(e) { e.preventDefault(); filterActivity('liked'); closeSidebar(); });
+
+updateBadges();
 renderMovies('todos');
 </script>
 

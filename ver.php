@@ -586,9 +586,8 @@ function formatDate(dateStr) {
                     '</div>' +
                 '</div>' +
                 '<div class="player-sidebar">' +
-                    '<div class="related-list" style="padding:1rem;">' +
-                        '<p style="color:var(--text-muted);font-size:0.85rem;">Este video proviene de Internet Archive, una biblioteca digital sin fines de lucro.</p>' +
-                    '</div>' +
+                    '<div style="padding:0.75rem;font-size:0.85rem;font-weight:600;color:var(--text-secondary);">Más contenido</div>' +
+                    '<div class="related-list" id="ia-related"></div>' +
                 '</div>' +
             '</div>';
 
@@ -670,6 +669,43 @@ function formatDate(dateStr) {
 
         // Disable right-click on player
         document.getElementById('player-container').addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+        // ── Related IA content ──
+        var iaAllContent = [
+            { id:'ia:ElPequenoSalvaje', ia_id:'Truffaut1969', titulo:'El pequeño salvaje (1969)', director:'François Truffaut', genero:'Drama' },
+            { id:'ia:Apocalypto', ia_id:'apocalypto-2006-online-latino-castellano-y-subtitulada', titulo:'Apocalypto (2006)', director:'Mel Gibson', genero:'Aventura' },
+            { id:'ia:MortadeloFilemon', ia_id:'mortadelo-y-filemon-contra-jimmy-el-cachondo-m-1080p', titulo:'Mortadelo y Filemón (2014)', director:'Javier Fesser', genero:'Comedia' },
+            { id:'ia:Godzilla1954', ia_id:'GodzillaJaponBajoElTerrorDelMonstruo1954Espanol', titulo:'Godzilla (1954)', director:'Ishirō Honda', genero:'Ciencia ficción' },
+            { id:'ia:DelOdioNaceElAmor', ia_id:'TheTorch', titulo:'Del odio nace el amor (1950)', director:'Emilio Fernández', genero:'Drama' },
+            { id:'ia:Libertarias', ia_id:'libertarias_1996', titulo:'Libertarias (1996)', director:'Vicente Aranda', genero:'Drama' },
+            { id:'ia:Dementia13Subs', ia_id:'Dementia13withSpanishSubtitles', titulo:'Dementia 13 (1963)', director:'Francis Ford Coppola', genero:'Terror' },
+            { id:'ia:LittleShopSubs', ia_id:'TheLittleShopOfHorrorswithSpanishSubtitles', titulo:'La tiendita de los horrores (1960)', director:'Roger Corman', genero:'Terror' },
+            { id:'ia:SaccoVanzetti', ia_id:'sacco.and.vanzetti.1971', titulo:'Sacco y Vanzetti (1971)', director:'Giuliano Montaldo', genero:'Drama' },
+            { id:'ia:BabAziz', ia_id:'BabAziz2005_201704', titulo:"Bab'Aziz (2005)", director:'Nacer Khemir', genero:'Drama' },
+            { id:'ia:ElHotelElectrico', ia_id:'ElHotelElectrico', titulo:'El hotel eléctrico (1908)', director:'Segundo de Chomón', genero:'Ciencia ficción' },
+            { id:'ia:LaSociedadSemaforo', ia_id:'LaSociedadDelSemaforoRubenMendoza2010', titulo:'La sociedad del semáforo (2010)', director:'Rubén Mendoza', genero:'Drama' },
+            { id:'ia:InfamiaOaxaca', ia_id:'infamia_en_oaxaca', titulo:'Infamia en Oaxaca (2006)', director:'Mal de Ojo TV', genero:'Sociedad' },
+            { id:'ia:TheTake', ia_id:'the-take-2004', titulo:'The Take — La toma (2004)', director:'Avi Lewis', genero:'Sociedad' },
+            { id:'ia:VenezuelaBolivariana', ia_id:'Venezuela_Bolivariana_VEN_2004', titulo:'Venezuela Bolivariana (2004)', director:'Varios', genero:'Historia' },
+            { id:'ia:LaOtraCuba', ia_id:'TheOtherCuba', titulo:'La otra Cuba (1984)', director:'Orlando Jiménez Leal', genero:'Historia' },
+            { id:'ia:NinosPerdidosFranquismo', ia_id:'losninosperdidosdelfranquismo', titulo:'Los niños perdidos del franquismo', director:'Montse Armengou', genero:'Historia' },
+            { id:'ia:PeriodoEspecial', ia_id:'PERIODICO', titulo:'El período especial — Cuba', director:'Varios', genero:'Historia' },
+            { id:'ia:ElVientre', ia_id:'ElVientre', titulo:'El vientre', director:'Varios', genero:'Sociedad' }
+        ];
+        var relContainer = document.getElementById('ia-related');
+        // Filter out current, show up to 8
+        var related = iaAllContent.filter(function(r) { return r.ia_id !== video.ia_id; }).slice(0, 8);
+        var relHtml = '';
+        related.forEach(function(r) {
+            var rThumb = 'https://archive.org/download/' + r.ia_id + '/__ia_thumb.jpg';
+            relHtml += '<a href="watch?v=' + r.id + '" class="related-card">' +
+                '<div class="r-thumb"><img src="' + rThumb + '" alt="" loading="lazy"></div>' +
+                '<div class="r-info">' +
+                    '<div class="r-title">' + r.titulo + '</div>' +
+                    '<div class="r-meta">' + r.director + '</div>' +
+                '</div></a>';
+        });
+        relContainer.innerHTML = relHtml;
     } // end renderArchivePlayer
 
 })();
