@@ -9,7 +9,7 @@ $description = 'Películas clásicas de dominio público en EduTube.';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org;
+        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org https://img.youtube.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline';
@@ -292,16 +292,73 @@ function updateBadges() {
     });
 }
 
+// Catálogos de otras secciones para actividad cruzada
+var otherIA = [
+    { id:'ia:InfamiaOaxaca', ia_id:'infamia_en_oaxaca', titulo:'Infamia en Oaxaca (2006)', director:'Mal de Ojo TV', duracion:'1:00:00', section:'Documental' },
+    { id:'ia:TheTake', ia_id:'the-take-2004', titulo:'The Take — La toma (2004)', director:'Avi Lewis & Naomi Klein', duracion:'1:27:00', section:'Documental' },
+    { id:'ia:VenezuelaBolivariana', ia_id:'Venezuela_Bolivariana_VEN_2004', titulo:'Venezuela Bolivariana (2004)', director:'Varios', duracion:'1:16:00', section:'Documental' },
+    { id:'ia:LaOtraCuba', ia_id:'TheOtherCuba', titulo:'La otra Cuba (1984)', director:'Orlando Jiménez Leal', duracion:'1:00:00', section:'Documental' },
+    { id:'ia:NinosPerdidosFranquismo', ia_id:'losninosperdidosdelfranquismo', titulo:'Los niños perdidos del franquismo', director:'Montse Armengou & Ricard Belis', duracion:'1:30:00', section:'Documental' },
+    { id:'ia:CulturaRadical', ia_id:'CulturaRadical', titulo:'Cultura radical (2017)', director:'Varios', duracion:'0:52:00', section:'Documental' },
+    { id:'ia:OaxacaRebelion', ia_id:'Oaxaca_rebelion-popular_2006', titulo:'Oaxaca: Rebelión popular (2006)', director:'Mal de Ojo TV', duracion:'0:45:00', section:'Documental' },
+    { id:'ia:PeriodoEspecial', ia_id:'PERIODICO', titulo:'El período especial — Cuba 1993', director:'Varios', duracion:'0:55:00', section:'Documental' },
+    { id:'ia:ElVientre', ia_id:'ElVientre', titulo:'El vientre', director:'Varios', duracion:'1:20:00', section:'Documental' }
+];
+
+function crossCardHTML(item) {
+    if (item.ia_id) {
+        var thumbUrl = 'https://archive.org/download/' + item.ia_id + '/__ia_thumb.jpg';
+        return '<div class="video-card">' +
+            '<a href="watch?v=' + item.id + '" class="thumb">' +
+                '<img src="' + thumbUrl + '" alt="" loading="lazy">' +
+                (item.duracion ? '<span class="duration-badge">' + item.duracion + '</span>' : '') +
+            '</a>' +
+            '<div class="card-info">' +
+                '<div class="channel-avatar" style="background:#e63946;font-size:0.65rem;">' + (item.section === 'Documental' ? '📄' : '🎬') + '</div>' +
+                '<div class="card-text">' +
+                    '<a href="watch?v=' + item.id + '" class="card-title">' + item.titulo + '</a>' +
+                    '<div class="card-channel-static">' + (item.director || '') + '</div>' +
+                    '<div class="card-stats">' + item.section + '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }
+    // YouTube video
+    return '<div class="video-card">' +
+        '<a href="watch?v=' + item.id + '" class="thumb">' +
+            '<img src="https://img.youtube.com/vi/' + item.id + '/mqdefault.jpg" alt="" loading="lazy">' +
+        '</a>' +
+        '<div class="card-info">' +
+            '<div class="channel-avatar" style="background:#2e8b47">▶</div>' +
+            '<div class="card-text">' +
+                '<a href="watch?v=' + item.id + '" class="card-title">' + (item.titulo || item.id) + '</a>' +
+                '<div class="card-stats">Video</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
 function filterActivity(type) {
     var list = getStore(type);
+    // Películas locales
     var filtered = peliculas.filter(function(p) { return list.indexOf(p.id) > -1; });
+    // IDs ya encontrados
+    var foundIds = filtered.map(function(p) { return p.id; });
+    // Buscar en otros catálogos IA
+    var otherItems = otherIA.filter(function(o) { return list.indexOf(o.id) > -1 && foundIds.indexOf(o.id) === -1; });
+    // Buscar YouTube IDs (no empiezan con 'ia:')
+    var ytItems = list.filter(function(id) { return id.indexOf('ia:') !== 0 && foundIds.indexOf(id) === -1; }).map(function(id) { return {id: id}; });
+
     var grid = document.getElementById('video-grid');
     grid.style.display = '';
     var html = '';
     filtered.forEach(function(p) { html += movieCardHTML(p); });
+    otherItems.forEach(function(o) { html += crossCardHTML(o); });
+    ytItems.forEach(function(y) { html += crossCardHTML(y); });
+    var total = filtered.length + otherItems.length + ytItems.length;
     var labels = {history:'historial',watchlater:'ver después',liked:'me gusta'};
-    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No hay películas en ' + (labels[type]||type) + '</p>';
-    document.getElementById('movie-count').textContent = filtered.length + ' en ' + (labels[type]||type);
+    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No hay contenido en ' + (labels[type]||type) + '</p>';
+    document.getElementById('movie-count').textContent = total + ' en ' + (labels[type]||type);
     document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
     document.querySelectorAll('.sidebar-genero').forEach(function(s) { s.classList.remove('active'); });
 }

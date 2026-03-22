@@ -9,7 +9,7 @@ $description = 'Documentales educativos de dominio público en EduTube.';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org;
+        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org https://img.youtube.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline';
@@ -286,16 +286,71 @@ function updateBadges() {
     });
 }
 
+// Catálogos de otras secciones para actividad cruzada
+var otherIA = [
+    { id:'ia:ElPequenoSalvaje', ia_id:'Truffaut1969', titulo:'El pequeño salvaje (1969)', director:'François Truffaut', duracion:'1:23:00', section:'Película' },
+    { id:'ia:Apocalypto', ia_id:'apocalypto-2006-online-latino-castellano-y-subtitulada', titulo:'Apocalypto (2006)', director:'Mel Gibson', duracion:'2:18:00', section:'Película' },
+    { id:'ia:MortadeloFilemon', ia_id:'mortadelo-y-filemon-contra-jimmy-el-cachondo-m-1080p', titulo:'Mortadelo y Filemón (2014)', director:'Javier Fesser', duracion:'1:30:00', section:'Película' },
+    { id:'ia:Godzilla1954', ia_id:'GodzillaJaponBajoElTerrorDelMonstruo1954Espanol', titulo:'Godzilla (1954)', director:'Ishirō Honda', duracion:'1:36:00', section:'Película' },
+    { id:'ia:DelOdioNaceElAmor', ia_id:'TheTorch', titulo:'Del odio nace el amor (1950)', director:'Emilio Fernández', duracion:'1:23:00', section:'Película' },
+    { id:'ia:Libertarias', ia_id:'libertarias_1996', titulo:'Libertarias (1996)', director:'Vicente Aranda', duracion:'2:04:00', section:'Película' },
+    { id:'ia:Dementia13Subs', ia_id:'Dementia13withSpanishSubtitles', titulo:'Dementia 13 (1963)', director:'Francis Ford Coppola', duracion:'1:15:00', section:'Película' },
+    { id:'ia:LittleShopSubs', ia_id:'TheLittleShopOfHorrorswithSpanishSubtitles', titulo:'La tiendita de los horrores (1960)', director:'Roger Corman', duracion:'1:12:00', section:'Película' },
+    { id:'ia:SaccoVanzetti', ia_id:'sacco.and.vanzetti.1971', titulo:'Sacco y Vanzetti (1971)', director:'Giuliano Montaldo', duracion:'2:01:00', section:'Película' },
+    { id:'ia:BabAziz', ia_id:'BabAziz2005_201704', titulo:"Bab'Aziz (2005)", director:'Nacer Khemir', duracion:'1:36:00', section:'Película' },
+    { id:'ia:ElHotelElectrico', ia_id:'ElHotelElectrico', titulo:'El hotel eléctrico (1908)', director:'Segundo de Chomón', duracion:'0:09:00', section:'Película' },
+    { id:'ia:LaSociedadSemaforo', ia_id:'LaSociedadDelSemaforoRubenMendoza2010', titulo:'La sociedad del semáforo (2010)', director:'Rubén Mendoza', duracion:'1:45:00', section:'Película' }
+];
+
+function crossCardHTML(item) {
+    if (item.ia_id) {
+        var thumbUrl = 'https://archive.org/download/' + item.ia_id + '/__ia_thumb.jpg';
+        return '<div class="video-card">' +
+            '<a href="watch?v=' + item.id + '" class="thumb">' +
+                '<img src="' + thumbUrl + '" alt="" loading="lazy">' +
+                (item.duracion ? '<span class="duration-badge">' + item.duracion + '</span>' : '') +
+            '</a>' +
+            '<div class="card-info">' +
+                '<div class="channel-avatar" style="background:#e63946;font-size:0.65rem;">' + (item.section === 'Documental' ? '📄' : '🎬') + '</div>' +
+                '<div class="card-text">' +
+                    '<a href="watch?v=' + item.id + '" class="card-title">' + item.titulo + '</a>' +
+                    '<div class="card-channel-static">' + (item.director || '') + '</div>' +
+                    '<div class="card-stats">' + item.section + '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }
+    return '<div class="video-card">' +
+        '<a href="watch?v=' + item.id + '" class="thumb">' +
+            '<img src="https://img.youtube.com/vi/' + item.id + '/mqdefault.jpg" alt="" loading="lazy">' +
+        '</a>' +
+        '<div class="card-info">' +
+            '<div class="channel-avatar" style="background:#2e8b47">▶</div>' +
+            '<div class="card-text">' +
+                '<a href="watch?v=' + item.id + '" class="card-title">' + (item.titulo || item.id) + '</a>' +
+                '<div class="card-stats">Video</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
 function filterActivity(type) {
     var list = getStore(type);
     var filtered = documentales.filter(function(p) { return list.indexOf(p.id) > -1; });
+    var foundIds = filtered.map(function(p) { return p.id; });
+    var otherItems = otherIA.filter(function(o) { return list.indexOf(o.id) > -1 && foundIds.indexOf(o.id) === -1; });
+    var ytItems = list.filter(function(id) { return id.indexOf('ia:') !== 0 && foundIds.indexOf(id) === -1; }).map(function(id) { return {id: id}; });
+
     var grid = document.getElementById('video-grid');
     grid.style.display = '';
     var html = '';
     filtered.forEach(function(p) { html += movieCardHTML(p); });
+    otherItems.forEach(function(o) { html += crossCardHTML(o); });
+    ytItems.forEach(function(y) { html += crossCardHTML(y); });
+    var total = filtered.length + otherItems.length + ytItems.length;
     var labels = {history:'historial',watchlater:'ver después',liked:'me gusta'};
-    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No hay documentales en ' + (labels[type]||type) + '</p>';
-    document.getElementById('movie-count').textContent = filtered.length + ' en ' + (labels[type]||type);
+    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No hay contenido en ' + (labels[type]||type) + '</p>';
+    document.getElementById('movie-count').textContent = total + ' en ' + (labels[type]||type);
     document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
     document.querySelectorAll('.sidebar-genero').forEach(function(s) { s.classList.remove('active'); });
 }
