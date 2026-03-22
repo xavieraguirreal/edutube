@@ -312,32 +312,33 @@ function filterPlaylist(plId) {
 }
 
 // ── Render ──
-function renderGrid(videos) {
-    var list = videos || ALL_VIDEOS;
-    var grid = document.getElementById('video-grid');
-    var html = '';
-    list.forEach(function(v) {
-        var isWL = isInStore('watchlater', v.youtube_id);
-        html += '<div class="video-card" data-id="' + v.youtube_id + '">' +
-            '<a href="watch?v=' + v.youtube_id + '" class="thumb">' +
-                '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
-                (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
-                '<div class="thumb-actions">' +
-                    '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Ver después">🕐</button>' +
-                '</div>' +
-            '</a>' +
-            '<div class="card-info">' +
-                '<div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '?') + '</div>' +
-                '<div class="card-text">' +
-                    '<a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
-                    '<div class="card-channel">' + (v.canal_nombre || '') + '</div>' +
-                    '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + '</div>' +
-                '</div>' +
+var PAGE_SIZE = 24;
+var currentVideos = [];
+var currentPage = 0;
+
+function videoCardHTML(v) {
+    var isWL = isInStore('watchlater', v.youtube_id);
+    return '<div class="video-card" data-id="' + v.youtube_id + '">' +
+        '<a href="watch?v=' + v.youtube_id + '" class="thumb">' +
+            '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+            (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
+            '<div class="thumb-actions">' +
+                '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Ver después">🕐</button>' +
             '</div>' +
-        '</div>';
-    });
-    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron videos</p>';
-    grid.querySelectorAll('.btn-wl').forEach(function(btn) {
+        '</a>' +
+        '<div class="card-info">' +
+            '<div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '?') + '</div>' +
+            '<div class="card-text">' +
+                '<a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
+                '<div class="card-channel">' + (v.canal_nombre || '') + '</div>' +
+                '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + '</div>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+}
+
+function bindWatchLaterButtons(container) {
+    container.querySelectorAll('.btn-wl').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.preventDefault(); e.stopPropagation();
             var added = toggleStore('watchlater', this.getAttribute('data-id'));
@@ -346,6 +347,66 @@ function renderGrid(videos) {
             updateBadges();
         });
     });
+}
+
+function renderGrid(videos) {
+    var list = videos || ALL_VIDEOS;
+    currentVideos = list;
+    currentPage = 0;
+    var grid = document.getElementById('video-grid');
+
+    var page = list.slice(0, PAGE_SIZE);
+    var html = '';
+    page.forEach(function(v) { html += videoCardHTML(v); });
+
+    if (list.length > PAGE_SIZE) {
+        html += '<div class="load-more-container" id="load-more-container">' +
+            '<button class="btn-load-more" id="btn-load-more">Cargar más videos (' + (list.length - PAGE_SIZE) + ' restantes)</button>' +
+        '</div>';
+    }
+
+    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron videos</p>';
+    bindWatchLaterButtons(grid);
+
+    var btnMore = document.getElementById('btn-load-more');
+    if (btnMore) {
+        btnMore.addEventListener('click', loadMoreVideos);
+    }
+}
+
+function loadMoreVideos() {
+    currentPage++;
+    var start = currentPage * PAGE_SIZE;
+    var end = start + PAGE_SIZE;
+    var page = currentVideos.slice(start, end);
+    var remaining = currentVideos.length - end;
+
+    // Quitar botón actual
+    var container = document.getElementById('load-more-container');
+    if (container) container.remove();
+
+    // Agregar videos
+    var grid = document.getElementById('video-grid');
+    var tempDiv = document.createElement('div');
+    var html = '';
+    page.forEach(function(v) { html += videoCardHTML(v); });
+
+    if (remaining > 0) {
+        html += '<div class="load-more-container" id="load-more-container">' +
+            '<button class="btn-load-more" id="btn-load-more">Cargar más videos (' + remaining + ' restantes)</button>' +
+        '</div>';
+    }
+
+    tempDiv.innerHTML = html;
+    while (tempDiv.firstChild) {
+        grid.appendChild(tempDiv.firstChild);
+    }
+    bindWatchLaterButtons(grid);
+
+    var btnMore = document.getElementById('btn-load-more');
+    if (btnMore) {
+        btnMore.addEventListener('click', loadMoreVideos);
+    }
 }
 
 function updateBadges() {

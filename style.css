@@ -497,6 +497,25 @@ button { font-family: inherit; }
     border: 1px solid var(--border);
 }
 
+.load-more-container {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 1.5rem 0;
+}
+.btn-load-more {
+    padding: 0.7rem 2rem;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+.btn-load-more:hover { background: var(--bg-active); }
+
 .playlist-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
