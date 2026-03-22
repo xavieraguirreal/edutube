@@ -75,7 +75,19 @@ foreach ($canales as $canal) {
     }
 
     $canalStart = time();
-    logMsg("[{$canal['nombre']}] Iniciando sync...");
+    logMsg("[{$canal['nombre']}] Iniciando sync (ID: {$channelId})...");
+
+    // Debug: testear API directo para el primer canal
+    if ($totalVideos === 0 && $totalPlaylists === 0) {
+        $testUrl = 'https://www.googleapis.com/youtube/v3/channels?part=snippet&id=' . $channelId . '&key=' . YOUTUBE_API_KEY;
+        $testCh = curl_init($testUrl);
+        curl_setopt_array($testCh, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_USERAGENT => 'EduTube/1.0']);
+        $testResp = curl_exec($testCh);
+        $testCode = curl_getinfo($testCh, CURLINFO_HTTP_CODE);
+        $testErr = curl_error($testCh);
+        curl_close($testCh);
+        logMsg("DEBUG API test: HTTP $testCode | curl_error: '$testErr' | response: " . mb_substr($testResp ?: 'NULL', 0, 500));
+    }
 
     try {
         $result = syncChannelAll(
