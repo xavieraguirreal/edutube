@@ -198,8 +198,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $autoCodigo = mb_substr($autoCodigo, 0, 4) ?: 'CH';
                         $colores = ['#2e8b47','#e63946','#9b5de5','#f77f00','#00b4d8','#e76f51','#6a994e','#bc4749'];
 
-                        $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color) VALUES (?, ?, ?, ?)");
-                        $stmt->execute([$nombre, $channelId, $autoCodigo, $colores[array_rand($colores)]]);
+                        $defaultCatId = $_POST['categoria_id'] ?: null;
+                        $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, default_categoria_id) VALUES (?, ?, ?, ?, ?)");
+                        $stmt->execute([$nombre, $channelId, $autoCodigo, $colores[array_rand($colores)], $defaultCatId]);
                         $canalDbId = $db->lastInsertId();
                     } else {
                         $canalDbId = $canal['id'];
