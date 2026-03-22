@@ -12,6 +12,20 @@ $action = $_GET['action'] ?? '';
 
 // ── Videos list ──
 if ($action === 'videos') {
+    // Portada: solo canales marcados. Con ?all=1 o filtro de canal/categoría: todos
+    $filtroPortada = empty($_GET['all']) && empty($_GET['canal_id']) && empty($_GET['categoria']);
+    $where = 'v.activo = 1';
+    if ($filtroPortada) {
+        $where .= ' AND c.mostrar_en_portada = 1';
+    }
+    if (!empty($_GET['canal_id'])) {
+        $where .= ' AND c.id = ' . intval($_GET['canal_id']);
+    }
+    if (!empty($_GET['categoria'])) {
+        $catFilter = $db->quote($_GET['categoria']);
+        $where .= " AND (cat.nombre = $catFilter OR dcat.nombre = $catFilter)";
+    }
+
     $stmt = $db->query("
         SELECT v.youtube_id, v.titulo, v.descripcion, v.duracion, v.vistas_yt, v.fecha_yt, v.tags,
                c.nombre AS canal_nombre, c.codigo AS canal_codigo, c.color AS canal_color, c.id AS canal_id,
@@ -20,19 +34,18 @@ if ($action === 'videos') {
         LEFT JOIN canales c ON v.canal_id = c.id
         LEFT JOIN categorias cat ON v.categoria_id = cat.id
         LEFT JOIN categorias dcat ON c.default_categoria_id = dcat.id
-        WHERE v.activo = 1
-        ORDER BY CASE
-                    WHEN COALESCE(cat.nombre, dcat.nombre) = 'Cursos' THEN 0
-                    WHEN COALESCE(cat.nombre, dcat.nombre) IN ('Cultural', 'Cultura') THEN 1
-                    ELSE 2
-                 END,
-                 v.fecha_yt DESC
+        WHERE $where
+        ORDER BY v.fecha_yt DESC
     ");
     $videos = $stmt->fetchAll();
 
-    // Build channels list
-    $canalesStmt = $db->query("SELECT id, nombre, codigo, color FROM canales WHERE activo = 1 ORDER BY nombre");
+    // Build channels list (todos, para el sidebar)
+    $canalesStmt = $db->query("SELECT id, nombre, codigo, color, mostrar_en_portada FROM canales WHERE activo = 1 ORDER BY nombre");
     $canales = $canalesStmt->fetchAll();
+
+    // Categorías para filtro del sidebar
+    $categoriasStmt = $db->query("SELECT id, nombre, icono FROM categorias WHERE activa = 1 ORDER BY orden");
+    $categoriasData = $categoriasStmt->fetchAll();
 
     // Playlists grouped by channel
     $playlistsStmt = $db->query("
@@ -44,7 +57,7 @@ if ($action === 'videos') {
     ");
     $playlists = $playlistsStmt->fetchAll();
 
-    echo json_encode(['videos' => $videos, 'canales' => $canales, 'playlists' => $playlists], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['videos' => $videos, 'canales' => $canales, 'playlists' => $playlists, 'categorias' => $categoriasData], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

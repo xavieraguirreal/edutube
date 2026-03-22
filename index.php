@@ -81,6 +81,10 @@ if (!localStorage.getItem('edutube_welcomed')) {
         </a>
     </div>
     <div class="sidebar-section">
+        <div class="sidebar-title">Categorías</div>
+        <div id="sidebar-categorias"><!-- categorías --></div>
+    </div>
+    <div class="sidebar-section">
         <div class="sidebar-title">Canales</div>
         <div id="sidebar-channels"><!-- canales + sus playlists --></div>
     </div>
@@ -180,14 +184,18 @@ function formatViews(n) {
 var ALL_VIDEOS = [];
 var ALL_CHANNELS = [];
 var ALL_PLAYLISTS = [];
+var ALL_CATEGORIAS = [];
+var currentApiUrl = 'api.php?action=videos'; // portada por defecto
 
-function loadVideos() {
-    fetch('api.php?action=videos')
+function loadVideos(apiUrl) {
+    if (apiUrl) currentApiUrl = apiUrl;
+    fetch(currentApiUrl)
         .then(function(r) { return r.json(); })
         .then(function(data) {
             ALL_VIDEOS = data.videos || [];
             ALL_CHANNELS = data.canales || [];
             ALL_PLAYLISTS = data.playlists || [];
+            ALL_CATEGORIAS = data.categorias || [];
             buildSidebar();
             buildChips();
             showVideosWithSort(ALL_VIDEOS);
@@ -196,7 +204,33 @@ function loadVideos() {
         });
 }
 
+function buildSidebarCategorias() {
+    var container = document.getElementById('sidebar-categorias');
+    if (!container) return;
+    var html = '';
+    ALL_CATEGORIAS.forEach(function(cat) {
+        html += '<a href="#" class="sidebar-item" data-categoria="' + cat.nombre + '">' +
+            '<span class="si-icon">' + (cat.icono || '📁') + '</span>' +
+            '<span class="si-label">' + cat.nombre + '</span></a>';
+    });
+    container.innerHTML = html;
+
+    // Click handler para categorías
+    container.querySelectorAll('[data-categoria]').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            var catName = this.getAttribute('data-categoria');
+            // Marcar activo
+            document.querySelectorAll('.sidebar-item').forEach(function(s) { s.classList.remove('active'); });
+            this.classList.add('active');
+            // Cargar videos de esta categoría
+            loadVideos('api.php?action=videos&categoria=' + encodeURIComponent(catName));
+        });
+    });
+}
+
 function buildSidebar() {
+    buildSidebarCategorias();
     var container = document.getElementById('sidebar-channels');
     var html = '';
     ALL_CHANNELS.forEach(function(c) {
@@ -326,7 +360,7 @@ function clearAllActive() {
 function filterAll() {
     clearAllActive();
     document.querySelector('.chip[data-cat="todos"]').classList.add('active');
-    showVideosWithSort(ALL_VIDEOS);
+    loadVideos('api.php?action=videos');
 }
 
 function filterCanal(canalId) {
@@ -335,6 +369,8 @@ function filterCanal(canalId) {
     if (chip) chip.classList.add('active');
     var side = document.querySelector('.sidebar-item[data-canal="' + canalId + '"]');
     if (side) side.classList.add('active');
+    // Cargar todos los videos de este canal
+    loadVideos('api.php?action=videos&canal_id=' + canalId);
 
     // Find channel info
     var canal = null;

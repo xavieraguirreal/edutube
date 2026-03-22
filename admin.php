@@ -409,11 +409,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Add channel ──
         if ($action === 'add_channel') {
-            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, auto_sync, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, mostrar_en_portada, auto_sync, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
                 $_POST['descripcion'] ?? '',
+                isset($_POST['mostrar_en_portada']) ? 1 : 0,
                 isset($_POST['auto_sync']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null
             ]);
@@ -422,11 +423,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Edit channel ──
         if ($action === 'edit_channel') {
-            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, auto_sync=?, default_categoria_id=? WHERE id=?");
+            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, mostrar_en_portada=?, auto_sync=?, default_categoria_id=? WHERE id=?");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
                 $_POST['descripcion'] ?? '',
+                isset($_POST['mostrar_en_portada']) ? 1 : 0,
                 isset($_POST['auto_sync']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null,
                 $_POST['canal_id']
@@ -894,7 +896,11 @@ $section = $_GET['s'] ?? 'dashboard';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
+                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;gap:1.5rem;">
+                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                                <input type="checkbox" name="mostrar_en_portada" value="1" <?= ($editCanal && !empty($editCanal['mostrar_en_portada'])) ? 'checked' : '' ?>>
+                                Mostrar en portada
+                            </label>
                             <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
                                 <input type="checkbox" name="auto_sync" value="1" <?= ($editCanal && $editCanal['auto_sync']) ? 'checked' : '' ?>>
                                 Sincronizar automático (cron)
@@ -908,7 +914,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 </form>
             </div>
             <table>
-                <tr><th>Nombre</th><th>Código</th><th>Channel ID</th><th>Categoría</th><th>Auto-sync</th><th>Color</th><th>Acciones</th></tr>
+                <tr><th>Nombre</th><th>Código</th><th>Channel ID</th><th>Categoría</th><th>Portada</th><th>Auto-sync</th><th>Color</th><th>Acciones</th></tr>
                 <?php foreach ($canales as $c):
                     $catNombre = '—';
                     if (!empty($c['default_categoria_id'])) {
@@ -922,6 +928,7 @@ $section = $_GET['s'] ?? 'dashboard';
                     <td><?= e($c['codigo']) ?></td>
                     <td style="font-size:0.78rem;"><?= e($c['youtube_channel_id']) ?></td>
                     <td><?= e($catNombre) ?></td>
+                    <td><span class="badge <?= !empty($c['mostrar_en_portada']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['mostrar_en_portada']) ? 'Sí' : 'No' ?></span></td>
                     <td><span class="badge <?= !empty($c['auto_sync']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['auto_sync']) ? 'Sí' : 'No' ?></span></td>
                     <td><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:<?= e($c['color']) ?>"></span></td>
                     <td><a href="?s=canales&edit=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a></td>

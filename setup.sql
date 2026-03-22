@@ -18,6 +18,7 @@ CREATE TABLE canales (
     color VARCHAR(10) NOT NULL DEFAULT '#2e8b47',
     descripcion TEXT,
     activo TINYINT(1) NOT NULL DEFAULT 1,
+    mostrar_en_portada TINYINT(1) NOT NULL DEFAULT 0,
     auto_sync TINYINT(1) NOT NULL DEFAULT 0,
     default_categoria_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
