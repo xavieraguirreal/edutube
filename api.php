@@ -259,6 +259,16 @@ if ($action === 'canal') {
     $stmtP->execute([$canalId]);
     $edutube_playlists = $stmtP->fetchColumn();
 
+    // EduTube views (from registro_vistas)
+    $stmtViews = $db->prepare("SELECT COUNT(*) FROM registro_vistas rv JOIN videos v ON rv.video_id = v.id WHERE v.canal_id = ?");
+    $stmtViews->execute([$canalId]);
+    $edutube_views = $stmtViews->fetchColumn();
+
+    // Total YouTube views for this channel's videos in EduTube
+    $stmtYtViews = $db->prepare("SELECT COALESCE(SUM(vistas_yt), 0) FROM videos WHERE canal_id = ? AND activo = 1");
+    $stmtYtViews->execute([$canalId]);
+    $total_yt_views = $stmtYtViews->fetchColumn();
+
     // Recent videos
     $stmtRecent = $db->prepare("
         SELECT v.youtube_id, v.titulo, v.duracion, v.vistas_yt, v.fecha_yt,
@@ -284,7 +294,12 @@ if ($action === 'canal') {
 
     echo json_encode([
         'canal' => $canal,
-        'stats' => ['edutube_videos' => intval($edutube_videos), 'edutube_playlists' => intval($edutube_playlists)],
+        'stats' => [
+            'edutube_videos' => intval($edutube_videos),
+            'edutube_playlists' => intval($edutube_playlists),
+            'edutube_views' => intval($edutube_views),
+            'total_yt_views' => intval($total_yt_views)
+        ],
         'videos' => $allVideos,
         'playlists' => $playlists
     ], JSON_UNESCAPED_UNICODE);

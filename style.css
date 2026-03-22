@@ -707,6 +707,32 @@ button { font-family: inherit; }
     color: var(--text-muted);
     margin-top: 0.15rem;
 }
+.canal-stats-grid {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0 1.5rem 1rem;
+    overflow-x: auto;
+}
+.canal-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1.25rem;
+    text-align: center;
+    min-width: 120px;
+    flex-shrink: 0;
+}
+.canal-stat-number {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+}
+.canal-stat-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+}
 .canal-description-card {
     padding: 0 1.5rem 1rem;
 }

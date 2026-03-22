@@ -211,24 +211,32 @@ document.getElementById('search-top').addEventListener('keydown', function(e) {
         // Stats line
         var metaParts = [];
         if (canal.custom_url) metaParts.push(canal.custom_url);
-        metaParts.push(stats.edutube_videos + ' videos en EduTube');
-        if (stats.edutube_playlists > 0) metaParts.push(stats.edutube_playlists + ' listas');
-        html += metaParts.join(' · ');
+        if (canal.country) metaParts.push(canal.country);
+        if (canal.youtube_created_at) metaParts.push('En YouTube desde ' + formatDate(canal.youtube_created_at));
+        if (metaParts.length > 0) html += metaParts.join(' · ');
         html += '</div>';
-
-        // YouTube stats line
-        var ytParts = [];
-        if (canal.subscriber_count > 0) ytParts.push(formatViews(canal.subscriber_count) + ' suscriptores en YouTube');
-        if (canal.total_views > 0) ytParts.push(formatViews(canal.total_views) + ' vistas totales');
-        if (canal.country) ytParts.push(canal.country);
-        if (canal.youtube_created_at) ytParts.push('Desde ' + formatDate(canal.youtube_created_at));
-        if (ytParts.length > 0) {
-            html += '<div class="canal-profile-yt-stats">' + ytParts.join(' · ') + '</div>';
-        }
 
         html += '</div></div>' +
             '<button class="btn-follow' + (isFollowing ? ' following' : '') + '" id="btn-follow" data-canal="' + canal.id + '">' + (isFollowing ? 'Siguiendo' : 'Seguir') + '</button>' +
         '</div>';
+
+        // ── Stats cards ──
+        // Count followers from localStorage
+        var followers = getStore('following');
+        var isFollowedHere = followers.indexOf(String(canal.id)) > -1;
+        // Count likes for this channel's videos
+        var likes = getStore('likes');
+        var channelLikes = 0;
+        videos.forEach(function(v) { if (likes.indexOf(v.youtube_id) > -1) channelLikes++; });
+
+        html += '<div class="canal-stats-grid">';
+        html += '<div class="canal-stat-card"><div class="canal-stat-number">' + stats.edutube_videos + '</div><div class="canal-stat-label">Videos en EduTube</div></div>';
+        html += '<div class="canal-stat-card"><div class="canal-stat-number">' + stats.edutube_playlists + '</div><div class="canal-stat-label">Listas</div></div>';
+        html += '<div class="canal-stat-card"><div class="canal-stat-number">' + formatViews(stats.edutube_views) + '</div><div class="canal-stat-label">Reproducciones EduTube</div></div>';
+        html += '<div class="canal-stat-card"><div class="canal-stat-number">' + channelLikes + '</div><div class="canal-stat-label">Me gusta</div></div>';
+        if (canal.subscriber_count > 0) html += '<div class="canal-stat-card"><div class="canal-stat-number">' + formatViews(canal.subscriber_count) + '</div><div class="canal-stat-label">Suscriptores YouTube</div></div>';
+        if (stats.total_yt_views > 0) html += '<div class="canal-stat-card"><div class="canal-stat-number">' + formatViews(stats.total_yt_views) + '</div><div class="canal-stat-label">Vistas YouTube</div></div>';
+        html += '</div>';
 
         // ── Description ──
         if (canal.descripcion) {

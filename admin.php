@@ -438,6 +438,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $msg = 'Canal actualizado.'; $msgType = 'success';
         }
 
+        // ── Toggle auto_sync ──
+        if ($action === 'toggle_auto_sync') {
+            $canalId = intval($_POST['canal_id']);
+            $db->prepare("UPDATE canales SET auto_sync = NOT auto_sync WHERE id = ?")->execute([$canalId]);
+            $msg = 'Auto-sync actualizado.'; $msgType = 'success';
+        }
+
+        // ── Toggle portada ──
+        if ($action === 'toggle_portada') {
+            $catId = intval($_POST['categoria_id']);
+            $db->prepare("UPDATE categorias SET mostrar_en_portada = NOT mostrar_en_portada WHERE id = ?")->execute([$catId]);
+            $msg = 'Portada actualizada.'; $msgType = 'success';
+        }
+
         // ── Sync channel metadata from YouTube ──
         if ($action === 'sync_channel_metadata') {
             $canalId = intval($_POST['canal_id']);
@@ -606,6 +620,8 @@ $section = $_GET['s'] ?? 'dashboard';
         .badge { padding:2px 8px; border-radius:10px; font-size:0.72rem; font-weight:500; }
         .badge-active { background:#eef7f0; color:#2e8b47; }
         .badge-inactive { background:#fee; color:#c00; }
+        .badge-btn { padding:2px 10px; border-radius:10px; font-size:0.72rem; font-weight:500; border:1px solid transparent; cursor:pointer; font-family:inherit; transition:opacity 0.15s, border-color 0.15s; }
+        .badge-btn:hover { opacity:0.8; border-color:currentColor; }
         .msg { padding:0.7rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.88rem; }
         .msg-success { background:#eef7f0; color:#1f6e34; border:1px solid #c3e6cb; }
         .msg-error { background:#fee; color:#c00; border:1px solid #f5c6cb; }
@@ -1024,8 +1040,26 @@ $section = $_GET['s'] ?? 'dashboard';
                     <td><a href="canal.php?id=<?= $c['id'] ?>" target="_blank" style="color:var(--text);font-weight:500;"><?= e($c['nombre']) ?></a></td>
                     <td style="font-size:0.78rem;"><?= e($c['youtube_channel_id']) ?></td>
                     <td><?= e($catNombre) ?></td>
-                    <td><span class="badge <?= !empty($c['auto_sync']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['auto_sync']) ? 'Sí' : 'No' ?></span></td>
-                    <td><span class="badge <?= !empty($c['metadata_updated_at']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['metadata_updated_at']) ? date('d/m', strtotime($c['metadata_updated_at'])) : 'Sin sync' ?></span></td>
+                    <td>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="toggle_auto_sync">
+                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                            <input type="hidden" name="canal_id" value="<?= $c['id'] ?>">
+                            <button type="submit" class="badge-btn <?= !empty($c['auto_sync']) ? 'badge-active' : 'badge-inactive' ?>" title="Clic para cambiar"><?= !empty($c['auto_sync']) ? 'Sí' : 'No' ?></button>
+                        </form>
+                    </td>
+                    <td>
+                        <?php if (!empty($c['youtube_channel_id'])): ?>
+                        <form method="POST" style="display:inline;" onsubmit="return confirm('¿Sincronizar metadatos de YouTube para <?= e($c['nombre']) ?>?')">
+                            <input type="hidden" name="action" value="sync_channel_metadata">
+                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                            <input type="hidden" name="canal_id" value="<?= $c['id'] ?>">
+                            <button type="submit" class="badge-btn <?= !empty($c['metadata_updated_at']) ? 'badge-active' : 'badge-inactive' ?>" title="Clic para sincronizar metadatos"><?= !empty($c['metadata_updated_at']) ? date('d/m', strtotime($c['metadata_updated_at'])) : 'Sin sync' ?></button>
+                        </form>
+                        <?php else: ?>
+                        <span class="badge badge-inactive">—</span>
+                        <?php endif; ?>
+                    </td>
                     <td><a href="?s=canales&edit=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a></td>
                 </tr>
                 <?php endforeach; ?>
@@ -1075,7 +1109,14 @@ $section = $_GET['s'] ?? 'dashboard';
                     <td><?= $c['icono'] ?></td>
                     <td><?= e($c['nombre']) ?></td>
                     <td><?= $c['orden'] ?></td>
-                    <td><span class="badge <?= !empty($c['mostrar_en_portada']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['mostrar_en_portada']) ? 'Sí' : 'No' ?></span></td>
+                    <td>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="toggle_portada">
+                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                            <input type="hidden" name="categoria_id" value="<?= $c['id'] ?>">
+                            <button type="submit" class="badge-btn <?= !empty($c['mostrar_en_portada']) ? 'badge-active' : 'badge-inactive' ?>" title="Clic para cambiar"><?= !empty($c['mostrar_en_portada']) ? 'Sí' : 'No' ?></button>
+                        </form>
+                    </td>
                     <td><a href="?s=categorias&edit_cat=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a></td>
                 </tr>
                 <?php endforeach; ?>
