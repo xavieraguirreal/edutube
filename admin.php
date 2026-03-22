@@ -542,6 +542,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $msg = 'Video eliminado.'; $msgType = 'success';
         }
 
+        // ── Add IA content ──
+        if ($action === 'add_ia') {
+            $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['slug'] ?? '');
+            $ia_id = trim($_POST['ia_id'] ?? '');
+            $tipo = in_array($_POST['tipo'] ?? '', ['pelicula', 'documental']) ? $_POST['tipo'] : 'pelicula';
+            $titulo = trim($_POST['titulo'] ?? '');
+            if (!$slug || !$ia_id || !$titulo) {
+                $msg = 'Slug, ID de Archive.org y título son obligatorios.'; $msgType = 'error';
+            } else {
+                $dup = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");
+                $dup->execute([$slug]);
+                if ($dup->fetch()) {
+                    $msg = 'Ya existe un contenido con ese slug.'; $msgType = 'error';
+                } else {
+                    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, tipo, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([
+                        $slug, $ia_id, $tipo, $titulo,
+                        trim($_POST['director'] ?? ''),
+                        intval($_POST['year'] ?? 0) ?: null,
+                        trim($_POST['duracion'] ?? ''),
+                        trim($_POST['genero'] ?? ''),
+                        trim($_POST['descripcion'] ?? ''),
+                        $_SESSION['admin_nombre'] ?? 'admin'
+                    ]);
+                    $msg = 'Contenido "' . e($titulo) . '" agregado.'; $msgType = 'success';
+                }
+            }
+        }
+
+        // ── Edit IA content ──
+        if ($action === 'edit_ia') {
+            $id = intval($_POST['ia_content_id'] ?? 0);
+            $stmt = $db->prepare("UPDATE contenido_ia SET slug=?, ia_id=?, tipo=?, titulo=?, director=?, year=?, duracion=?, genero=?, descripcion=? WHERE id=?");
+            $stmt->execute([
+                preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['slug'] ?? ''),
+                trim($_POST['ia_id'] ?? ''),
+                in_array($_POST['tipo'] ?? '', ['pelicula', 'documental']) ? $_POST['tipo'] : 'pelicula',
+                trim($_POST['titulo'] ?? ''),
+                trim($_POST['director'] ?? ''),
+                intval($_POST['year'] ?? 0) ?: null,
+                trim($_POST['duracion'] ?? ''),
+                trim($_POST['genero'] ?? ''),
+                trim($_POST['descripcion'] ?? ''),
+                $id
+            ]);
+            $msg = 'Contenido actualizado.'; $msgType = 'success';
+        }
+
+        // ── Toggle IA content ──
+        if ($action === 'toggle_ia') {
+            $stmt = $db->prepare("UPDATE contenido_ia SET activo = NOT activo WHERE id = ?");
+            $stmt->execute([$_POST['ia_content_id']]);
+            $msg = 'Estado actualizado.'; $msgType = 'success';
+        }
+
+        // ── Delete IA content ──
+        if ($action === 'delete_ia') {
+            $stmt = $db->prepare("DELETE FROM contenido_ia WHERE id = ?");
+            $stmt->execute([$_POST['ia_content_id']]);
+            $msg = 'Contenido eliminado.'; $msgType = 'success';
+        }
+
+        // ── Fetch IA metadata ──
+        if ($action === 'fetch_ia_meta') {
+            $ia_id = trim($_POST['ia_id'] ?? '');
+            if ($ia_id) {
+                $json = @file_get_contents('https://archive.org/metadata/' . urlencode($ia_id));
+                if ($json) {
+                    $meta = json_decode($json, true);
+                    $md = $meta['metadata'] ?? [];
+                    $fetchedTitle = $md['title'] ?? '';
+                    $fetchedYear = $md['year'] ?? ($md['date'] ? substr($md['date'], 0, 4) : '');
+                    $fetchedDesc = $md['description'] ?? '';
+                    if (is_array($fetchedDesc)) $fetchedDesc = implode("\n", $fetchedDesc);
+                    $fetchedDesc = strip_tags($fetchedDesc);
+                    $msg = 'Metadatos obtenidos de Archive.org.'; $msgType = 'success';
+                } else {
+                    $msg = 'No se pudo obtener metadatos de Archive.org.'; $msgType = 'error';
+                }
+            }
+        }
+
         // ── Change password ──
         if ($action === 'change_password') {
             $newPass = $_POST['new_password'] ?? '';
@@ -565,6 +647,7 @@ $totalVideos = $db->query("SELECT COUNT(*) FROM videos")->fetchColumn();
 $totalVistas = $db->query("SELECT COUNT(*) FROM registro_vistas")->fetchColumn();
 $totalCanales = $db->query("SELECT COUNT(*) FROM canales")->fetchColumn();
 $totalCategorias = $db->query("SELECT COUNT(*) FROM categorias")->fetchColumn();
+try { $totalIA = $db->query("SELECT COUNT(*) FROM contenido_ia")->fetchColumn(); } catch (Exception $e) { $totalIA = 0; }
 
 // Data
 $videos = $db->query("SELECT v.*, c.nombre as canal_nombre, cat.nombre as cat_nombre FROM videos v LEFT JOIN canales c ON v.canal_id = c.id LEFT JOIN categorias cat ON v.categoria_id = cat.id ORDER BY v.created_at DESC LIMIT 50")->fetchAll();
@@ -648,6 +731,7 @@ $section = $_GET['s'] ?? 'dashboard';
         <a href="?s=import" class="<?= $section==='import'?'active':'' ?>">📥 Importar canal</a>
         <a href="?s=canales" class="<?= $section==='canales'?'active':'' ?>">📺 Canales</a>
         <a href="?s=categorias" class="<?= $section==='categorias'?'active':'' ?>">🏷 Categorías</a>
+        <a href="?s=contenido_ia" class="<?= $section==='contenido_ia'?'active':'' ?>">🎬 Pelis/Docs</a>
         <a href="?s=portada" class="<?= $section==='portada'?'active':'' ?>">🏠 Portada</a>
         <a href="?s=password" class="<?= $section==='password'?'active':'' ?>">🔑 Contraseña</a>
         <a href="/" target="_blank">🌐 Ver sitio</a>
@@ -665,6 +749,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 <div class="stat-card"><div class="stat-num"><?= $totalVideos ?></div><div class="stat-label">Videos</div></div>
                 <div class="stat-card"><div class="stat-num"><?= $totalCanales ?></div><div class="stat-label">Canales</div></div>
                 <div class="stat-card"><div class="stat-num"><?= $totalCategorias ?></div><div class="stat-label">Categorías</div></div>
+                <div class="stat-card"><div class="stat-num"><?= $totalIA ?></div><div class="stat-label">Pelis/Docs IA</div></div>
                 <div class="stat-card"><div class="stat-num"><?= $totalVistas ?></div><div class="stat-label">Vistas en EduTube</div></div>
             </div>
 
@@ -1181,6 +1266,156 @@ $section = $_GET['s'] ?? 'dashboard';
                 <?php endforeach; ?>
             </table>
             <?php endif; ?>
+
+        <?php elseif ($section === 'contenido_ia'): ?>
+            <h1>Películas y Documentales (<?= $totalIA ?>)</h1>
+
+            <?php
+            $editIA = null;
+            if (isset($_GET['edit'])) {
+                $stmtEdit = $db->prepare("SELECT * FROM contenido_ia WHERE id = ?");
+                $stmtEdit->execute([$_GET['edit']]);
+                $editIA = $stmtEdit->fetch();
+            }
+            ?>
+
+            <div class="card">
+                <h2><?= $editIA ? 'Editar contenido' : 'Agregar contenido de Internet Archive' ?></h2>
+                <form method="POST" id="ia-form">
+                    <input type="hidden" name="action" value="<?= $editIA ? 'edit_ia' : 'add_ia' ?>">
+                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <?php if ($editIA): ?>
+                        <input type="hidden" name="ia_content_id" value="<?= $editIA['id'] ?>">
+                    <?php endif; ?>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ID de Archive.org *</label>
+                            <input type="text" name="ia_id" id="ia_id_input" value="<?= e($editIA['ia_id'] ?? (isset($fetchedTitle) ? ($_POST['ia_id'] ?? '') : '')) ?>" required placeholder="ej: Truffaut1969">
+                        </div>
+                        <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
+                            <button type="button" class="btn btn-outline" id="btn-fetch-meta" onclick="fetchIAMeta()">Obtener metadatos</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo *</label>
+                            <select name="tipo">
+                                <option value="pelicula" <?= ($editIA && $editIA['tipo'] === 'pelicula') ? 'selected' : '' ?>>Película</option>
+                                <option value="documental" <?= ($editIA && $editIA['tipo'] === 'documental') ? 'selected' : '' ?>>Documental</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Slug * (ID corto, sin espacios)</label>
+                            <input type="text" name="slug" value="<?= e($editIA['slug'] ?? '') ?>" required placeholder="ej: ElPequenoSalvaje" pattern="[a-zA-Z0-9_-]+">
+                        </div>
+                        <div class="form-group">
+                            <label>Título *</label>
+                            <input type="text" name="titulo" id="ia_titulo" value="<?= e($editIA['titulo'] ?? ($fetchedTitle ?? '')) ?>" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Director</label>
+                            <input type="text" name="director" value="<?= e($editIA['director'] ?? '') ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Año</label>
+                            <input type="number" name="year" value="<?= e($editIA['year'] ?? ($fetchedYear ?? '')) ?>" min="1800" max="2030">
+                        </div>
+                        <div class="form-group">
+                            <label>Duración</label>
+                            <input type="text" name="duracion" value="<?= e($editIA['duracion'] ?? '') ?>" placeholder="ej: 1:23:00">
+                        </div>
+                        <div class="form-group">
+                            <label>Género</label>
+                            <input type="text" name="genero" value="<?= e($editIA['genero'] ?? '') ?>" placeholder="ej: Drama, Sociedad">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Descripción</label>
+                            <textarea name="descripcion"><?= e($editIA['descripcion'] ?? ($fetchedDesc ?? '')) ?></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><?= $editIA ? 'Guardar cambios' : 'Agregar' ?></button>
+                    <?php if ($editIA): ?>
+                        <a href="?s=contenido_ia" class="btn btn-outline">Cancelar</a>
+                    <?php endif; ?>
+                </form>
+            </div>
+
+            <script>
+            function fetchIAMeta() {
+                var iaId = document.getElementById('ia_id_input').value.trim();
+                if (!iaId) { alert('Ingresá un ID de Archive.org primero.'); return; }
+                var btn = document.getElementById('btn-fetch-meta');
+                btn.textContent = 'Obteniendo...'; btn.disabled = true;
+                fetch('https://archive.org/metadata/' + encodeURIComponent(iaId))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var md = data.metadata || {};
+                        if (md.title) document.getElementById('ia_titulo').value = md.title;
+                        var yearInput = document.querySelector('input[name="year"]');
+                        if (md.year) yearInput.value = md.year;
+                        else if (md.date) yearInput.value = md.date.substring(0, 4);
+                        var descEl = document.querySelector('textarea[name="descripcion"]');
+                        var desc = md.description || '';
+                        if (Array.isArray(desc)) desc = desc.join('\n');
+                        descEl.value = desc.replace(/<[^>]*>/g, '');
+                        btn.textContent = 'Obtener metadatos'; btn.disabled = false;
+                    })
+                    .catch(function() {
+                        alert('No se pudo obtener metadatos.');
+                        btn.textContent = 'Obtener metadatos'; btn.disabled = false;
+                    });
+            }
+            </script>
+
+            <?php
+            // List IA content
+            $iaFilter = $_GET['tipo'] ?? '';
+            $iaWhere = '1=1';
+            if ($iaFilter === 'pelicula') $iaWhere = "tipo = 'pelicula'";
+            if ($iaFilter === 'documental') $iaWhere = "tipo = 'documental'";
+            $iaItems = $db->query("SELECT * FROM contenido_ia WHERE $iaWhere ORDER BY tipo, orden, titulo")->fetchAll();
+            ?>
+
+            <div class="card">
+                <h2>Lista de contenido</h2>
+                <div style="margin-bottom:1rem;">
+                    <a href="?s=contenido_ia" class="btn btn-sm <?= !$iaFilter ? 'btn-primary' : 'btn-outline' ?>">Todos</a>
+                    <a href="?s=contenido_ia&tipo=pelicula" class="btn btn-sm <?= $iaFilter==='pelicula' ? 'btn-primary' : 'btn-outline' ?>">Películas</a>
+                    <a href="?s=contenido_ia&tipo=documental" class="btn btn-sm <?= $iaFilter==='documental' ? 'btn-primary' : 'btn-outline' ?>">Documentales</a>
+                </div>
+                <table>
+                    <tr><th></th><th>Título</th><th>Tipo</th><th>Director</th><th>Género</th><th>Estado</th><th>Acciones</th></tr>
+                    <?php foreach ($iaItems as $ia): ?>
+                    <tr>
+                        <td><img src="https://archive.org/download/<?= e($ia['ia_id']) ?>/__ia_thumb.jpg" class="thumb-sm" style="width:60px;height:40px;object-fit:cover;"></td>
+                        <td><a href="watch?v=ia:<?= e($ia['slug']) ?>" target="_blank"><?= e(mb_substr($ia['titulo'], 0, 50)) ?><?= mb_strlen($ia['titulo'])>50?'...':'' ?></a></td>
+                        <td><?= $ia['tipo'] === 'pelicula' ? 'Película' : 'Documental' ?></td>
+                        <td><?= e(mb_substr($ia['director'], 0, 25)) ?></td>
+                        <td><?= e($ia['genero']) ?></td>
+                        <td><span class="badge <?= $ia['activo']?'badge-active':'badge-inactive' ?>"><?= $ia['activo']?'Activo':'Inactivo' ?></span></td>
+                        <td>
+                            <a href="?s=contenido_ia&edit=<?= $ia['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
+                            <form method="POST" style="display:inline">
+                                <input type="hidden" name="action" value="toggle_ia">
+                                <input type="hidden" name="ia_content_id" value="<?= $ia['id'] ?>">
+                                <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                                <button class="btn btn-sm btn-outline"><?= $ia['activo']?'Desactivar':'Activar' ?></button>
+                            </form>
+                            <form method="POST" style="display:inline" onsubmit="return confirm('¿Eliminar este contenido?')">
+                                <input type="hidden" name="action" value="delete_ia">
+                                <input type="hidden" name="ia_content_id" value="<?= $ia['id'] ?>">
+                                <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                                <button class="btn btn-sm btn-danger">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </table>
+            </div>
 
         <?php elseif ($section === 'password'): ?>
             <h1>Cambiar contraseña</h1>

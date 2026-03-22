@@ -133,6 +133,27 @@ CREATE TABLE sync_log (
     INDEX idx_sync_log_fecha (ejecutado_at)
 ) ENGINE=InnoDB;
 
+-- ── Contenido Internet Archive (películas/documentales) ──
+CREATE TABLE contenido_ia (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    ia_id VARCHAR(200) NOT NULL,
+    tipo ENUM('pelicula','documental') NOT NULL,
+    titulo VARCHAR(500) NOT NULL,
+    director VARCHAR(200) DEFAULT '',
+    year INT DEFAULT NULL,
+    duracion VARCHAR(15) DEFAULT '',
+    genero VARCHAR(100) DEFAULT '',
+    descripcion TEXT,
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    orden INT NOT NULL DEFAULT 0,
+    agregado_por VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_tipo (tipo),
+    INDEX idx_activo (activo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ── Login attempts (rate limiting) ──
 CREATE TABLE login_intentos (
     id INT AUTO_INCREMENT PRIMARY KEY,

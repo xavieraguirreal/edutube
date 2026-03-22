@@ -695,30 +695,12 @@ function renderPortadaGrouped(videos) {
     }
 }
 
-// Catálogos IA para actividad cruzada
-var iaAllCatalog = [
-    { id:'ia:ElPequenoSalvaje', ia_id:'Truffaut1969', titulo:'El pequeño salvaje (1969)', director:'François Truffaut', duracion:'1:23:00', section:'Película' },
-    { id:'ia:Apocalypto', ia_id:'apocalypto-2006-online-latino-castellano-y-subtitulada', titulo:'Apocalypto (2006)', director:'Mel Gibson', duracion:'2:18:00', section:'Película' },
-    { id:'ia:MortadeloFilemon', ia_id:'mortadelo-y-filemon-contra-jimmy-el-cachondo-m-1080p', titulo:'Mortadelo y Filemón (2014)', director:'Javier Fesser', duracion:'1:30:00', section:'Película' },
-    { id:'ia:Godzilla1954', ia_id:'GodzillaJaponBajoElTerrorDelMonstruo1954Espanol', titulo:'Godzilla (1954)', director:'Ishirō Honda', duracion:'1:36:00', section:'Película' },
-    { id:'ia:DelOdioNaceElAmor', ia_id:'TheTorch', titulo:'Del odio nace el amor (1950)', director:'Emilio Fernández', duracion:'1:23:00', section:'Película' },
-    { id:'ia:Libertarias', ia_id:'libertarias_1996', titulo:'Libertarias (1996)', director:'Vicente Aranda', duracion:'2:04:00', section:'Película' },
-    { id:'ia:Dementia13Subs', ia_id:'Dementia13withSpanishSubtitles', titulo:'Dementia 13 (1963)', director:'Francis Ford Coppola', duracion:'1:15:00', section:'Película' },
-    { id:'ia:LittleShopSubs', ia_id:'TheLittleShopOfHorrorswithSpanishSubtitles', titulo:'La tiendita de los horrores (1960)', director:'Roger Corman', duracion:'1:12:00', section:'Película' },
-    { id:'ia:SaccoVanzetti', ia_id:'sacco.and.vanzetti.1971', titulo:'Sacco y Vanzetti (1971)', director:'Giuliano Montaldo', duracion:'2:01:00', section:'Película' },
-    { id:'ia:BabAziz', ia_id:'BabAziz2005_201704', titulo:"Bab'Aziz (2005)", director:'Nacer Khemir', duracion:'1:36:00', section:'Película' },
-    { id:'ia:ElHotelElectrico', ia_id:'ElHotelElectrico', titulo:'El hotel eléctrico (1908)', director:'Segundo de Chomón', duracion:'0:09:00', section:'Película' },
-    { id:'ia:LaSociedadSemaforo', ia_id:'LaSociedadDelSemaforoRubenMendoza2010', titulo:'La sociedad del semáforo (2010)', director:'Rubén Mendoza', duracion:'1:45:00', section:'Película' },
-    { id:'ia:InfamiaOaxaca', ia_id:'infamia_en_oaxaca', titulo:'Infamia en Oaxaca (2006)', director:'Mal de Ojo TV', duracion:'1:00:00', section:'Documental' },
-    { id:'ia:TheTake', ia_id:'the-take-2004', titulo:'The Take — La toma (2004)', director:'Avi Lewis & Naomi Klein', duracion:'1:27:00', section:'Documental' },
-    { id:'ia:VenezuelaBolivariana', ia_id:'Venezuela_Bolivariana_VEN_2004', titulo:'Venezuela Bolivariana (2004)', director:'Varios', duracion:'1:16:00', section:'Documental' },
-    { id:'ia:LaOtraCuba', ia_id:'TheOtherCuba', titulo:'La otra Cuba (1984)', director:'Orlando Jiménez Leal', duracion:'1:00:00', section:'Documental' },
-    { id:'ia:NinosPerdidosFranquismo', ia_id:'losninosperdidosdelfranquismo', titulo:'Los niños perdidos del franquismo', director:'Montse Armengou & Ricard Belis', duracion:'1:30:00', section:'Documental' },
-    { id:'ia:CulturaRadical', ia_id:'CulturaRadical', titulo:'Cultura radical (2017)', director:'Varios', duracion:'0:52:00', section:'Documental' },
-    { id:'ia:OaxacaRebelion', ia_id:'Oaxaca_rebelion-popular_2006', titulo:'Oaxaca: Rebelión popular (2006)', director:'Mal de Ojo TV', duracion:'0:45:00', section:'Documental' },
-    { id:'ia:PeriodoEspecial', ia_id:'PERIODICO', titulo:'El período especial — Cuba 1993', director:'Varios', duracion:'0:55:00', section:'Documental' },
-    { id:'ia:ElVientre', ia_id:'ElVientre', titulo:'El vientre', director:'Varios', duracion:'1:20:00', section:'Documental' }
-];
+// Catálogos IA para actividad cruzada (cargado desde API)
+var iaAllCatalog = [];
+fetch('api.php?action=contenido_ia')
+    .then(function(r) { return r.json(); })
+    .then(function(data) { iaAllCatalog = data; })
+    .catch(function() {});
 
 function iaCardHTML(item) {
     var thumbUrl = 'https://archive.org/download/' + item.ia_id + '/__ia_thumb.jpg';

@@ -157,47 +157,53 @@ document.getElementById('mobile-search-close').addEventListener('click', functio
     document.getElementById('mobile-search-overlay').classList.remove('open');
 });
 
-// ── Catálogo de documentales (español / subtitulados español) ──
-var documentales = [
-    { id:'ia:InfamiaOaxaca', ia_id:'infamia_en_oaxaca', titulo:'Infamia en Oaxaca (2006)', director:'Mal de Ojo TV', year:2006, duracion:'1:00:00', descargas:14748, genero:'Sociedad' },
-    { id:'ia:TheTake', ia_id:'the-take-2004', titulo:'The Take — La toma (2004)', director:'Avi Lewis & Naomi Klein', year:2004, duracion:'1:27:00', descargas:9872, genero:'Sociedad' },
-    { id:'ia:VenezuelaBolivariana', ia_id:'Venezuela_Bolivariana_VEN_2004', titulo:'Venezuela Bolivariana (2004)', director:'Varios', year:2004, duracion:'1:16:00', descargas:16922, genero:'Historia' },
-    { id:'ia:LaOtraCuba', ia_id:'TheOtherCuba', titulo:'La otra Cuba (1984)', director:'Orlando Jiménez Leal', year:1984, duracion:'1:00:00', descargas:2600, genero:'Historia' },
-    { id:'ia:NinosPerdidosFranquismo', ia_id:'losninosperdidosdelfranquismo', titulo:'Los niños perdidos del franquismo', director:'Montse Armengou & Ricard Belis', year:2002, duracion:'1:30:00', descargas:706, genero:'Historia' },
-    { id:'ia:CulturaRadical', ia_id:'CulturaRadical', titulo:'Cultura radical (2017)', director:'Varios', year:2017, duracion:'0:52:00', descargas:2574, genero:'Sociedad' },
-    { id:'ia:OaxacaRebelion', ia_id:'Oaxaca_rebelion-popular_2006', titulo:'Oaxaca: Rebelión popular (2006)', director:'Mal de Ojo TV', year:2006, duracion:'0:45:00', descargas:2935, genero:'Sociedad' },
-    { id:'ia:PeriodoEspecial', ia_id:'PERIODICO', titulo:'El período especial — Cuba 1993', director:'Varios', year:1996, duracion:'0:55:00', descargas:50423, genero:'Historia' },
-    { id:'ia:ElVientre', ia_id:'ElVientre', titulo:'El vientre', director:'Varios', year:2010, duracion:'1:20:00', descargas:59771, genero:'Sociedad' }
-];
+// ── Catálogo de documentales (cargado desde API) ──
+var documentales = [];
 
-// Extract genres
 var generos = [];
-documentales.forEach(function(p) {
-    if (generos.indexOf(p.genero) === -1) generos.push(p.genero);
-});
-generos.sort();
 
-// Build sidebar genres
-var sidebarGen = document.getElementById('sidebar-generos');
-var sidebarHtml = '';
-generos.forEach(function(g) {
-    var count = documentales.filter(function(p) { return p.genero === g; }).length;
-    sidebarHtml += '<a href="#" class="sidebar-item sidebar-genero" data-genero="' + g + '">' +
-        '<span class="si-icon">•</span><span class="si-label">' + g + '</span>' +
-        '<span class="si-badge">' + count + '</span>' +
-    '</a>';
-});
-sidebarGen.innerHTML = sidebarHtml;
+function buildGenreUI() {
+    generos = [];
+    documentales.forEach(function(p) {
+        if (generos.indexOf(p.genero) === -1) generos.push(p.genero);
+    });
+    generos.sort();
 
-// Build chips
-var chipsDiv = document.getElementById('chips');
-generos.forEach(function(g) {
-    var btn = document.createElement('button');
-    btn.className = 'chip';
-    btn.setAttribute('data-genero', g);
-    btn.textContent = g;
-    chipsDiv.appendChild(btn);
-});
+    var sidebarGen = document.getElementById('sidebar-generos');
+    var sidebarHtml = '';
+    generos.forEach(function(g) {
+        var count = documentales.filter(function(p) { return p.genero === g; }).length;
+        sidebarHtml += '<a href="#" class="sidebar-item sidebar-genero" data-genero="' + g + '">' +
+            '<span class="si-icon">•</span><span class="si-label">' + g + '</span>' +
+            '<span class="si-badge">' + count + '</span>' +
+        '</a>';
+    });
+    sidebarGen.innerHTML = sidebarHtml;
+
+    var chipsDiv = document.getElementById('chips');
+    chipsDiv.innerHTML = '<button class="chip active" data-genero="todos">Todos</button>';
+    generos.forEach(function(g) {
+        var btn = document.createElement('button');
+        btn.className = 'chip';
+        btn.setAttribute('data-genero', g);
+        btn.textContent = g;
+        chipsDiv.appendChild(btn);
+    });
+
+    // Bind chips
+    document.querySelectorAll('.chip').forEach(function(c) {
+        c.addEventListener('click', function() { renderMovies(this.getAttribute('data-genero')); });
+    });
+
+    // Bind sidebar
+    document.querySelectorAll('.sidebar-genero').forEach(function(s) {
+        s.addEventListener('click', function(e) {
+            e.preventDefault();
+            renderMovies(this.getAttribute('data-genero'));
+            closeSidebar();
+        });
+    });
+}
 
 // Render
 var activeGenero = 'todos';
@@ -238,20 +244,6 @@ function renderMovies(genero) {
     });
 }
 
-// Bind chips
-document.querySelectorAll('.chip').forEach(function(c) {
-    c.addEventListener('click', function() { renderMovies(this.getAttribute('data-genero')); });
-});
-
-// Bind sidebar
-document.querySelectorAll('.sidebar-genero').forEach(function(s) {
-    s.addEventListener('click', function(e) {
-        e.preventDefault();
-        renderMovies(this.getAttribute('data-genero'));
-        closeSidebar();
-    });
-});
-
 // Search
 function searchMovies(q) {
     q = q.toLowerCase().trim();
@@ -286,21 +278,8 @@ function updateBadges() {
     });
 }
 
-// Catálogos de otras secciones para actividad cruzada
-var otherIA = [
-    { id:'ia:ElPequenoSalvaje', ia_id:'Truffaut1969', titulo:'El pequeño salvaje (1969)', director:'François Truffaut', duracion:'1:23:00', section:'Película' },
-    { id:'ia:Apocalypto', ia_id:'apocalypto-2006-online-latino-castellano-y-subtitulada', titulo:'Apocalypto (2006)', director:'Mel Gibson', duracion:'2:18:00', section:'Película' },
-    { id:'ia:MortadeloFilemon', ia_id:'mortadelo-y-filemon-contra-jimmy-el-cachondo-m-1080p', titulo:'Mortadelo y Filemón (2014)', director:'Javier Fesser', duracion:'1:30:00', section:'Película' },
-    { id:'ia:Godzilla1954', ia_id:'GodzillaJaponBajoElTerrorDelMonstruo1954Espanol', titulo:'Godzilla (1954)', director:'Ishirō Honda', duracion:'1:36:00', section:'Película' },
-    { id:'ia:DelOdioNaceElAmor', ia_id:'TheTorch', titulo:'Del odio nace el amor (1950)', director:'Emilio Fernández', duracion:'1:23:00', section:'Película' },
-    { id:'ia:Libertarias', ia_id:'libertarias_1996', titulo:'Libertarias (1996)', director:'Vicente Aranda', duracion:'2:04:00', section:'Película' },
-    { id:'ia:Dementia13Subs', ia_id:'Dementia13withSpanishSubtitles', titulo:'Dementia 13 (1963)', director:'Francis Ford Coppola', duracion:'1:15:00', section:'Película' },
-    { id:'ia:LittleShopSubs', ia_id:'TheLittleShopOfHorrorswithSpanishSubtitles', titulo:'La tiendita de los horrores (1960)', director:'Roger Corman', duracion:'1:12:00', section:'Película' },
-    { id:'ia:SaccoVanzetti', ia_id:'sacco.and.vanzetti.1971', titulo:'Sacco y Vanzetti (1971)', director:'Giuliano Montaldo', duracion:'2:01:00', section:'Película' },
-    { id:'ia:BabAziz', ia_id:'BabAziz2005_201704', titulo:"Bab'Aziz (2005)", director:'Nacer Khemir', duracion:'1:36:00', section:'Película' },
-    { id:'ia:ElHotelElectrico', ia_id:'ElHotelElectrico', titulo:'El hotel eléctrico (1908)', director:'Segundo de Chomón', duracion:'0:09:00', section:'Película' },
-    { id:'ia:LaSociedadSemaforo', ia_id:'LaSociedadDelSemaforoRubenMendoza2010', titulo:'La sociedad del semáforo (2010)', director:'Rubén Mendoza', duracion:'1:45:00', section:'Película' }
-];
+// Catálogos de otras secciones para actividad cruzada (cargado desde API)
+var otherIA = [];
 
 function crossCardHTML(item) {
     if (item.ia_id) {
@@ -360,7 +339,23 @@ document.getElementById('nav-watchlater').addEventListener('click', function(e) 
 document.getElementById('nav-liked').addEventListener('click', function(e) { e.preventDefault(); filterActivity('liked'); closeSidebar(); });
 
 updateBadges();
-renderMovies('todos');
+
+// Load from API
+fetch('api.php?action=documentales')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        documentales = data;
+        buildGenreUI();
+        renderMovies('todos');
+    })
+    .catch(function() {
+        document.getElementById('video-grid').innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">Error al cargar documentales</p>';
+    });
+
+// Load cross-activity catalog (películas)
+fetch('api.php?action=contenido_ia&tipo=pelicula')
+    .then(function(r) { return r.json(); })
+    .then(function(data) { otherIA = data; });
 </script>
 
 </body>

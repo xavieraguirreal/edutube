@@ -306,4 +306,84 @@ if ($action === 'canal') {
     exit;
 }
 
+// ── Películas (Internet Archive) ──
+if ($action === 'peliculas') {
+    $stmt = $db->query("
+        SELECT slug, ia_id, titulo, director, year, duracion, genero, descripcion
+        FROM contenido_ia
+        WHERE tipo = 'pelicula' AND activo = 1
+        ORDER BY orden, titulo
+    ");
+    $items = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $items[] = [
+            'id' => 'ia:' . $row['slug'],
+            'ia_id' => $row['ia_id'],
+            'titulo' => $row['titulo'],
+            'director' => $row['director'],
+            'year' => intval($row['year']),
+            'duracion' => $row['duracion'],
+            'genero' => $row['genero'],
+            'descargas' => 0
+        ];
+    }
+    echo json_encode($items, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ── Documentales (Internet Archive) ──
+if ($action === 'documentales') {
+    $stmt = $db->query("
+        SELECT slug, ia_id, titulo, director, year, duracion, genero, descripcion
+        FROM contenido_ia
+        WHERE tipo = 'documental' AND activo = 1
+        ORDER BY orden, titulo
+    ");
+    $items = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $items[] = [
+            'id' => 'ia:' . $row['slug'],
+            'ia_id' => $row['ia_id'],
+            'titulo' => $row['titulo'],
+            'director' => $row['director'],
+            'year' => intval($row['year']),
+            'duracion' => $row['duracion'],
+            'genero' => $row['genero'],
+            'descargas' => 0
+        ];
+    }
+    echo json_encode($items, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ── All IA content (for cross-activity and ver.php lookups) ──
+if ($action === 'contenido_ia') {
+    $where = 'activo = 1';
+    if (!empty($_GET['tipo']) && in_array($_GET['tipo'], ['pelicula', 'documental'])) {
+        $where .= " AND tipo = " . $db->quote($_GET['tipo']);
+    }
+    $stmt = $db->query("
+        SELECT slug, ia_id, tipo, titulo, director, year, duracion, genero
+        FROM contenido_ia
+        WHERE $where
+        ORDER BY tipo, orden, titulo
+    ");
+    $items = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $items[] = [
+            'id' => 'ia:' . $row['slug'],
+            'ia_id' => $row['ia_id'],
+            'tipo' => $row['tipo'],
+            'titulo' => $row['titulo'],
+            'director' => $row['director'],
+            'year' => intval($row['year']),
+            'duracion' => $row['duracion'],
+            'genero' => $row['genero'],
+            'section' => $row['tipo'] === 'pelicula' ? 'Película' : 'Documental'
+        ];
+    }
+    echo json_encode($items, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 echo json_encode(['error' => 'Acción no válida']);

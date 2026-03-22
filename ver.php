@@ -137,42 +137,20 @@ function formatDate(dateStr) {
 
     // ── Internet Archive: any ia:IDENTIFIER ──
     if (videoId.indexOf('ia:') === 0) {
-        var iaLookup = {
-            'ia:TheGreatDictator': 'OGrandeDitadorTheGreatDictatorCharlieChaplin1940',
-            'ia:Nosferatu': 'Nosferatu_most_complete_version_93_mins',
-            'ia:PhantomOpera': 'ThePhantomoftheOpera',
-            'ia:BattleshipPotemkin': 'BattleshipPotemkin',
-            'ia:Caligari': 'DasKabinettdesDoktorCaligariTheCabinetofDrCaligari',
-            'ia:CyranoDBergerac': 'Cyrano_DeBergerac',
-            'ia:Frankenstein1910': 'FrankensteinfullMovie',
-            'ia:GreatExpectations': 'GreatExpectations1946',
-            'ia:Scrooge1935': 'Scrooge_1935',
-            'ia:MarkOfZorro': 'markofzorro-1920',
-            'ia:HisGirlFriday': 'his_girl_friday',
-            // Películas en español
-            'ia:ElPequenoSalvaje': 'Truffaut1969',
-            'ia:Apocalypto': 'apocalypto-2006-online-latino-castellano-y-subtitulada',
-            'ia:MortadeloFilemon': 'mortadelo-y-filemon-contra-jimmy-el-cachondo-m-1080p',
-            'ia:Godzilla1954': 'GodzillaJaponBajoElTerrorDelMonstruo1954Espanol',
-            'ia:DelOdioNaceElAmor': 'TheTorch',
-            'ia:Libertarias': 'libertarias_1996',
-            'ia:Dementia13Subs': 'Dementia13withSpanishSubtitles',
-            'ia:LittleShopSubs': 'TheLittleShopOfHorrorswithSpanishSubtitles',
-            'ia:SaccoVanzetti': 'sacco.and.vanzetti.1971',
-            'ia:BabAziz': 'BabAziz2005_201704',
-            'ia:ElHotelElectrico': 'ElHotelElectrico',
-            'ia:LaSociedadSemaforo': 'LaSociedadDelSemaforoRubenMendoza2010',
-            // Documentales en español
-            'ia:InfamiaOaxaca': 'infamia_en_oaxaca',
-            'ia:TheTake': 'the-take-2004',
-            'ia:VenezuelaBolivariana': 'Venezuela_Bolivariana_VEN_2004',
-            'ia:LaOtraCuba': 'TheOtherCuba',
-            'ia:NinosPerdidosFranquismo': 'losninosperdidosdelfranquismo',
-            'ia:CulturaRadical': 'CulturaRadical',
-            'ia:OaxacaRebelion': 'Oaxaca_rebelion-popular_2006',
-            'ia:PeriodoEspecial': 'PERIODICO',
-            'ia:ElVientre': 'ElVientre'
-        };
+        var iaLookup = <?php
+            // Generate iaLookup from DB
+            try {
+                if (!isset($db)) { require_once __DIR__ . '/config.php'; $db = getDB(); }
+                $iaStmt = $db->query("SELECT slug, ia_id FROM contenido_ia WHERE activo = 1");
+                $iaMap = [];
+                foreach ($iaStmt->fetchAll() as $row) {
+                    $iaMap['ia:' . $row['slug']] = $row['ia_id'];
+                }
+                echo json_encode($iaMap, JSON_UNESCAPED_UNICODE);
+            } catch (Exception $e) {
+                echo '{}';
+            }
+        ?>;
         var iaId = iaLookup[videoId] || videoId.substring(3);
 
         // Fetch metadata + views from Archive.org in parallel
@@ -675,28 +653,26 @@ function formatDate(dateStr) {
         // Disable right-click on player
         document.getElementById('player-container').addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
-        // ── Related IA content ──
-        var iaAllContent = [
-            { id:'ia:ElPequenoSalvaje', ia_id:'Truffaut1969', titulo:'El pequeño salvaje (1969)', director:'François Truffaut', genero:'Drama' },
-            { id:'ia:Apocalypto', ia_id:'apocalypto-2006-online-latino-castellano-y-subtitulada', titulo:'Apocalypto (2006)', director:'Mel Gibson', genero:'Aventura' },
-            { id:'ia:MortadeloFilemon', ia_id:'mortadelo-y-filemon-contra-jimmy-el-cachondo-m-1080p', titulo:'Mortadelo y Filemón (2014)', director:'Javier Fesser', genero:'Comedia' },
-            { id:'ia:Godzilla1954', ia_id:'GodzillaJaponBajoElTerrorDelMonstruo1954Espanol', titulo:'Godzilla (1954)', director:'Ishirō Honda', genero:'Ciencia ficción' },
-            { id:'ia:DelOdioNaceElAmor', ia_id:'TheTorch', titulo:'Del odio nace el amor (1950)', director:'Emilio Fernández', genero:'Drama' },
-            { id:'ia:Libertarias', ia_id:'libertarias_1996', titulo:'Libertarias (1996)', director:'Vicente Aranda', genero:'Drama' },
-            { id:'ia:Dementia13Subs', ia_id:'Dementia13withSpanishSubtitles', titulo:'Dementia 13 (1963)', director:'Francis Ford Coppola', genero:'Terror' },
-            { id:'ia:LittleShopSubs', ia_id:'TheLittleShopOfHorrorswithSpanishSubtitles', titulo:'La tiendita de los horrores (1960)', director:'Roger Corman', genero:'Terror' },
-            { id:'ia:SaccoVanzetti', ia_id:'sacco.and.vanzetti.1971', titulo:'Sacco y Vanzetti (1971)', director:'Giuliano Montaldo', genero:'Drama' },
-            { id:'ia:BabAziz', ia_id:'BabAziz2005_201704', titulo:"Bab'Aziz (2005)", director:'Nacer Khemir', genero:'Drama' },
-            { id:'ia:ElHotelElectrico', ia_id:'ElHotelElectrico', titulo:'El hotel eléctrico (1908)', director:'Segundo de Chomón', genero:'Ciencia ficción' },
-            { id:'ia:LaSociedadSemaforo', ia_id:'LaSociedadDelSemaforoRubenMendoza2010', titulo:'La sociedad del semáforo (2010)', director:'Rubén Mendoza', genero:'Drama' },
-            { id:'ia:InfamiaOaxaca', ia_id:'infamia_en_oaxaca', titulo:'Infamia en Oaxaca (2006)', director:'Mal de Ojo TV', genero:'Sociedad' },
-            { id:'ia:TheTake', ia_id:'the-take-2004', titulo:'The Take — La toma (2004)', director:'Avi Lewis', genero:'Sociedad' },
-            { id:'ia:VenezuelaBolivariana', ia_id:'Venezuela_Bolivariana_VEN_2004', titulo:'Venezuela Bolivariana (2004)', director:'Varios', genero:'Historia' },
-            { id:'ia:LaOtraCuba', ia_id:'TheOtherCuba', titulo:'La otra Cuba (1984)', director:'Orlando Jiménez Leal', genero:'Historia' },
-            { id:'ia:NinosPerdidosFranquismo', ia_id:'losninosperdidosdelfranquismo', titulo:'Los niños perdidos del franquismo', director:'Montse Armengou', genero:'Historia' },
-            { id:'ia:PeriodoEspecial', ia_id:'PERIODICO', titulo:'El período especial — Cuba', director:'Varios', genero:'Historia' },
-            { id:'ia:ElVientre', ia_id:'ElVientre', titulo:'El vientre', director:'Varios', genero:'Sociedad' }
-        ];
+        // ── Related IA content (from DB) ──
+        var iaAllContent = <?php
+            try {
+                if (!isset($db)) { require_once __DIR__ . '/config.php'; $db = getDB(); }
+                $iaAllStmt = $db->query("SELECT slug, ia_id, titulo, director, genero FROM contenido_ia WHERE activo = 1 ORDER BY tipo, orden");
+                $iaAll = [];
+                foreach ($iaAllStmt->fetchAll() as $row) {
+                    $iaAll[] = [
+                        'id' => 'ia:' . $row['slug'],
+                        'ia_id' => $row['ia_id'],
+                        'titulo' => $row['titulo'],
+                        'director' => $row['director'],
+                        'genero' => $row['genero']
+                    ];
+                }
+                echo json_encode($iaAll, JSON_UNESCAPED_UNICODE);
+            } catch (Exception $e) {
+                echo '[]';
+            }
+        ?>;
         var relContainer = document.getElementById('ia-related');
         // Filter out current, show up to 8
         var related = iaAllContent.filter(function(r) { return r.ia_id !== video.ia_id; }).slice(0, 8);
