@@ -499,7 +499,9 @@ button { font-family: inherit; }
 
 /* Channel rows (portada agrupada) */
 .channel-row {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    width: 100%;
+    grid-column: 1 / -1;
 }
 .channel-row-header {
     display: flex;

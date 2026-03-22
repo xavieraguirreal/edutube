@@ -354,6 +354,7 @@ function renderGrid(videos) {
     currentVideos = list;
     currentPage = 0;
     var grid = document.getElementById('video-grid');
+    grid.style.display = ''; // Restaurar grid CSS
 
     var page = list.slice(0, PAGE_SIZE);
     var html = '';
@@ -555,6 +556,7 @@ function showVideosWithSort(videos, activeSort) {
 
 function renderPortadaGrouped(videos) {
     var grid = document.getElementById('video-grid');
+    grid.style.display = 'block'; // Desactivar grid CSS para vista agrupada
 
     // Agrupar videos por canal
     var channelVideos = {};
