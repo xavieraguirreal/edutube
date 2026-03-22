@@ -302,23 +302,6 @@ function buildSidebar() {
     buildSidebarCategorias();
     buildSidebarFollowing();
 }
-            var isOpen = target.style.display !== 'none';
-            target.style.display = isOpen ? 'none' : '';
-            this.textContent = isOpen ? '▸' : '▾';
-        });
-    });
-
-    container.querySelectorAll('.sidebar-item[data-canal]').forEach(function(s) {
-        s.addEventListener('click', function(e) { e.preventDefault(); filterCanal(this.getAttribute('data-canal')); closeSidebar(); });
-    });
-    container.querySelectorAll('.sidebar-item[data-playlist]').forEach(function(s) {
-        s.addEventListener('click', function(e) { e.preventDefault(); filterPlaylist(this.getAttribute('data-playlist')); closeSidebar(); });
-    });
-}
-
-function buildChips() {
-    // Los chips de canales se quitaron — ahora se navega por categorías en el sidebar
-}
 
 function filterPlaylist(plId) {
     clearAllActive();
