@@ -77,11 +77,9 @@ if (!localStorage.getItem('edutube_welcomed')) {
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-section">
         <a href="index.php" class="sidebar-item active" data-cat="todos">
-            <span class="si-icon">🏠</span><span class="si-label">Inicio</span>
+            <span class="si-icon">📺</span><span class="si-label">Videos</span>
         </a>
-    </div>
-    <div class="sidebar-section">
-        <a href="peliculas" class="sidebar-item" id="nav-peliculas">
+        <a href="peliculas" class="sidebar-item">
             <span class="si-icon">🎬</span><span class="si-label">Películas</span>
         </a>
     </div>
