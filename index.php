@@ -438,9 +438,17 @@ function filterCanal(canalId) {
     if (chip) chip.classList.add('active');
     var side = document.querySelector('.sidebar-item[data-canal="' + canalId + '"]');
     if (side) side.classList.add('active');
-    // Cargar todos los videos de este canal
-    loadVideos('api.php?action=videos&canal_id=' + canalId);
 
+    // Cargar todos los videos de este canal via API
+    fetch('api.php?action=videos&canal_id=' + canalId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var canalVideos = data.videos || [];
+            renderCanalView(canalId, canalVideos);
+        });
+}
+
+function renderCanalView(canalId, canalVideos) {
     // Find channel info
     var canal = null;
     ALL_CHANNELS.forEach(function(c) { if (String(c.id) === String(canalId)) canal = c; });
@@ -448,9 +456,10 @@ function filterCanal(canalId) {
 
     // Get playlists for this channel
     var chPlaylists = ALL_PLAYLISTS.filter(function(p) { return String(p.canal_id) === String(canalId) && parseInt(p.total_videos) > 0; });
-    var totalVideos = ALL_VIDEOS.filter(function(v) { return String(v.canal_id) === String(canalId); }).length;
+    var totalVideos = canalVideos.length;
 
     var grid = document.getElementById('video-grid');
+    grid.style.display = 'block';
     var html = '';
 
     // Channel header
@@ -503,8 +512,7 @@ function filterCanal(canalId) {
     var btnAll = grid.querySelector('.btn-all-videos');
     if (btnAll) {
         btnAll.addEventListener('click', function() {
-            var cid = this.getAttribute('data-canal');
-            showVideosWithSort(ALL_VIDEOS.filter(function(v) { return String(v.canal_id) === String(cid); }));
+            showVideosWithSort(canalVideos);
         });
     }
 }
