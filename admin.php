@@ -409,11 +409,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Add channel ──
         if ($action === 'add_channel') {
-            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, auto_sync, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, prioridad_portada, auto_sync, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
                 $_POST['descripcion'] ?? '',
+                intval($_POST['prioridad_portada'] ?? 0),
                 isset($_POST['auto_sync']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null
             ]);
@@ -422,11 +423,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Edit channel ──
         if ($action === 'edit_channel') {
-            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, auto_sync=?, default_categoria_id=? WHERE id=?");
+            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, prioridad_portada=?, auto_sync=?, default_categoria_id=? WHERE id=?");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
                 $_POST['descripcion'] ?? '',
+                intval($_POST['prioridad_portada'] ?? 0),
                 isset($_POST['auto_sync']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null,
                 $_POST['canal_id']
@@ -905,6 +907,10 @@ $section = $_GET['s'] ?? 'dashboard';
                                     <option value="<?= $cat['id'] ?>" <?= ($editCanal && $editCanal['default_categoria_id'] == $cat['id']) ? 'selected' : '' ?>><?= e($cat['nombre']) ?></option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Prioridad portada</label>
+                            <input type="number" name="prioridad_portada" value="<?= $editCanal['prioridad_portada'] ?? 0 ?>" min="0" style="width:80px;">
                         </div>
                         <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
                             <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">

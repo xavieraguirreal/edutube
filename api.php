@@ -44,7 +44,7 @@ if ($action === 'videos') {
 
     // Build channels list (con categoría para agrupar en sidebar)
     $canalesStmt = $db->query("
-        SELECT c.id, c.nombre, c.codigo, c.color, COALESCE(cat.nombre, '') AS categoria_nombre
+        SELECT c.id, c.nombre, c.codigo, c.color, c.prioridad_portada, COALESCE(cat.nombre, '') AS categoria_nombre
         FROM canales c
         LEFT JOIN categorias cat ON c.default_categoria_id = cat.id
         WHERE c.activo = 1 ORDER BY c.nombre

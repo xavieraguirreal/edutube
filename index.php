@@ -426,10 +426,12 @@ function clearAllActive() {
 function filterAll() {
     clearAllActive();
     document.querySelector('.chip[data-cat="todos"]').classList.add('active');
+    isPortadaView = true;
     loadVideos('api.php?action=videos');
 }
 
 function filterCanal(canalId) {
+    isPortadaView = false;
     clearAllActive();
     var chip = document.querySelector('.chip[data-canal="' + canalId + '"]');
     if (chip) chip.classList.add('active');
@@ -518,8 +520,20 @@ function sortVideos(videos, sortBy) {
     return sorted;
 }
 
+var isPortadaView = true;
+var VIDEOS_PER_CHANNEL = 4;
+
 function showVideosWithSort(videos, activeSort) {
     activeSort = activeSort || 'newest';
+    var sorted = sortVideos(videos, activeSort);
+
+    // Si estamos en la portada principal, mostrar agrupado por canal
+    if (isPortadaView && !activeSort || activeSort === 'newest') {
+        renderPortadaGrouped(sorted);
+        return;
+    }
+
+    // Vista lista normal (cuando se filtra por canal, categoría, búsqueda, etc.)
     var grid = document.getElementById('video-grid');
     var sortBar = '<div class="sort-bar">' +
         '<span class="sort-label">' + videos.length + ' videos · Ordenar por:</span>' +
@@ -528,16 +542,101 @@ function showVideosWithSort(videos, activeSort) {
         '<button class="sort-btn' + (activeSort==='oldest'?' active':'') + '" data-sort="oldest">Más antiguos</button>' +
         '<button class="sort-btn' + (activeSort==='az'?' active':'') + '" data-sort="az">A-Z</button>' +
     '</div>';
-    var sorted = sortVideos(videos, activeSort);
-    // Temporarily render to get HTML
     renderGrid(sorted);
     grid.insertAdjacentHTML('afterbegin', sortBar);
 
     grid.querySelectorAll('.sort-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
+            isPortadaView = false;
             showVideosWithSort(videos, this.getAttribute('data-sort'));
         });
     });
+}
+
+function renderPortadaGrouped(videos) {
+    var grid = document.getElementById('video-grid');
+
+    // Agrupar videos por canal
+    var channelVideos = {};
+    videos.forEach(function(v) {
+        var cid = v.canal_id || 'sin_canal';
+        if (!channelVideos[cid]) channelVideos[cid] = [];
+        channelVideos[cid].push(v);
+    });
+
+    // Ordenar canales: primero por prioridad (desc), luego por fecha del video más nuevo
+    var channelOrder = [];
+    ALL_CHANNELS.forEach(function(c) {
+        if (channelVideos[c.id] && channelVideos[c.id].length > 0) {
+            var newestDate = channelVideos[c.id][0].fecha_yt || '';
+            channelOrder.push({
+                id: c.id,
+                nombre: c.nombre,
+                codigo: c.codigo,
+                color: c.color,
+                prioridad: parseInt(c.prioridad_portada) || 0,
+                newestDate: newestDate
+            });
+        }
+    });
+
+    channelOrder.sort(function(a, b) {
+        if (a.prioridad !== b.prioridad) return b.prioridad - a.prioridad;
+        return (b.newestDate || '').localeCompare(a.newestDate || '');
+    });
+
+    var html = '';
+    var totalShown = 0;
+    var channelsShown = 0;
+    var maxChannelsInitial = 8;
+
+    channelOrder.forEach(function(ch) {
+        if (channelsShown >= maxChannelsInitial) return;
+        var vids = channelVideos[ch.id].slice(0, VIDEOS_PER_CHANNEL);
+
+        html += '<div class="channel-row">' +
+            '<div class="channel-row-header">' +
+                '<div class="channel-avatar-sm" style="background:' + ch.color + '">' + ch.codigo + '</div>' +
+                '<a href="#" class="channel-row-name" data-canal="' + ch.id + '">' + ch.nombre + '</a>' +
+                '<a href="#" class="channel-row-more" data-canal="' + ch.id + '">Ver todos</a>' +
+            '</div>' +
+            '<div class="channel-row-videos">';
+
+        vids.forEach(function(v) { html += videoCardHTML(v); });
+
+        html += '</div></div>';
+        totalShown += vids.length;
+        channelsShown++;
+    });
+
+    // Botón para cargar más canales
+    if (channelOrder.length > maxChannelsInitial) {
+        html += '<div class="load-more-container">' +
+            '<button class="btn-load-more" id="btn-load-more-channels">Mostrar más canales (' + (channelOrder.length - maxChannelsInitial) + ' restantes)</button>' +
+        '</div>';
+    }
+
+    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron videos</p>';
+    bindWatchLaterButtons(grid);
+
+    // Bind canal links
+    grid.querySelectorAll('[data-canal]').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            isPortadaView = false;
+            filterCanal(this.getAttribute('data-canal'));
+        });
+    });
+
+    // Bind cargar más canales
+    var btnMoreCh = document.getElementById('btn-load-more-channels');
+    if (btnMoreCh) {
+        btnMoreCh.addEventListener('click', function() {
+            // Mostrar todos los canales
+            maxChannelsInitial = 999;
+            renderPortadaGrouped(videos);
+        });
+    }
 }
 
 function filterSpecial(type) {
