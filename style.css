@@ -606,10 +606,23 @@ button { font-family: inherit; }
 .playlist-card-name { font-size: 0.88rem; font-weight: 500; line-height: 1.3; }
 .playlist-card-count { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem; }
 
+.channel-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+}
+.channel-section-count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-left: 0.25rem;
+}
+.playlist-loading {
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
 @media (max-width: 768px) {
     .channel-header { flex-wrap: wrap; padding: 1rem 0.75rem; }
-    .btn-all-videos { width: 100%; text-align: center; margin-top: 0.5rem; }
-    .playlist-grid { grid-template-columns: 1fr; padding: 0 0.75rem; }
 }
 
 /* ══════════════════════════════

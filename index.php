@@ -471,34 +471,56 @@ function renderCanalView(canalId, canalVideos) {
             '<div class="channel-header-stats">' + totalVideos + ' videos · ' + chPlaylists.length + ' listas</div>' +
         '</div>' +
         '<button class="btn-follow' + (isFollowing ? ' following' : '') + '" data-canal="' + canalId + '">' + (isFollowing ? 'Siguiendo' : 'Seguir') + '</button>' +
-        '<button class="btn-all-videos" data-canal="' + canalId + '">Ver todos los videos</button>' +
     '</div>';
 
-    // Playlists as cards
+    // Videos recientes row (newest 6)
+    var recentVideos = sortVideos(canalVideos, 'newest').slice(0, 6);
+    if (recentVideos.length > 0) {
+        html += '<div class="channel-row">' +
+            '<div class="channel-row-header">' +
+                '<span class="channel-section-title">Videos recientes</span>' +
+                (totalVideos > 6 ? '<a href="#" class="channel-row-more btn-all-videos">Ver todos los videos</a>' : '') +
+            '</div>' +
+            '<div class="channel-row-videos">';
+        recentVideos.forEach(function(v) { html += videoCardHTML(v); });
+        html += '</div></div>';
+    }
+
+    // Each playlist as a horizontal row with its videos
     if (chPlaylists.length > 0) {
-        html += '<div class="playlist-grid">';
         chPlaylists.forEach(function(p) {
-            html += '<a href="#" class="playlist-card" data-playlist="' + p.id + '">' +
-                '<div class="playlist-card-icon">📋</div>' +
-                '<div class="playlist-card-info">' +
-                    '<div class="playlist-card-name">' + p.nombre + '</div>' +
-                    '<div class="playlist-card-count">' + p.total_videos + ' videos</div>' +
+            html += '<div class="channel-row canal-playlist-row" data-playlist="' + p.id + '">' +
+                '<div class="channel-row-header">' +
+                    '<span class="channel-section-title">' + p.nombre + '</span>' +
+                    '<span class="channel-section-count">' + p.total_videos + ' videos</span>' +
+                    '<a href="#" class="channel-row-more playlist-row-more" data-playlist="' + p.id + '">Ver lista completa</a>' +
                 '</div>' +
-            '</a>';
+                '<div class="channel-row-videos playlist-videos-container" data-playlist="' + p.id + '">' +
+                    '<div class="playlist-loading">Cargando...</div>' +
+                '</div>' +
+            '</div>';
         });
-        html += '</div>';
     }
 
     grid.innerHTML = html;
+    bindWatchLaterButtons(grid);
 
-    // Bind events
-    grid.querySelectorAll('.playlist-card').forEach(function(card) {
-        card.addEventListener('click', function(e) {
-            e.preventDefault();
-            filterPlaylist(this.getAttribute('data-playlist'));
-        });
+    // Load videos for each playlist
+    chPlaylists.forEach(function(p) {
+        fetch('api.php?action=playlist&id=' + p.id)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var container = grid.querySelector('.playlist-videos-container[data-playlist="' + p.id + '"]');
+                if (!container) return;
+                var vids = (data.videos || []).slice(0, 6);
+                var vhtml = '';
+                vids.forEach(function(v) { vhtml += videoCardHTML(v); });
+                container.innerHTML = vhtml;
+                bindWatchLaterButtons(container);
+            });
     });
 
+    // Bind follow button
     var btnFollow = grid.querySelector('.btn-follow');
     if (btnFollow) {
         btnFollow.addEventListener('click', function() {
@@ -509,12 +531,22 @@ function renderCanalView(canalId, canalVideos) {
         });
     }
 
+    // Bind "Ver todos los videos" button
     var btnAll = grid.querySelector('.btn-all-videos');
     if (btnAll) {
-        btnAll.addEventListener('click', function() {
+        btnAll.addEventListener('click', function(e) {
+            e.preventDefault();
             showVideosWithSort(canalVideos);
         });
     }
+
+    // Bind "Ver lista completa" links
+    grid.querySelectorAll('.playlist-row-more').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            filterPlaylist(this.getAttribute('data-playlist'));
+        });
+    });
 }
 
 // ── Sort ──
