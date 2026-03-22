@@ -34,6 +34,7 @@ if ($videoId) {
         default-src 'self';
         frame-src https://www.youtube-nocookie.com https://archive.org;
         img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org;
+        media-src https://archive.org https://*.us.archive.org https://*.archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline' https://www.youtube.com;
@@ -137,6 +138,7 @@ function formatDate(dateStr) {
     if (videoId === 'ia:TheGreatDictator') {
         renderArchivePlayer({
             ia_id: 'OGrandeDitadorTheGreatDictatorCharlieChaplin1940',
+            archivo: 'O Grande Ditador [The Great Dictator] - Charlie Chaplin - 1940.mp4',
             titulo: 'The Great Dictator (1940) — Charlie Chaplin',
             descripcion: 'The Great Dictator es una película estadounidense de 1940 escrita, dirigida y protagonizada por Charlie Chaplin. Es una sátira política que se burla de Adolf Hitler y el nazismo. Fue la primera película completamente sonora de Chaplin y su mayor éxito comercial. La película incluye el famoso discurso final, considerado uno de los más grandes monólogos en la historia del cine.',
             duracion: '2:04:37',
@@ -445,9 +447,9 @@ function formatDate(dateStr) {
 
     } // end renderPlayer
 
-    // ── Internet Archive Player ──
+    // ── Internet Archive Player (HTML5 video with custom controls) ──
     function renderArchivePlayer(video) {
-        var embedSrc = 'https://archive.org/embed/' + video.ia_id;
+        var videoSrc = 'https://archive.org/download/' + video.ia_id + '/' + encodeURIComponent(video.archivo);
         var thumbSrc = 'https://archive.org/download/' + video.ia_id + '/__ia_thumb.jpg';
 
         var isLiked = isInStore('liked', 'ia:' + video.ia_id);
@@ -465,11 +467,25 @@ function formatDate(dateStr) {
                 '<div class="player-main">' +
                     '<div class="player-wrapper">' +
                         '<div class="player-container" id="player-container">' +
-                            '<iframe id="ia-player" src="' + embedSrc + '" ' +
-                                'sandbox="allow-scripts allow-same-origin allow-presentation" ' +
-                                'allow="autoplay; encrypted-media; fullscreen" ' +
-                                'title="' + video.titulo + '" ' +
-                                'style="width:100%;height:100%;border:0;"></iframe>' +
+                            '<video id="html5-player" src="' + videoSrc + '" poster="' + thumbSrc + '" preload="metadata" playsinline></video>' +
+                        '</div>' +
+                        '<div class="custom-controls">' +
+                            '<button id="btn-play" class="ctrl-btn" title="Reproducir"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>' +
+                            '<div class="ctrl-vol-group">' +
+                                '<button id="btn-mute" class="ctrl-btn" title="Silenciar">' +
+                                    '<svg id="icon-vol" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>' +
+                                    '<svg id="icon-muted" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display:none"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>' +
+                                '</button>' +
+                                '<input type="range" id="volume-slider" class="ctrl-volume" min="0" max="100" value="100">' +
+                            '</div>' +
+                            '<span id="time-current" class="ctrl-time">0:00</span>' +
+                            '<span class="ctrl-time-separator">/</span>' +
+                            '<span id="time-total" class="ctrl-time">0:00</span>' +
+                            '<div class="ctrl-progress-wrap">' +
+                                '<input type="range" id="progress-bar" class="ctrl-progress" min="0" max="1000" value="0">' +
+                                '<div class="ctrl-progress-fill" id="progress-fill"></div>' +
+                            '</div>' +
+                            '<button id="btn-fullscreen" class="ctrl-btn" title="Pantalla completa"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>' +
                         '</div>' +
                     '</div>' +
                     '<div class="video-info">' +
@@ -490,7 +506,7 @@ function formatDate(dateStr) {
                         '</div>' +
                         '<div class="video-description expanded" id="video-desc-ia">' +
                             '<div class="desc-stats">' +
-                                formatViews(video.vistas) + ' reproducciones · ' + video.fecha +
+                                formatViews(video.vistas) + ' descargas · ' + video.fecha +
                                 ' · Duración: ' + video.duracion +
                                 ' · Licencia: ' + video.licencia +
                             '</div>' +
@@ -501,10 +517,71 @@ function formatDate(dateStr) {
                 '<div class="player-sidebar">' +
                     '<div class="related-list" style="padding:1rem;">' +
                         '<p style="color:var(--text-muted);font-size:0.85rem;">Este video proviene de Internet Archive, una biblioteca digital sin fines de lucro.</p>' +
-                        '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Los controles de reproducción son los nativos del reproductor de Archive.org.</p>' +
                     '</div>' +
                 '</div>' +
             '</div>';
+
+        // ── HTML5 Video Controls ──
+        var vid = document.getElementById('html5-player');
+        var isMutedIA = false;
+        var playIcon = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+        var pauseIcon = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+        vid.addEventListener('loadedmetadata', function() {
+            document.getElementById('time-total').textContent = fmt(vid.duration);
+        });
+
+        vid.addEventListener('timeupdate', function() {
+            if (vid.duration > 0) {
+                var pct = (vid.currentTime / vid.duration) * 1000;
+                document.getElementById('progress-bar').value = pct;
+                document.getElementById('progress-fill').style.width = (pct / 10) + '%';
+                document.getElementById('time-current').textContent = fmt(vid.currentTime);
+            }
+        });
+
+        vid.addEventListener('play', function() { document.getElementById('btn-play').innerHTML = pauseIcon; });
+        vid.addEventListener('pause', function() { document.getElementById('btn-play').innerHTML = playIcon; });
+
+        document.getElementById('btn-play').addEventListener('click', function() {
+            if (vid.paused) vid.play(); else vid.pause();
+        });
+
+        // Click on video to play/pause
+        vid.addEventListener('click', function() {
+            if (vid.paused) vid.play(); else vid.pause();
+        });
+
+        document.getElementById('btn-mute').addEventListener('click', function() {
+            isMutedIA = !isMutedIA;
+            vid.muted = isMutedIA;
+            document.getElementById('icon-vol').style.display = isMutedIA ? 'none' : '';
+            document.getElementById('icon-muted').style.display = isMutedIA ? '' : 'none';
+            document.getElementById('volume-slider').value = isMutedIA ? 0 : vid.volume * 100;
+        });
+
+        document.getElementById('volume-slider').addEventListener('input', function() {
+            var v = parseInt(this.value);
+            vid.volume = v / 100;
+            if (v === 0) { vid.muted = true; isMutedIA = true; }
+            else if (isMutedIA) { vid.muted = false; isMutedIA = false; }
+            document.getElementById('icon-vol').style.display = isMutedIA ? 'none' : '';
+            document.getElementById('icon-muted').style.display = isMutedIA ? '' : 'none';
+        });
+
+        document.getElementById('progress-bar').addEventListener('input', function() {
+            if (vid.duration > 0) {
+                vid.currentTime = (parseInt(this.value) / 1000) * vid.duration;
+                document.getElementById('progress-fill').style.width = (parseInt(this.value) / 10) + '%';
+            }
+        });
+
+        document.getElementById('btn-fullscreen').addEventListener('click', function() {
+            var w = document.querySelector('.player-wrapper');
+            if (document.fullscreenElement) document.exitFullscreen();
+            else if (w.requestFullscreen) w.requestFullscreen();
+            else if (w.webkitRequestFullscreen) w.webkitRequestFullscreen();
+        });
 
         // Bind like & save
         document.getElementById('btn-like-ia').addEventListener('click', function() {
