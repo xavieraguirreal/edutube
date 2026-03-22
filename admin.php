@@ -409,12 +409,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Add channel ──
         if ($action === 'add_channel') {
-            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, mostrar_en_portada, auto_sync, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, auto_sync, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
                 $_POST['descripcion'] ?? '',
-                isset($_POST['mostrar_en_portada']) ? 1 : 0,
                 isset($_POST['auto_sync']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null
             ]);
@@ -423,12 +422,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Edit channel ──
         if ($action === 'edit_channel') {
-            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, mostrar_en_portada=?, auto_sync=?, default_categoria_id=? WHERE id=?");
+            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, auto_sync=?, default_categoria_id=? WHERE id=?");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
                 $_POST['descripcion'] ?? '',
-                isset($_POST['mostrar_en_portada']) ? 1 : 0,
                 isset($_POST['auto_sync']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null,
                 $_POST['canal_id']
@@ -438,9 +436,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Add category ──
         if ($action === 'add_categoria') {
-            $stmt = $db->prepare("INSERT INTO categorias (nombre, icono, orden) VALUES (?, ?, ?)");
-            $stmt->execute([$_POST['nombre'], $_POST['icono'] ?? '📚', intval($_POST['orden'] ?? 0)]);
+            $stmt = $db->prepare("INSERT INTO categorias (nombre, icono, orden, mostrar_en_portada) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$_POST['nombre'], $_POST['icono'] ?? '📚', intval($_POST['orden'] ?? 0), isset($_POST['mostrar_en_portada']) ? 1 : 0]);
             $msg = 'Categoría creada correctamente.'; $msgType = 'success';
+        }
+
+        // ── Edit category ──
+        if ($action === 'edit_categoria') {
+            $stmt = $db->prepare("UPDATE categorias SET nombre=?, icono=?, orden=?, mostrar_en_portada=? WHERE id=?");
+            $stmt->execute([
+                $_POST['nombre'], $_POST['icono'] ?? '📚',
+                intval($_POST['orden'] ?? 0),
+                isset($_POST['mostrar_en_portada']) ? 1 : 0,
+                $_POST['categoria_id']
+            ]);
+            $msg = 'Categoría actualizada.'; $msgType = 'success';
         }
 
         // ── Toggle video ──
@@ -896,11 +906,7 @@ $section = $_GET['s'] ?? 'dashboard';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;gap:1.5rem;">
-                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-                                <input type="checkbox" name="mostrar_en_portada" value="1" <?= ($editCanal && !empty($editCanal['mostrar_en_portada'])) ? 'checked' : '' ?>>
-                                Mostrar en portada
-                            </label>
+                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
                             <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
                                 <input type="checkbox" name="auto_sync" value="1" <?= ($editCanal && $editCanal['auto_sync']) ? 'checked' : '' ?>>
                                 Sincronizar automático (cron)
@@ -914,7 +920,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 </form>
             </div>
             <table>
-                <tr><th>Nombre</th><th>Código</th><th>Channel ID</th><th>Categoría</th><th>Portada</th><th>Auto-sync</th><th>Color</th><th>Acciones</th></tr>
+                <tr><th>Nombre</th><th>Código</th><th>Channel ID</th><th>Categoría</th><th>Auto-sync</th><th>Color</th><th>Acciones</th></tr>
                 <?php foreach ($canales as $c):
                     $catNombre = '—';
                     if (!empty($c['default_categoria_id'])) {
@@ -928,7 +934,6 @@ $section = $_GET['s'] ?? 'dashboard';
                     <td><?= e($c['codigo']) ?></td>
                     <td style="font-size:0.78rem;"><?= e($c['youtube_channel_id']) ?></td>
                     <td><?= e($catNombre) ?></td>
-                    <td><span class="badge <?= !empty($c['mostrar_en_portada']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['mostrar_en_portada']) ? 'Sí' : 'No' ?></span></td>
                     <td><span class="badge <?= !empty($c['auto_sync']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['auto_sync']) ? 'Sí' : 'No' ?></span></td>
                     <td><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:<?= e($c['color']) ?>"></span></td>
                     <td><a href="?s=canales&edit=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a></td>
@@ -938,23 +943,51 @@ $section = $_GET['s'] ?? 'dashboard';
 
         <?php elseif ($section === 'categorias'): ?>
             <h1>Categorías</h1>
+
+            <?php
+            $editCat = null;
+            if (isset($_GET['edit_cat'])) {
+                $stmtEditCat = $db->prepare("SELECT * FROM categorias WHERE id = ?");
+                $stmtEditCat->execute([$_GET['edit_cat']]);
+                $editCat = $stmtEditCat->fetch();
+            }
+            ?>
+
             <div class="card">
-                <h2>Nueva categoría</h2>
+                <h2><?= $editCat ? 'Editar categoría' : 'Nueva categoría' ?></h2>
                 <form method="POST">
-                    <input type="hidden" name="action" value="add_categoria">
+                    <input type="hidden" name="action" value="<?= $editCat ? 'edit_categoria' : 'add_categoria' ?>">
                     <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <?php if ($editCat): ?>
+                        <input type="hidden" name="categoria_id" value="<?= $editCat['id'] ?>">
+                    <?php endif; ?>
                     <div class="form-row">
-                        <div class="form-group"><label>Nombre *</label><input type="text" name="nombre" required></div>
-                        <div class="form-group"><label>Icono (emoji)</label><input type="text" name="icono" value="📚"></div>
-                        <div class="form-group"><label>Orden</label><input type="number" name="orden" value="0"></div>
+                        <div class="form-group"><label>Nombre *</label><input type="text" name="nombre" value="<?= e($editCat['nombre'] ?? '') ?>" required></div>
+                        <div class="form-group"><label>Icono (emoji)</label><input type="text" name="icono" value="<?= e($editCat['icono'] ?? '📚') ?>"></div>
+                        <div class="form-group"><label>Orden</label><input type="number" name="orden" value="<?= $editCat['orden'] ?? 0 ?>"></div>
+                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
+                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                                <input type="checkbox" name="mostrar_en_portada" value="1" <?= ($editCat && !empty($editCat['mostrar_en_portada'])) ? 'checked' : '' ?>>
+                                Mostrar en portada
+                            </label>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Crear categoría</button>
+                    <button type="submit" class="btn btn-primary"><?= $editCat ? 'Guardar cambios' : 'Crear categoría' ?></button>
+                    <?php if ($editCat): ?>
+                        <a href="?s=categorias" class="btn btn-outline" style="margin-left:0.5rem;">Cancelar</a>
+                    <?php endif; ?>
                 </form>
             </div>
             <table>
-                <tr><th>Icono</th><th>Nombre</th><th>Orden</th></tr>
+                <tr><th>Icono</th><th>Nombre</th><th>Orden</th><th>Portada</th><th>Acciones</th></tr>
                 <?php foreach ($categorias as $c): ?>
-                <tr><td><?= $c['icono'] ?></td><td><?= e($c['nombre']) ?></td><td><?= $c['orden'] ?></td></tr>
+                <tr>
+                    <td><?= $c['icono'] ?></td>
+                    <td><?= e($c['nombre']) ?></td>
+                    <td><?= $c['orden'] ?></td>
+                    <td><span class="badge <?= !empty($c['mostrar_en_portada']) ? 'badge-active' : 'badge-inactive' ?>"><?= !empty($c['mostrar_en_portada']) ? 'Sí' : 'No' ?></span></td>
+                    <td><a href="?s=categorias&edit_cat=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a></td>
+                </tr>
                 <?php endforeach; ?>
             </table>
 

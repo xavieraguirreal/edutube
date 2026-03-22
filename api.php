@@ -12,11 +12,11 @@ $action = $_GET['action'] ?? '';
 
 // ── Videos list ──
 if ($action === 'videos') {
-    // Portada: solo canales marcados. Con ?all=1 o filtro de canal/categoría: todos
+    // Portada: solo categorías marcadas. Con ?all=1 o filtro de canal/categoría: todos
     $filtroPortada = empty($_GET['all']) && empty($_GET['canal_id']) && empty($_GET['categoria']);
     $where = 'v.activo = 1';
     if ($filtroPortada) {
-        $where .= ' AND c.mostrar_en_portada = 1';
+        $where .= ' AND (cat.mostrar_en_portada = 1 OR dcat.mostrar_en_portada = 1)';
     }
     if (!empty($_GET['canal_id'])) {
         $where .= ' AND c.id = ' . intval($_GET['canal_id']);
@@ -40,7 +40,7 @@ if ($action === 'videos') {
     $videos = $stmt->fetchAll();
 
     // Build channels list (todos, para el sidebar)
-    $canalesStmt = $db->query("SELECT id, nombre, codigo, color, mostrar_en_portada FROM canales WHERE activo = 1 ORDER BY nombre");
+    $canalesStmt = $db->query("SELECT id, nombre, codigo, color FROM canales WHERE activo = 1 ORDER BY nombre");
     $canales = $canalesStmt->fetchAll();
 
     // Categorías para filtro del sidebar
