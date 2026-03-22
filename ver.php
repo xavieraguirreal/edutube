@@ -32,8 +32,8 @@ if ($videoId) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        frame-src https://www.youtube-nocookie.com;
-        img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com;
+        frame-src https://www.youtube-nocookie.com https://archive.org;
+        img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline' https://www.youtube.com;
@@ -130,6 +130,22 @@ function formatDate(dateStr) {
 
     if (!videoId) {
         page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);margin-bottom:1rem;">Video no encontrado</h2><a href="/" class="btn-back">← Volver al inicio</a></div>';
+        return;
+    }
+
+    // ── Internet Archive demo (hardcoded) ──
+    if (videoId === 'ia:TheGreatDictator') {
+        renderArchivePlayer({
+            ia_id: 'TheGreatDictator',
+            titulo: 'The Great Dictator (1940) — Charlie Chaplin',
+            descripcion: 'The Great Dictator es una película estadounidense de 1940 escrita, dirigida y protagonizada por Charlie Chaplin. Es una sátira política que se burla de Adolf Hitler y el nazismo. Fue la primera película completamente sonora de Chaplin y su mayor éxito comercial. La película incluye el famoso discurso final, considerado uno de los más grandes monólogos en la historia del cine.',
+            duracion: '2:04:37',
+            fecha: '1940-10-15',
+            vistas: 1584203,
+            fuente: 'Internet Archive',
+            coleccion: 'Feature Films',
+            licencia: 'Public Domain'
+        });
         return;
     }
 
@@ -426,6 +442,88 @@ function formatDate(dateStr) {
     });
 
     document.getElementById('player-container').addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+    } // end renderPlayer
+
+    // ── Internet Archive Player ──
+    function renderArchivePlayer(video) {
+        var embedSrc = 'https://archive.org/embed/' + video.ia_id;
+        var thumbSrc = 'https://archive.org/download/' + video.ia_id + '/__ia_thumb.jpg';
+
+        var isLiked = isInStore('liked', 'ia:' + video.ia_id);
+        var isWL = isInStore('watchlater', 'ia:' + video.ia_id);
+
+        // Save to history
+        var hist = getStore('history');
+        hist = hist.filter(function(h) { return h !== 'ia:' + video.ia_id; });
+        hist.unshift('ia:' + video.ia_id);
+        if (hist.length > 50) hist = hist.slice(0, 50);
+        setStore('history', hist);
+
+        page.innerHTML =
+            '<div class="player-layout">' +
+                '<div class="player-main">' +
+                    '<div class="player-wrapper">' +
+                        '<div class="player-container" id="player-container">' +
+                            '<iframe id="ia-player" src="' + embedSrc + '" ' +
+                                'sandbox="allow-scripts allow-same-origin allow-presentation" ' +
+                                'allow="autoplay; encrypted-media; fullscreen" ' +
+                                'allowfullscreen ' +
+                                'title="' + video.titulo + '" ' +
+                                'style="width:100%;height:100%;border:0;"></iframe>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="video-info">' +
+                        '<h1>' + video.titulo + '</h1>' +
+                        '<div class="video-info-row">' +
+                            '<div class="video-info-channel">' +
+                                '<div class="ch-avatar" style="background:#d4451a">IA</div>' +
+                                '<div>' +
+                                    '<div class="ch-name">' + video.fuente + '</div>' +
+                                    '<div class="ch-subs">' + video.coleccion + '</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="video-actions">' +
+                                '<button class="action-btn' + (isLiked ? ' active' : '') + '" id="btn-like-ia"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><span id="like-label-ia">' + (isLiked ? 'Te gusta' : 'Me gusta') + '</span></button>' +
+                                '<button class="action-btn' + (isWL ? ' active' : '') + '" id="btn-save-ia"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg><span id="save-label-ia">' + (isWL ? 'Guardado' : 'Ver después') + '</span></button>' +
+                                '<a href="index.php" class="action-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Inicio</a>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="video-description expanded" id="video-desc-ia">' +
+                            '<div class="desc-stats">' +
+                                formatViews(video.vistas) + ' reproducciones · ' + video.fecha +
+                                ' · Duración: ' + video.duracion +
+                                ' · Licencia: ' + video.licencia +
+                            '</div>' +
+                            '<div class="desc-text">' + video.descripcion + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="player-sidebar">' +
+                    '<div class="related-list" style="padding:1rem;">' +
+                        '<p style="color:var(--text-muted);font-size:0.85rem;">Este video proviene de Internet Archive, una biblioteca digital sin fines de lucro.</p>' +
+                        '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Los controles de reproducción son los nativos del reproductor de Archive.org.</p>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        // Bind like & save
+        document.getElementById('btn-like-ia').addEventListener('click', function() {
+            var added = toggleStore('liked', 'ia:' + video.ia_id);
+            this.classList.toggle('active', added);
+            document.getElementById('like-label-ia').textContent = added ? 'Te gusta' : 'Me gusta';
+            showToast(added ? 'Agregado a Me gusta' : 'Quitado de Me gusta');
+        });
+        document.getElementById('btn-save-ia').addEventListener('click', function() {
+            var added = toggleStore('watchlater', 'ia:' + video.ia_id);
+            this.classList.toggle('active', added);
+            document.getElementById('save-label-ia').textContent = added ? 'Guardado' : 'Ver después';
+            showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');
+        });
+
+        // Disable right-click on player
+        document.getElementById('player-container').addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    }
 
     } // end renderPlayer
 })();
