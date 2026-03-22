@@ -326,7 +326,7 @@ function renderGrid(videos) {
                 '<div class="card-text">' +
                     '<a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
                     '<div class="card-channel">' + (v.canal_nombre || '') + '</div>' +
-                    '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + '</div>' +
+                    '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + ' · <span style="color:#9b5de5">' + (v.categoria_nombre || 'Sin cat') + '</span></div>' +
                 '</div>' +
             '</div>' +
         '</div>';
