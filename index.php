@@ -82,6 +82,9 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <a href="peliculas" class="sidebar-item">
             <span class="si-icon">🎬</span><span class="si-label">Películas</span>
         </a>
+        <a href="documentales" class="sidebar-item">
+            <span class="si-icon">🎞️</span><span class="si-label">Documentales</span>
+        </a>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Categorías</div>

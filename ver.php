@@ -149,7 +149,22 @@ function formatDate(dateStr) {
             'ia:Scrooge1935': 'Scrooge_1935',
             'ia:MarkOfZorro': 'markofzorro-1920',
             'ia:HisGirlFriday': 'his_girl_friday',
-            'ia:SherlockHolmes': 'secret_weapon'
+            'ia:SherlockHolmes': 'secret_weapon',
+            // Documentales
+            'ia:TheInternetOwnBoy': 'TheInternetsOwnBoyTheStoryOfAaronSwartz',
+            'ia:Connections': 'ConnectionsByJamesBurke',
+            'ia:ManWithMovieCamera': 'ChelovekskinoapparatomManWithAMovieCamera',
+            'ia:MemphisBelle': 'TheMemphisBelleAStoryofaFlyingFortress',
+            'ia:TheLastBomb': 'TheLastBomb1945',
+            'ia:WorldAtWar': 'the-world-at-war-1973-thames-television-world-war-two',
+            'ia:GeniusPhotography': 'tGoPhoto',
+            'ia:TheCorporation': 'The_Corporation_',
+            'ia:WarPhotographer': 'wphoto',
+            'ia:WalkingWithDinos': 'walking-with-dinosaurs',
+            'ia:BattleOfMidway': 'the_battle_of_midway',
+            'ia:ManufacturingConsent': 'manufacturing_consent',
+            'ia:DeathMills': 'DeathMills',
+            'ia:BBSDocumentary': 'BBS.The.Documentary'
         };
         var iaId = iaLookup[videoId] || videoId.substring(3);
 

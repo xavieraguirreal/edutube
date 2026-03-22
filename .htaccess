@@ -12,5 +12,8 @@ RewriteRule ^canal$ canal.php [QSA,L]
 # /peliculas → peliculas.php
 RewriteRule ^peliculas$ peliculas.php [QSA,L]
 
+# /documentales → documentales.php
+RewriteRule ^documentales$ documentales.php [QSA,L]
+
 # /landing → landing.php
 RewriteRule ^landing$ landing.php [L]
