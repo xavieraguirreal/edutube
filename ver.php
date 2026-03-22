@@ -523,9 +523,8 @@ function formatDate(dateStr) {
 
         // Disable right-click on player
         document.getElementById('player-container').addEventListener('contextmenu', function(e) { e.preventDefault(); });
-    }
+    } // end renderArchivePlayer
 
-    } // end renderPlayer
 })();
 </script>
 
