@@ -537,9 +537,23 @@ button { font-family: inherit; }
 }
 .channel-row-more:hover { text-decoration: underline; }
 .channel-row-videos {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    display: flex;
     gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scroll-snap-type: x mandatory;
+}
+.channel-row-videos .video-card {
+    min-width: 260px;
+    max-width: 300px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+}
+@media (max-width: 768px) {
+    .channel-row-videos .video-card {
+        min-width: 220px;
+        max-width: 260px;
+    }
 }
 
 .load-more-container {
