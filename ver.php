@@ -136,7 +136,7 @@ function formatDate(dateStr) {
     // ── Internet Archive demo (hardcoded) ──
     if (videoId === 'ia:TheGreatDictator') {
         renderArchivePlayer({
-            ia_id: 'TheGreatDictator',
+            ia_id: 'OGrandeDitadorTheGreatDictatorCharlieChaplin1940',
             titulo: 'The Great Dictator (1940) — Charlie Chaplin',
             descripcion: 'The Great Dictator es una película estadounidense de 1940 escrita, dirigida y protagonizada por Charlie Chaplin. Es una sátira política que se burla de Adolf Hitler y el nazismo. Fue la primera película completamente sonora de Chaplin y su mayor éxito comercial. La película incluye el famoso discurso final, considerado uno de los más grandes monólogos en la historia del cine.',
             duracion: '2:04:37',
@@ -468,7 +468,6 @@ function formatDate(dateStr) {
                             '<iframe id="ia-player" src="' + embedSrc + '" ' +
                                 'sandbox="allow-scripts allow-same-origin allow-presentation" ' +
                                 'allow="autoplay; encrypted-media; fullscreen" ' +
-                                'allowfullscreen ' +
                                 'title="' + video.titulo + '" ' +
                                 'style="width:100%;height:100%;border:0;"></iframe>' +
                         '</div>' +
