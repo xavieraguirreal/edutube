@@ -819,10 +819,11 @@ $section = $_GET['s'] ?? 'dashboard';
                         $uploadsId = $preview['uploads_playlist'] ?? '';
                         // "Sin lista" = special entry for loose videos
                         // Get channel DB id
-                        $stmtChDb = $db->prepare("SELECT id FROM canales WHERE youtube_channel_id = ?");
+                        $stmtChDb = $db->prepare("SELECT id, default_categoria_id FROM canales WHERE youtube_channel_id = ?");
                         $stmtChDb->execute([$previewChId]);
                         $chDbRow = $stmtChDb->fetch();
                         $canalDbIdPreview = $chDbRow ? intval($chDbRow['id']) : 0;
+                        $canalDefaultCatId = $chDbRow ? intval($chDbRow['default_categoria_id']) : 0;
 
                         // Count videos in this channel that are NOT in any playlist
                         $sinListaCount = 0;
@@ -906,7 +907,7 @@ $section = $_GET['s'] ?? 'dashboard';
                             <select name="categoria_id">
                                 <option value="">— Sin categoría —</option>
                                 <?php foreach ($categorias as $c): ?>
-                                    <option value="<?= $c['id'] ?>"><?= e($c['nombre']) ?></option>
+                                    <option value="<?= $c['id'] ?>" <?= (isset($canalDefaultCatId) && $canalDefaultCatId == $c['id']) ? 'selected' : '' ?>><?= e($c['nombre']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
