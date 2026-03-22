@@ -479,6 +479,24 @@ button { font-family: inherit; }
 
 .btn-all-videos:hover { background: var(--bg-active); }
 
+.btn-follow {
+    padding: 0.5rem 1.2rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+}
+.btn-follow:hover { opacity: 0.9; }
+.btn-follow.following {
+    background: var(--bg-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
 .playlist-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

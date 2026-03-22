@@ -39,8 +39,16 @@ if ($action === 'videos') {
     ");
     $videos = $stmt->fetchAll();
 
-    // Build channels list (todos, para el sidebar)
-    $canalesStmt = $db->query("SELECT id, nombre, codigo, color FROM canales WHERE activo = 1 ORDER BY nombre");
+    // Total de videos (siempre el total real, no filtrado)
+    $totalVideos = $db->query("SELECT COUNT(*) FROM videos WHERE activo = 1")->fetchColumn();
+
+    // Build channels list (con categoría para agrupar en sidebar)
+    $canalesStmt = $db->query("
+        SELECT c.id, c.nombre, c.codigo, c.color, COALESCE(cat.nombre, '') AS categoria_nombre
+        FROM canales c
+        LEFT JOIN categorias cat ON c.default_categoria_id = cat.id
+        WHERE c.activo = 1 ORDER BY c.nombre
+    ");
     $canales = $canalesStmt->fetchAll();
 
     // Categorías para filtro del sidebar
@@ -57,7 +65,7 @@ if ($action === 'videos') {
     ");
     $playlists = $playlistsStmt->fetchAll();
 
-    echo json_encode(['videos' => $videos, 'canales' => $canales, 'playlists' => $playlists, 'categorias' => $categoriasData], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['videos' => $videos, 'canales' => $canales, 'playlists' => $playlists, 'categorias' => $categoriasData, 'total_videos' => intval($totalVideos)], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

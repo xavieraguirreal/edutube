@@ -85,8 +85,8 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <div id="sidebar-categorias"><!-- categorías --></div>
     </div>
     <div class="sidebar-section">
-        <div class="sidebar-title">Canales</div>
-        <div id="sidebar-channels"><!-- canales + sus playlists --></div>
+        <div class="sidebar-title">Siguiendo</div>
+        <div id="sidebar-following"><!-- canales que sigo --></div>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Tu actividad</div>
@@ -113,7 +113,6 @@ if (!localStorage.getItem('edutube_welcomed')) {
 <main class="main" id="main-content">
     <div class="chips" id="chips">
         <button class="chip active" data-cat="todos">Todos</button>
-        <span id="channel-chips"><!-- se llena dinámicamente --></span>
         <button class="chip" data-filter="watchlater">🕐 Ver después</button>
         <button class="chip" data-filter="liked">👍 Me gusta</button>
         <button class="chip" data-filter="history">⏱ Historial</button>
@@ -200,7 +199,7 @@ function loadVideos(apiUrl) {
             buildChips();
             showVideosWithSort(ALL_VIDEOS);
             updateBadges();
-            document.getElementById('video-count').textContent = ALL_VIDEOS.length + ' videos';
+            document.getElementById('video-count').textContent = (data.total_videos || ALL_VIDEOS.length) + ' videos';
         });
 }
 
@@ -209,68 +208,100 @@ function buildSidebarCategorias() {
     if (!container) return;
     var html = '';
     ALL_CATEGORIAS.forEach(function(cat) {
-        html += '<a href="#" class="sidebar-item" data-categoria="' + cat.nombre + '">' +
-            '<span class="si-icon">' + (cat.icono || '📁') + '</span>' +
-            '<span class="si-label">' + cat.nombre + '</span></a>';
+        // Canales de esta categoría
+        var catChannels = ALL_CHANNELS.filter(function(c) { return c.categoria_nombre === cat.nombre; });
+
+        html += '<div class="sidebar-channel-group">' +
+            '<a href="#" class="sidebar-item" data-categoria="' + cat.nombre + '" title="' + cat.nombre + '">' +
+                '<span class="si-icon">' + (cat.icono || '📁') + '</span>' +
+                '<span class="si-label">' + cat.nombre + '</span>' +
+                (catChannels.length > 0 ? '<span class="si-expand" data-toggle="cat-' + cat.id + '">▸</span>' : '') +
+            '</a>' +
+            '<div class="sidebar-playlists-group" id="cat-' + cat.id + '" style="display:none;">';
+        catChannels.forEach(function(c) {
+            html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '" title="' + c.nombre + '" style="padding-left:2.5rem;font-size:0.82rem;">' +
+                '<span class="si-icon" style="color:' + c.color + '">●</span>' +
+                '<span class="si-label">' + c.nombre + '</span></a>';
+        });
+        html += '</div></div>';
     });
     container.innerHTML = html;
 
-    // Click handler para categorías
+    // Click handlers para categorías
     container.querySelectorAll('[data-categoria]').forEach(function(el) {
         el.addEventListener('click', function(e) {
             e.preventDefault();
             var catName = this.getAttribute('data-categoria');
-            // Marcar activo
-            document.querySelectorAll('.sidebar-item').forEach(function(s) { s.classList.remove('active'); });
+            clearAllActive();
             this.classList.add('active');
-            // Cargar videos de esta categoría
             loadVideos('api.php?action=videos&categoria=' + encodeURIComponent(catName));
+            closeSidebar();
         });
     });
-}
 
-function buildSidebar() {
-    buildSidebarCategorias();
-    var container = document.getElementById('sidebar-channels');
-    var html = '';
-    ALL_CHANNELS.forEach(function(c) {
-        // Count playlists for this channel
-        var chPlaylists = ALL_PLAYLISTS.filter(function(p) { return String(p.canal_id) === String(c.id) && parseInt(p.total_videos) > 0; });
-        var hasPlaylists = chPlaylists.length > 0;
-
-        html += '<div class="sidebar-channel-group">' +
-            '<a href="#" class="sidebar-item" data-canal="' + c.id + '" title="' + c.nombre + '">' +
-                '<span class="si-icon" style="color:' + c.color + '">●</span>' +
-                '<span class="si-label">' + c.nombre + '</span>' +
-                (hasPlaylists ? '<span class="si-expand" data-toggle="ch-' + c.id + '">▸</span>' : '') +
-            '</a>' +
-            '<div class="sidebar-playlists-group" id="ch-' + c.id + '" style="display:none;">';
-        chPlaylists.forEach(function(p) {
-            html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '" title="' + p.nombre + '" style="padding-left:2.5rem;font-size:0.82rem;">' +
-                '<span class="si-icon" style="font-size:0.85rem;">📋</span>' +
-                '<span class="si-label">' + p.nombre + '</span>' +
-                '<span class="si-badge">' + p.total_videos + '</span></a>';
+    // Click handlers para canales dentro de categorías
+    container.querySelectorAll('[data-canal]').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            filterCanal(this.getAttribute('data-canal'));
+            closeSidebar();
         });
-        html += '</div></div>';
     });
-    // Playlists sin canal
-    ALL_PLAYLISTS.forEach(function(p) {
-        if (!p.canal_id && parseInt(p.total_videos) > 0) {
-            html += '<a href="#" class="sidebar-item" data-playlist="' + p.id + '" title="' + p.nombre + '">' +
-                '<span class="si-icon">📋</span>' +
-                '<span class="si-label">' + p.nombre + '</span>' +
-                '<span class="si-badge">' + p.total_videos + '</span></a>';
-        }
-    });
-    container.innerHTML = html;
 
-    // Expand/collapse toggles
+    // Expand/collapse
     container.querySelectorAll('.si-expand').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             var targetId = this.getAttribute('data-toggle');
             var target = document.getElementById(targetId);
+            if (target) {
+                var show = target.style.display === 'none';
+                target.style.display = show ? 'block' : 'none';
+                this.textContent = show ? '▾' : '▸';
+            }
+        });
+    });
+}
+
+function buildSidebarFollowing() {
+    var container = document.getElementById('sidebar-following');
+    if (!container) return;
+    var following = getStore('following');
+    if (following.length === 0) {
+        container.innerHTML = '<div style="padding:0.3rem 1rem;font-size:0.8rem;color:#999;">No seguís ningún canal</div>';
+        return;
+    }
+    var html = '';
+    ALL_CHANNELS.forEach(function(c) {
+        if (following.indexOf(String(c.id)) > -1) {
+            html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '" title="' + c.nombre + '">' +
+                '<span class="si-icon" style="color:' + c.color + '">●</span>' +
+                '<span class="si-label">' + c.nombre + '</span></a>';
+        }
+    });
+    container.innerHTML = html || '<div style="padding:0.3rem 1rem;font-size:0.8rem;color:#999;">No seguís ningún canal</div>';
+
+    container.querySelectorAll('[data-canal]').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            filterCanal(this.getAttribute('data-canal'));
+            closeSidebar();
+        });
+    });
+}
+
+function toggleFollow(canalId) {
+    var added = toggleStore('following', String(canalId));
+    showToast(added ? 'Siguiendo canal' : 'Dejaste de seguir');
+    buildSidebarFollowing();
+    return added;
+}
+
+function buildSidebar() {
+    buildSidebarCategorias();
+    buildSidebarFollowing();
+}
             var isOpen = target.style.display !== 'none';
             target.style.display = isOpen ? 'none' : '';
             this.textContent = isOpen ? '▸' : '▾';
@@ -286,15 +317,7 @@ function buildSidebar() {
 }
 
 function buildChips() {
-    var container = document.getElementById('channel-chips');
-    var html = '';
-    ALL_CHANNELS.forEach(function(c) {
-        html += '<button class="chip" data-canal="' + c.id + '">' + c.nombre + '</button>';
-    });
-    container.innerHTML = html;
-    container.querySelectorAll('.chip').forEach(function(c) {
-        c.addEventListener('click', function() { filterCanal(this.getAttribute('data-canal')); });
-    });
+    // Los chips de canales se quitaron — ahora se navega por categorías en el sidebar
 }
 
 function filterPlaylist(plId) {
@@ -326,7 +349,7 @@ function renderGrid(videos) {
                 '<div class="card-text">' +
                     '<a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
                     '<div class="card-channel">' + (v.canal_nombre || '') + '</div>' +
-                    '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + ' · <span style="color:#9b5de5">' + (v.categoria_nombre || 'Sin cat') + '</span></div>' +
+                    '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + '</div>' +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -385,12 +408,14 @@ function filterCanal(canalId) {
     var html = '';
 
     // Channel header
+    var isFollowing = isInStore('following', String(canalId));
     html += '<div class="channel-header">' +
         '<div class="channel-header-avatar" style="background:' + canal.color + '">' + canal.codigo + '</div>' +
         '<div class="channel-header-info">' +
             '<div class="channel-header-name">' + canal.nombre + '</div>' +
             '<div class="channel-header-stats">' + totalVideos + ' videos · ' + chPlaylists.length + ' listas</div>' +
         '</div>' +
+        '<button class="btn-follow' + (isFollowing ? ' following' : '') + '" data-canal="' + canalId + '">' + (isFollowing ? 'Siguiendo' : 'Seguir') + '</button>' +
         '<button class="btn-all-videos" data-canal="' + canalId + '">Ver todos los videos</button>' +
     '</div>';
 
@@ -418,6 +443,16 @@ function filterCanal(canalId) {
             filterPlaylist(this.getAttribute('data-playlist'));
         });
     });
+
+    var btnFollow = grid.querySelector('.btn-follow');
+    if (btnFollow) {
+        btnFollow.addEventListener('click', function() {
+            var cid = this.getAttribute('data-canal');
+            var added = toggleFollow(cid);
+            this.classList.toggle('following', added);
+            this.textContent = added ? 'Siguiendo' : 'Seguir';
+        });
+    }
 
     var btnAll = grid.querySelector('.btn-all-videos');
     if (btnAll) {
