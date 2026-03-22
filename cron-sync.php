@@ -33,6 +33,17 @@ set_exception_handler(function($e) {
 set_time_limit(600);
 ini_set('memory_limit', '256M');
 
+// Evitar ejecuciones simultáneas
+$lockFile = __DIR__ . '/cron-sync.lock';
+if (file_exists($lockFile)) {
+    $lockTime = filemtime($lockFile);
+    if (time() - $lockTime < 300) { // 5 minutos
+        die('Otra ejecución en curso. Esperá a que termine.');
+    }
+}
+file_put_contents($lockFile, date('Y-m-d H:i:s'));
+register_shutdown_function(function() use ($lockFile) { @unlink($lockFile); });
+
 // Log: buffer + archivo local
 $logBuffer = [];
 function logMsg($msg) {
