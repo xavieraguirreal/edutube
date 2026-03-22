@@ -149,22 +149,29 @@ function formatDate(dateStr) {
             'ia:Scrooge1935': 'Scrooge_1935',
             'ia:MarkOfZorro': 'markofzorro-1920',
             'ia:HisGirlFriday': 'his_girl_friday',
-            'ia:SherlockHolmes': 'secret_weapon',
-            // Documentales
-            'ia:TheInternetOwnBoy': 'TheInternetsOwnBoyTheStoryOfAaronSwartz',
-            'ia:Connections': 'ConnectionsByJamesBurke',
-            'ia:ManWithMovieCamera': 'ChelovekskinoapparatomManWithAMovieCamera',
-            'ia:MemphisBelle': 'TheMemphisBelleAStoryofaFlyingFortress',
-            'ia:TheLastBomb': 'TheLastBomb1945',
-            'ia:WorldAtWar': 'the-world-at-war-1973-thames-television-world-war-two',
-            'ia:GeniusPhotography': 'tGoPhoto',
-            'ia:TheCorporation': 'The_Corporation_',
-            'ia:WarPhotographer': 'wphoto',
-            'ia:WalkingWithDinos': 'walking-with-dinosaurs',
-            'ia:BattleOfMidway': 'the_battle_of_midway',
-            'ia:ManufacturingConsent': 'manufacturing_consent',
-            'ia:DeathMills': 'DeathMills',
-            'ia:BBSDocumentary': 'BBS.The.Documentary'
+            // Películas en español
+            'ia:ElPequenoSalvaje': 'Truffaut1969',
+            'ia:Apocalypto': 'apocalypto-2006-online-latino-castellano-y-subtitulada',
+            'ia:MortadeloFilemon': 'mortadelo-y-filemon-contra-jimmy-el-cachondo-m-1080p',
+            'ia:Godzilla1954': 'GodzillaJaponBajoElTerrorDelMonstruo1954Espanol',
+            'ia:DelOdioNaceElAmor': 'TheTorch',
+            'ia:Libertarias': 'libertarias_1996',
+            'ia:Dementia13Subs': 'Dementia13withSpanishSubtitles',
+            'ia:LittleShopSubs': 'TheLittleShopOfHorrorswithSpanishSubtitles',
+            'ia:SaccoVanzetti': 'sacco.and.vanzetti.1971',
+            'ia:BabAziz': 'BabAziz2005_201704',
+            'ia:ElHotelElectrico': 'ElHotelElectrico',
+            'ia:LaSociedadSemaforo': 'LaSociedadDelSemaforoRubenMendoza2010',
+            // Documentales en español
+            'ia:InfamiaOaxaca': 'infamia_en_oaxaca',
+            'ia:TheTake': 'the-take-2004',
+            'ia:VenezuelaBolivariana': 'Venezuela_Bolivariana_VEN_2004',
+            'ia:LaOtraCuba': 'TheOtherCuba',
+            'ia:NinosPerdidosFranquismo': 'losninosperdidosdelfranquismo',
+            'ia:CulturaRadical': 'CulturaRadical',
+            'ia:OaxacaRebelion': 'Oaxaca_rebelion-popular_2006',
+            'ia:PeriodoEspecial': 'PERIODICO',
+            'ia:ElVientre': 'ElVientre'
         };
         var iaId = iaLookup[videoId] || videoId.substring(3);
 

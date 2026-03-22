@@ -142,22 +142,17 @@ document.getElementById('mobile-search-close').addEventListener('click', functio
     document.getElementById('mobile-search-overlay').classList.remove('open');
 });
 
-// ── Catálogo de documentales ──
+// ── Catálogo de documentales (español / subtitulados español) ──
 var documentales = [
-    { id:'ia:TheInternetOwnBoy', ia_id:'TheInternetsOwnBoyTheStoryOfAaronSwartz', titulo:"The Internet's Own Boy: Aaron Swartz (2014)", director:'Brian Knappenberger', year:2014, duracion:'1:45:00', descargas:656208, genero:'Tecnología' },
-    { id:'ia:Connections', ia_id:'ConnectionsByJamesBurke', titulo:'Connections (1978) — James Burke', director:'James Burke', year:1978, duracion:'', descargas:409892, genero:'Ciencia' },
-    { id:'ia:ManWithMovieCamera', ia_id:'ChelovekskinoapparatomManWithAMovieCamera', titulo:'Man With a Movie Camera (1929)', director:'Dziga Vertov', year:1929, duracion:'1:08:00', descargas:256827, genero:'Arte' },
-    { id:'ia:MemphisBelle', ia_id:'TheMemphisBelleAStoryofaFlyingFortress', titulo:'The Memphis Belle (1944)', director:'William Wyler', year:1944, duracion:'0:45:00', descargas:217076, genero:'Historia' },
-    { id:'ia:TheLastBomb', ia_id:'TheLastBomb1945', titulo:'The Last Bomb (1945)', director:'Frank Lloyd', year:1945, duracion:'0:36:00', descargas:1129876, genero:'Historia' },
-    { id:'ia:WorldAtWar', ia_id:'the-world-at-war-1973-thames-television-world-war-two', titulo:'The World at War (1973)', director:'Thames Television', year:1973, duracion:'', descargas:169449, genero:'Historia' },
-    { id:'ia:GeniusPhotography', ia_id:'tGoPhoto', titulo:'The Genius of Photography (2007)', director:'BBC', year:2007, duracion:'', descargas:136122, genero:'Arte' },
-    { id:'ia:TheCorporation', ia_id:'The_Corporation_', titulo:'The Corporation (2003)', director:'Mark Achbar & Jennifer Abbott', year:2003, duracion:'2:25:00', descargas:117378, genero:'Sociedad' },
-    { id:'ia:WarPhotographer', ia_id:'wphoto', titulo:'War Photographer (2001) — James Nachtwey', director:'Christian Frei', year:2001, duracion:'1:36:00', descargas:110125, genero:'Arte' },
-    { id:'ia:WalkingWithDinos', ia_id:'walking-with-dinosaurs', titulo:'Walking with Dinosaurs (1999)', director:'BBC', year:1999, duracion:'', descargas:89511, genero:'Ciencia' },
-    { id:'ia:BattleOfMidway', ia_id:'the_battle_of_midway', titulo:'The Battle of Midway (1942)', director:'John Ford', year:1942, duracion:'0:18:00', descargas:87350, genero:'Historia' },
-    { id:'ia:ManufacturingConsent', ia_id:'manufacturing_consent', titulo:'Manufacturing Consent: Noam Chomsky (1993)', director:'Mark Achbar & Peter Wintonick', year:1993, duracion:'2:47:00', descargas:147490, genero:'Sociedad' },
-    { id:'ia:DeathMills', ia_id:'DeathMills', titulo:'Death Mills (1945)', director:'Hanuš Burger', year:1945, duracion:'0:22:00', descargas:76274, genero:'Historia' },
-    { id:'ia:BBSDocumentary', ia_id:'BBS.The.Documentary', titulo:'BBS: The Documentary (2005)', director:'Jason Scott', year:2005, duracion:'', descargas:42635, genero:'Tecnología' }
+    { id:'ia:InfamiaOaxaca', ia_id:'infamia_en_oaxaca', titulo:'Infamia en Oaxaca (2006)', director:'Mal de Ojo TV', year:2006, duracion:'1:00:00', descargas:14748, genero:'Sociedad' },
+    { id:'ia:TheTake', ia_id:'the-take-2004', titulo:'The Take — La toma (2004)', director:'Avi Lewis & Naomi Klein', year:2004, duracion:'1:27:00', descargas:9872, genero:'Sociedad' },
+    { id:'ia:VenezuelaBolivariana', ia_id:'Venezuela_Bolivariana_VEN_2004', titulo:'Venezuela Bolivariana (2004)', director:'Varios', year:2004, duracion:'1:16:00', descargas:16922, genero:'Historia' },
+    { id:'ia:LaOtraCuba', ia_id:'TheOtherCuba', titulo:'La otra Cuba (1984)', director:'Orlando Jiménez Leal', year:1984, duracion:'1:00:00', descargas:2600, genero:'Historia' },
+    { id:'ia:NinosPerdidosFranquismo', ia_id:'losninosperdidosdelfranquismo', titulo:'Los niños perdidos del franquismo', director:'Montse Armengou & Ricard Belis', year:2002, duracion:'1:30:00', descargas:706, genero:'Historia' },
+    { id:'ia:CulturaRadical', ia_id:'CulturaRadical', titulo:'Cultura radical (2017)', director:'Varios', year:2017, duracion:'0:52:00', descargas:2574, genero:'Sociedad' },
+    { id:'ia:OaxacaRebelion', ia_id:'Oaxaca_rebelion-popular_2006', titulo:'Oaxaca: Rebelión popular (2006)', director:'Mal de Ojo TV', year:2006, duracion:'0:45:00', descargas:2935, genero:'Sociedad' },
+    { id:'ia:PeriodoEspecial', ia_id:'PERIODICO', titulo:'El período especial — Cuba 1993', director:'Varios', year:1996, duracion:'0:55:00', descargas:50423, genero:'Historia' },
+    { id:'ia:ElVientre', ia_id:'ElVientre', titulo:'El vientre', director:'Varios', year:2010, duracion:'1:20:00', descargas:59771, genero:'Sociedad' }
 ];
 
 // Extract genres

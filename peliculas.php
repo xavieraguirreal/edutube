@@ -138,20 +138,20 @@ document.getElementById('mobile-search-close').addEventListener('click', functio
     document.getElementById('mobile-search-overlay').classList.remove('open');
 });
 
-// ── Catálogo de películas ──
+// ── Catálogo de películas (español / subtituladas español) ──
 var peliculas = [
-    { id:'ia:TheGreatDictator', ia_id:'OGrandeDitadorTheGreatDictatorCharlieChaplin1940', titulo:'The Great Dictator (1940)', director:'Charlie Chaplin', year:1940, duracion:'2:04:37', descargas:72797, genero:'Comedia' },
-    { id:'ia:Nosferatu', ia_id:'Nosferatu_most_complete_version_93_mins', titulo:'Nosferatu (1922)', director:'F.W. Murnau', year:1922, duracion:'1:33:00', descargas:424808, genero:'Terror' },
-    { id:'ia:PhantomOpera', ia_id:'ThePhantomoftheOpera', titulo:'The Phantom of the Opera (1925)', director:'Rupert Julian', year:1925, duracion:'1:33:00', descargas:615942, genero:'Terror' },
-    { id:'ia:BattleshipPotemkin', ia_id:'BattleshipPotemkin', titulo:'El acorazado Potemkin (1925)', director:'Sergei Eisenstein', year:1925, duracion:'1:15:00', descargas:440634, genero:'Drama' },
-    { id:'ia:Caligari', ia_id:'DasKabinettdesDoktorCaligariTheCabinetofDrCaligari', titulo:'El gabinete del Dr. Caligari (1919)', director:'Robert Wiene', year:1919, duracion:'1:16:00', descargas:525087, genero:'Terror' },
-    { id:'ia:CyranoDBergerac', ia_id:'Cyrano_DeBergerac', titulo:'Cyrano de Bergerac (1950)', director:'Michael Gordon', year:1950, duracion:'1:52:00', descargas:487906, genero:'Drama' },
-    { id:'ia:Frankenstein1910', ia_id:'FrankensteinfullMovie', titulo:'Frankenstein (1910)', director:'J. Searle Dawley', year:1910, duracion:'0:16:00', descargas:370404, genero:'Terror' },
-    { id:'ia:GreatExpectations', ia_id:'GreatExpectations1946', titulo:'Great Expectations (1946)', director:'David Lean', year:1946, duracion:'1:58:00', descargas:432948, genero:'Drama' },
-    { id:'ia:Scrooge1935', ia_id:'Scrooge_1935', titulo:'Scrooge (1935)', director:'Henry Edwards', year:1935, duracion:'1:18:00', descargas:301187, genero:'Drama' },
-    { id:'ia:MarkOfZorro', ia_id:'markofzorro-1920', titulo:'The Mark of Zorro (1920)', director:'Fred Niblo', year:1920, duracion:'1:30:00', descargas:333047, genero:'Aventura' },
-    { id:'ia:HisGirlFriday', ia_id:'his_girl_friday', titulo:'His Girl Friday (1940)', director:'Howard Hawks', year:1940, duracion:'1:32:00', descargas:1288432, genero:'Comedia' },
-    { id:'ia:SherlockHolmes', ia_id:'secret_weapon', titulo:'Sherlock Holmes and the Secret Weapon (1943)', director:'Roy William Neill', year:1943, duracion:'1:08:00', descargas:440894, genero:'Misterio' }
+    { id:'ia:ElPequenoSalvaje', ia_id:'Truffaut1969', titulo:'El pequeño salvaje (1969)', director:'François Truffaut', year:1969, duracion:'1:23:00', descargas:197522, genero:'Drama' },
+    { id:'ia:Apocalypto', ia_id:'apocalypto-2006-online-latino-castellano-y-subtitulada', titulo:'Apocalypto (2006)', director:'Mel Gibson', year:2006, duracion:'2:18:00', descargas:198207, genero:'Aventura' },
+    { id:'ia:MortadeloFilemon', ia_id:'mortadelo-y-filemon-contra-jimmy-el-cachondo-m-1080p', titulo:'Mortadelo y Filemón contra Jimmy el Cachondo (2014)', director:'Javier Fesser', year:2014, duracion:'1:30:00', descargas:78151, genero:'Comedia' },
+    { id:'ia:Godzilla1954', ia_id:'GodzillaJaponBajoElTerrorDelMonstruo1954Espanol', titulo:'Godzilla (1954) — Doblada español', director:'Ishirō Honda', year:1954, duracion:'1:36:00', descargas:77029, genero:'Ciencia ficción' },
+    { id:'ia:DelOdioNaceElAmor', ia_id:'TheTorch', titulo:'Del odio nace el amor (1950)', director:'Emilio Fernández', year:1950, duracion:'1:23:00', descargas:71186, genero:'Drama' },
+    { id:'ia:Libertarias', ia_id:'libertarias_1996', titulo:'Libertarias (1996)', director:'Vicente Aranda', year:1996, duracion:'2:04:00', descargas:37898, genero:'Drama' },
+    { id:'ia:Dementia13Subs', ia_id:'Dementia13withSpanishSubtitles', titulo:'Dementia 13 (1963) — Subs español', director:'Francis Ford Coppola', year:1963, duracion:'1:15:00', descargas:55846, genero:'Terror' },
+    { id:'ia:LittleShopSubs', ia_id:'TheLittleShopOfHorrorswithSpanishSubtitles', titulo:'La tiendita de los horrores (1960) — Subs español', director:'Roger Corman', year:1960, duracion:'1:12:00', descargas:55284, genero:'Terror' },
+    { id:'ia:SaccoVanzetti', ia_id:'sacco.and.vanzetti.1971', titulo:'Sacco y Vanzetti (1971)', director:'Giuliano Montaldo', year:1971, duracion:'2:01:00', descargas:31674, genero:'Drama' },
+    { id:'ia:BabAziz', ia_id:'BabAziz2005_201704', titulo:"Bab'Aziz — El príncipe que contemplaba su alma (2005)", director:'Nacer Khemir', year:2005, duracion:'1:36:00', descargas:29185, genero:'Drama' },
+    { id:'ia:ElHotelElectrico', ia_id:'ElHotelElectrico', titulo:'El hotel eléctrico (1908)', director:'Segundo de Chomón', year:1908, duracion:'0:09:00', descargas:23978, genero:'Ciencia ficción' },
+    { id:'ia:LaSociedadSemaforo', ia_id:'LaSociedadDelSemaforoRubenMendoza2010', titulo:'La sociedad del semáforo (2010)', director:'Rubén Mendoza', year:2010, duracion:'1:45:00', descargas:22379, genero:'Drama' }
 ];
 
 // Extract genres
