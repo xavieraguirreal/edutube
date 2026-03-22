@@ -196,7 +196,6 @@ function loadVideos(apiUrl) {
             ALL_PLAYLISTS = data.playlists || [];
             ALL_CATEGORIAS = data.categorias || [];
             buildSidebar();
-            buildChips();
             showVideosWithSort(ALL_VIDEOS);
             updateBadges();
             document.getElementById('video-count').textContent = (data.total_videos || ALL_VIDEOS.length) + ' videos';
