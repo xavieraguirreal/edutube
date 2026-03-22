@@ -386,6 +386,11 @@ button { font-family: inherit; }
 .video-card .card-channel {
     font-size: 0.8rem;
     color: var(--text-secondary);
+    text-decoration: none;
+    display: block;
+}
+.video-card .card-channel:hover {
+    color: var(--accent);
 }
 
 .video-card .card-stats {
@@ -864,7 +869,8 @@ button { font-family: inherit; }
     color: #fff;
 }
 
-.video-info-channel .ch-name { font-size: 0.95rem; font-weight: 600; }
+.video-info-channel .ch-name { font-size: 0.95rem; font-weight: 600; color: var(--text); text-decoration: none; }
+.video-info-channel .ch-name:hover { color: var(--accent); }
 .video-info-channel .ch-subs { font-size: 0.78rem; color: var(--text-secondary); }
 
 .video-actions {

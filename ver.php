@@ -217,7 +217,7 @@ function formatDate(dateStr) {
                     '<div class="video-info-row">' +
                         '<div class="video-info-channel">' +
                             '<div class="ch-avatar" style="background:' + (video.canal_color || '#2e8b47') + '">' + (video.canal_codigo || '?') + '</div>' +
-                            '<div><div class="ch-name">' + (video.canal_nombre || '') + '</div><div class="ch-subs">' + (video.categoria_nombre || '') + '</div></div>' +
+                            '<div><a href="/?canal=' + (video.canal_id || '') + '" class="ch-name">' + (video.canal_nombre || '') + '</a><div class="ch-subs">' + (video.categoria_nombre || '') + '</div></div>' +
                         '</div>' +
                         '<div class="video-actions">' +
                             '<button class="action-btn' + (isLiked ? ' active' : '') + '" id="btn-like"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><span id="like-label">' + (isLiked ? 'Te gusta' : 'Me gusta') + '</span></button>' +

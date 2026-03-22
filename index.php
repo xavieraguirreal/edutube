@@ -196,7 +196,15 @@ function loadVideos(apiUrl) {
             ALL_PLAYLISTS = data.playlists || [];
             ALL_CATEGORIAS = data.categorias || [];
             buildSidebar();
-            showVideosWithSort(ALL_VIDEOS);
+            // Check if URL has ?canal= parameter
+            var urlParams = new URLSearchParams(window.location.search);
+            var canalParam = urlParams.get('canal');
+            if (canalParam) {
+                isPortadaView = false;
+                filterCanal(canalParam);
+            } else {
+                showVideosWithSort(ALL_VIDEOS);
+            }
             updateBadges();
             document.getElementById('video-count').textContent = (data.total_videos || ALL_VIDEOS.length) + ' videos';
         });
@@ -330,7 +338,7 @@ function videoCardHTML(v) {
             '<div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '?') + '</div>' +
             '<div class="card-text">' +
                 '<a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
-                '<div class="card-channel">' + (v.canal_nombre || '') + '</div>' +
+                '<a href="#" class="card-channel" data-canal="' + (v.canal_id || '') + '">' + (v.canal_nombre || '') + '</a>' +
                 '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + '</div>' +
             '</div>' +
         '</div>' +
@@ -345,6 +353,14 @@ function bindWatchLaterButtons(container) {
             this.classList.toggle('saved', added);
             showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');
             updateBadges();
+        });
+    });
+    container.querySelectorAll('a.card-channel[data-canal]').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var cid = this.getAttribute('data-canal');
+            if (cid) { isPortadaView = false; filterCanal(cid); }
         });
     });
 }
