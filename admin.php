@@ -450,6 +450,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 ORDER BY c.prioridad_portada DESC, c.nombre
             ")->fetchAll();
 
+            // Reasignar prioridades secuenciales para evitar duplicados
+            $total = count($allCh);
+            foreach ($allCh as $i => $ch) {
+                $db->prepare("UPDATE canales SET prioridad_portada = ? WHERE id = ?")->execute([$total - $i, $ch['id']]);
+                $allCh[$i]['prioridad_portada'] = $total - $i;
+            }
+
             // Encontrar posición actual
             $pos = -1;
             foreach ($allCh as $i => $ch) {
@@ -458,14 +465,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
             if ($pos >= 0) {
                 $swapPos = ($direction === 'up') ? $pos - 1 : $pos + 1;
-                if ($swapPos >= 0 && $swapPos < count($allCh)) {
+                if ($swapPos >= 0 && $swapPos < $total) {
                     // Intercambiar prioridades
                     $pA = $allCh[$pos]['prioridad_portada'];
                     $pB = $allCh[$swapPos]['prioridad_portada'];
-                    // Si tienen la misma prioridad, crear diferencia
-                    if ($pA == $pB) {
-                        $pB = ($direction === 'up') ? $pA + 1 : $pA - 1;
-                    }
                     $db->prepare("UPDATE canales SET prioridad_portada = ? WHERE id = ?")->execute([$pB, $canalId]);
                     $db->prepare("UPDATE canales SET prioridad_portada = ? WHERE id = ?")->execute([$pA, $allCh[$swapPos]['id']]);
                     $msg = 'Prioridad actualizada.'; $msgType = 'success';
