@@ -50,6 +50,8 @@ $db = getDB();
 $startTime = time();
 
 logMsg("=== Inicio sincronización automática ===");
+logMsg("API Key: " . (defined('YOUTUBE_API_KEY') ? substr(YOUTUBE_API_KEY, 0, 10) . '...' : 'NO DEFINIDA'));
+logMsg("DB: " . (defined('DB_NAME') ? DB_NAME : 'NO DEFINIDA'));
 
 // Obtener canales con auto_sync activado
 $canales = $db->query("SELECT * FROM canales WHERE auto_sync = 1 AND activo = 1")->fetchAll();
