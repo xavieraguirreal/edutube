@@ -523,13 +523,13 @@ function formatDate(dateStr) {
         var videoSrc = 'https://archive.org/download/' + video.ia_id + '/' + encodeURIComponent(video.archivo);
         var thumbSrc = 'https://archive.org/download/' + video.ia_id + '/__ia_thumb.jpg';
 
-        var isLiked = isInStore('liked', 'ia:' + video.ia_id);
-        var isWL = isInStore('watchlater', 'ia:' + video.ia_id);
+        var isLiked = isInStore('liked', videoId);
+        var isWL = isInStore('watchlater', videoId);
 
         // Save to history
         var hist = getStore('history');
-        hist = hist.filter(function(h) { return h !== 'ia:' + video.ia_id; });
-        hist.unshift('ia:' + video.ia_id);
+        hist = hist.filter(function(h) { return h !== videoId; });
+        hist.unshift(videoId);
         if (hist.length > 50) hist = hist.slice(0, 50);
         setStore('history', hist);
 
@@ -577,7 +577,7 @@ function formatDate(dateStr) {
                         '</div>' +
                         '<div class="video-description expanded" id="video-desc-ia">' +
                             '<div class="desc-stats">' +
-                                formatViews(video.vistas) + ' descargas · ' + video.fecha +
+                                formatViews(video.vistas) + ' reproducciones · ' + video.fecha +
                                 ' · Duración: ' + video.duracion +
                                 ' · Licencia: ' + video.licencia +
                             '</div>' +
@@ -655,13 +655,13 @@ function formatDate(dateStr) {
 
         // Bind like & save
         document.getElementById('btn-like-ia').addEventListener('click', function() {
-            var added = toggleStore('liked', 'ia:' + video.ia_id);
+            var added = toggleStore('liked', videoId);
             this.classList.toggle('active', added);
             document.getElementById('like-label-ia').textContent = added ? 'Te gusta' : 'Me gusta';
             showToast(added ? 'Agregado a Me gusta' : 'Quitado de Me gusta');
         });
         document.getElementById('btn-save-ia').addEventListener('click', function() {
-            var added = toggleStore('watchlater', 'ia:' + video.ia_id);
+            var added = toggleStore('watchlater', videoId);
             this.classList.toggle('active', added);
             document.getElementById('save-label-ia').textContent = added ? 'Guardado' : 'Ver después';
             showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');

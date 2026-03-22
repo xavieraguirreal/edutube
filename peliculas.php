@@ -213,7 +213,7 @@ function movieCardHTML(p) {
             '<div class="card-text">' +
                 '<a href="watch?v=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
                 '<div class="card-channel-static">' + p.director + '</div>' +
-                '<div class="card-stats">' + formatViews(p.descargas) + ' descargas · ' + p.genero + ' · ' + p.year + '</div>' +
+                '<div class="card-stats">' + formatViews(p.descargas) + ' reproducciones · ' + p.genero + ' · ' + p.year + '</div>' +
             '</div>' +
         '</div>' +
     '</div>';
