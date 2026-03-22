@@ -50,8 +50,6 @@ $db = getDB();
 $startTime = time();
 
 logMsg("=== Inicio sincronización automática ===");
-logMsg("API Key: " . (defined('YOUTUBE_API_KEY') ? substr(YOUTUBE_API_KEY, 0, 10) . '...' : 'NO DEFINIDA'));
-logMsg("DB: " . (defined('DB_NAME') ? DB_NAME : 'NO DEFINIDA'));
 
 // Obtener canales con auto_sync activado
 $canales = $db->query("SELECT * FROM canales WHERE auto_sync = 1 AND activo = 1")->fetchAll();
@@ -68,6 +66,12 @@ $totalVideos = 0;
 $totalPlaylists = 0;
 
 foreach ($canales as $canal) {
+    // Si se excedió la cuota, parar inmediatamente
+    if (!empty($GLOBALS['youtube_quota_exceeded'])) {
+        logMsg("CUOTA EXCEDIDA — se detiene la sincronización. Se resetea a las 4 AM Argentina.");
+        break;
+    }
+
     $channelId = $canal['youtube_channel_id'];
     if (empty($channelId)) {
         logMsg("[{$canal['nombre']}] Sin YouTube Channel ID, omitido.");
@@ -75,19 +79,7 @@ foreach ($canales as $canal) {
     }
 
     $canalStart = time();
-    logMsg("[{$canal['nombre']}] Iniciando sync (ID: {$channelId})...");
-
-    // Debug: testear API directo para el primer canal
-    if ($totalVideos === 0 && $totalPlaylists === 0) {
-        $testUrl = 'https://www.googleapis.com/youtube/v3/channels?part=snippet&id=' . $channelId . '&key=' . YOUTUBE_API_KEY;
-        $testCh = curl_init($testUrl);
-        curl_setopt_array($testCh, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_USERAGENT => 'EduTube/1.0']);
-        $testResp = curl_exec($testCh);
-        $testCode = curl_getinfo($testCh, CURLINFO_HTTP_CODE);
-        $testErr = curl_error($testCh);
-        curl_close($testCh);
-        logMsg("DEBUG API test: HTTP $testCode | curl_error: '$testErr' | response: " . mb_substr($testResp ?: 'NULL', 0, 500));
-    }
+    logMsg("[{$canal['nombre']}] Iniciando sync...");
 
     try {
         $result = syncChannelAll(
