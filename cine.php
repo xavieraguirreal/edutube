@@ -72,6 +72,9 @@ $description = 'Películas y documentales de dominio público en EduTube.';
         <a href="audiolibros" class="sidebar-item">
             <span class="si-icon">📖</span><span class="si-label">Audiolibros <span id="cnt-audiolibros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
+        <a href="libros" class="sidebar-item">
+            <span class="si-icon">📚</span><span class="si-label">Libros <span id="cnt-libros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
+        </a>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Géneros</div>
