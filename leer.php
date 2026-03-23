@@ -79,7 +79,7 @@ if ($itemId) {
                 <?php endif; ?>
                 <div class="reader-actions">
                     <?php if ($bookData['url_contenido']): ?>
-                        <button class="btn btn-read" onclick="document.getElementById('book-frame').style.display='';this.style.display='none';">Leer ahora</button>
+                        <button class="btn btn-read" id="btn-read" onclick="loadBook()">Leer ahora</button>
                     <?php endif; ?>
                     <a href="libros" class="btn btn-back">← Volver a Libros</a>
                 </div>
@@ -102,25 +102,28 @@ if ($itemId) {
                 <div style="text-align:center;padding:2rem;color:#888;">Cargando libro...</div>
             </div>
             <script>
-            document.querySelector('.btn-read').addEventListener('click', function() {
+            function loadBook() {
                 var contentDiv = document.getElementById('book-content');
+                var btn = document.getElementById('btn-read');
                 contentDiv.style.display = '';
-                this.style.display = 'none';
-                // Fetch text version of book
+                btn.textContent = 'Cargando...';
+                btn.disabled = true;
                 fetch('api.php?action=proxy_gutenberg&id=<?= $gutenbergId ?>')
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
+                        btn.style.display = 'none';
                         if (data.error) {
-                            contentDiv.innerHTML = '<p style="color:#c00;text-align:center;">' + data.error + '</p>';
+                            contentDiv.innerHTML = '<p style="text-align:center;color:#888;">' + data.error + '<br><a href="<?= htmlspecialchars($htmlUrl) ?>" target="_blank" style="color:#0077b6;">Leer en Proyecto Gutenberg →</a></p>';
                             return;
                         }
                         contentDiv.innerHTML = data.html;
                         contentDiv.scrollTop = 0;
                     })
                     .catch(function() {
-                        contentDiv.innerHTML = '<p style="color:#c00;text-align:center;">Error al cargar el libro. <a href="<?= htmlspecialchars($htmlUrl) ?>" target="_blank">Leer en Gutenberg →</a></p>';
+                        btn.style.display = 'none';
+                        contentDiv.innerHTML = '<p style="text-align:center;color:#888;">Error al cargar. <a href="<?= htmlspecialchars($htmlUrl) ?>" target="_blank" style="color:#0077b6;">Leer en Proyecto Gutenberg →</a></p>';
                     });
-            });
+            }
             </script>
         <?php endif; ?>
     </div>

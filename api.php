@@ -564,10 +564,30 @@ if ($action === 'proxy_gutenberg') {
         exit;
     }
 
-    // Try plain text first (lighter), then HTML
+    // Try plain text first (lighter)
     $textUrl = 'https://www.gutenberg.org/ebooks/' . $id . '.txt.utf-8';
-    $ctx = stream_context_create(['http' => ['timeout' => 20, 'follow_location' => true]]);
-    $content = @file_get_contents($textUrl, false, $ctx);
+    $content = false;
+
+    // Try curl first (handles redirects better)
+    if (function_exists('curl_init')) {
+        $ch = curl_init($textUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_USERAGENT => 'EduTube/1.0 (educational platform)',
+        ]);
+        $content = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($httpCode !== 200) $content = false;
+    }
+
+    // Fallback to file_get_contents
+    if (!$content) {
+        $ctx = stream_context_create(['http' => ['timeout' => 20, 'follow_location' => true, 'header' => 'User-Agent: EduTube/1.0']]);
+        $content = @file_get_contents($textUrl, false, $ctx);
+    }
 
     if ($content) {
         // Convert plain text to HTML paragraphs
