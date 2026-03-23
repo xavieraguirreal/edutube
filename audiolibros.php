@@ -27,7 +27,7 @@ $description = 'Audiolibros de dominio público en EduTube.';
         <button class="icon-btn" id="menu-toggle" title="Menú">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
         </button>
-        <a href="audiolibros" class="logo">
+        <a href="/" class="logo">
             <img src="loguito-edutube.png" alt="EduTube" class="logo-icon">
             <span class="logo-text">EduTube</span>
             <span class="logo-count" id="total-count"></span>
@@ -60,7 +60,10 @@ $description = 'Audiolibros de dominio público en EduTube.';
 <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-section">
-        <a href="index.php" class="sidebar-item">
+        <a href="/" class="sidebar-item">
+            <span class="si-icon">🏠</span><span class="si-label">Inicio</span>
+        </a>
+        <a href="videos" class="sidebar-item">
             <span class="si-icon">📺</span><span class="si-label">Videos <span id="cnt-videos" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="cine" class="sidebar-item">
@@ -106,8 +109,12 @@ $description = 'Audiolibros de dominio público en EduTube.';
 
 <!-- ── BOTTOM NAV (mobile) ── -->
 <nav class="bottom-nav">
-    <a href="index.php" class="bottom-nav-item">
+    <a href="/" class="bottom-nav-item">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Inicio
+    </a>
+    <a href="videos" class="bottom-nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
         Videos
     </a>
     <a href="cine" class="bottom-nav-item">

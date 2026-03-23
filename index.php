@@ -3,29 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTube — Videos Educativos</title>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org https://img.youtube.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src https://fonts.gstatic.com;
+        script-src 'self' 'unsafe-inline';
+    ">
+    <title>EduTube — Plataforma Educativa</title>
     <link rel="icon" type="image/png" href="loguito-edutube.png">
 
     <!-- SEO -->
-    <meta name="description" content="EduTube: plataforma de videos educativos curados para contextos con restricciones de acceso a redes sociales. Sin comentarios, sin algoritmos. Solo educación.">
+    <meta name="description" content="EduTube: plataforma de contenido educativo curado. Videos, cine y audiolibros. Sin comentarios, sin algoritmos. Solo educación.">
     <meta name="keywords" content="videos educativos, plataforma educativa, educación en contextos de encierro, Comité de Convivencia Mario Juliano">
     <meta name="author" content="Comité de Convivencia Mario Juliano">
     <link rel="canonical" href="https://edutube.universidadliberte.org/">
 
     <!-- Open Graph -->
-    <meta property="og:title" content="EduTube — Videos Educativos">
-    <meta property="og:description" content="Contenido audiovisual educativo curado. Sin comentarios, sin algoritmos. Solo educación.">
+    <meta property="og:title" content="EduTube — Plataforma Educativa">
+    <meta property="og:description" content="Contenido audiovisual educativo curado. Videos, cine y audiolibros. Sin comentarios, sin algoritmos.">
     <meta property="og:image" content="https://edutube.universidadliberte.org/loguito-edutube.png">
     <meta property="og:url" content="https://edutube.universidadliberte.org">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="EduTube">
     <meta property="og:locale" content="es_AR">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="EduTube — Videos Educativos">
-    <meta name="twitter:description" content="Contenido audiovisual educativo curado. Sin comentarios, sin algoritmos. Solo educación.">
-    <meta name="twitter:image" content="https://edutube.universidadliberte.org/loguito-edutube.png">
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -37,13 +38,172 @@ if (!localStorage.getItem('edutube_welcomed')) {
 }
 </script>
 
+<style>
+/* ── Portal section cards ── */
+.portal-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.portal-card {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 180px;
+    cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+    text-decoration: none;
+    display: block;
+}
+.portal-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.portal-card-bg {
+    position: absolute; inset: 0;
+    background-size: cover;
+    background-position: center;
+}
+.portal-card-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(transparent 40%, rgba(0,0,0,0.8));
+}
+.portal-card-body {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 1.2rem;
+    color: #fff;
+}
+.portal-card-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+}
+.portal-card-count {
+    display: inline-block;
+    background: rgba(255,255,255,.2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: .75rem;
+    font-weight: 600;
+    margin-bottom: .3rem;
+}
+.portal-card-desc {
+    font-size: .82rem;
+    opacity: .85;
+    line-height: 1.3;
+}
+
+/* ── Section separator ── */
+.section-separator {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 1.5rem 0 1rem;
+    padding: 0 .25rem;
+}
+.section-separator h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    margin: 0;
+}
+.section-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border, rgba(255,255,255,.1));
+}
+
+/* ── Latest rows ── */
+.latest-row {
+    margin-bottom: 1.5rem;
+}
+.latest-row-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .75rem;
+    padding: 0 .25rem;
+}
+.latest-row-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+}
+.latest-row-link {
+    font-size: .82rem;
+    color: var(--accent, #3ea6ff);
+    text-decoration: none;
+}
+.latest-row-link:hover {
+    text-decoration: underline;
+}
+.latest-row-scroll {
+    display: flex;
+    gap: .75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: .5rem;
+    -webkit-overflow-scrolling: touch;
+}
+.latest-row-scroll::-webkit-scrollbar { height: 6px; }
+.latest-row-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+
+/* ── Latest item cards ── */
+.latest-card {
+    flex: 0 0 160px;
+    min-width: 160px;
+    scroll-snap-align: start;
+    text-decoration: none;
+    color: inherit;
+}
+.latest-card-thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--surface, #1a1a1a);
+    display: block;
+}
+.latest-card-title {
+    font-size: .8rem;
+    font-weight: 500;
+    color: var(--text-primary, #fff);
+    margin-top: .4rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.latest-card-sub {
+    font-size: .72rem;
+    color: var(--text-muted, #aaa);
+    margin-top: .15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media(max-width: 600px) {
+    .portal-cards {
+        grid-template-columns: 1fr;
+    }
+    .latest-card {
+        flex: 0 0 140px;
+        min-width: 140px;
+    }
+}
+</style>
+
 <!-- ── TOPBAR ── -->
 <header class="topbar">
     <div class="topbar-left">
-        <button class="icon-btn" id="menu-toggle" title="Menú">
+        <button class="icon-btn" id="menu-toggle" title="Menu">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
         </button>
-        <a href="index.php" class="logo">
+        <a href="/" class="logo">
             <img src="loguito-edutube.png" alt="EduTube" class="logo-icon">
             <span class="logo-text">EduTube</span>
             <span class="logo-count" id="video-count"></span>
@@ -51,7 +211,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
     </div>
     <div class="topbar-center">
         <div class="search-form">
-            <input type="text" class="search-input" id="search" placeholder="Buscar videos educativos...">
+            <input type="text" class="search-input" id="search" placeholder="Buscar en EduTube...">
             <button class="search-btn" id="search-btn" title="Buscar">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
             </button>
@@ -69,14 +229,17 @@ if (!localStorage.getItem('edutube_welcomed')) {
     <button class="icon-btn" id="mobile-search-close">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
     </button>
-    <input type="text" class="search-input" id="mobile-search-input" placeholder="Buscar videos...">
+    <input type="text" class="search-input" id="mobile-search-input" placeholder="Buscar en EduTube...">
 </div>
 
 <!-- ── SIDEBAR ── -->
 <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-section">
-        <a href="index.php" class="sidebar-item active" data-cat="todos">
+        <a href="/" class="sidebar-item active">
+            <span class="si-icon">🏠</span><span class="si-label">Inicio</span>
+        </a>
+        <a href="videos" class="sidebar-item">
             <span class="si-icon">📺</span><span class="si-label">Videos <span id="cnt-videos" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="cine" class="sidebar-item">
@@ -85,14 +248,6 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <a href="audiolibros" class="sidebar-item">
             <span class="si-icon">📖</span><span class="si-label">Audiolibros <span id="cnt-audiolibros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
-    </div>
-    <div class="sidebar-section">
-        <div class="sidebar-title">Categorías</div>
-        <div id="sidebar-categorias"><!-- categorías --></div>
-    </div>
-    <div class="sidebar-section">
-        <div class="sidebar-title">Siguiendo</div>
-        <div id="sidebar-following"><!-- canales que sigo --></div>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Tu actividad</div>
@@ -105,145 +260,48 @@ if (!localStorage.getItem('edutube_welcomed')) {
             <span class="si-badge" id="watchlater-count" style="display:none">0</span>
         </a>
         <a href="#" class="sidebar-item" id="nav-liked">
-            <span class="si-icon">👍</span><span class="si-label">Videos que me gustan</span>
+            <span class="si-icon">👍</span><span class="si-label">Me gusta</span>
             <span class="si-badge" id="liked-count" style="display:none">0</span>
         </a>
     </div>
     <div class="sidebar-footer">
-        <strong>EduTube</strong> — Plataforma de Videos Educativos<br>
+        <strong>EduTube</strong> — Plataforma Educativa<br>
         Comité de Convivencia Mario Juliano &copy; 2026
     </div>
 </nav>
 
 <!-- ── MAIN ── -->
 <main class="main" id="main-content">
-    <div class="chips" id="chips">
-        <button class="chip active" data-cat="todos">Inicio</button>
-        <button class="chip" data-filter="watchlater">🕐 Reproducir después</button>
-        <button class="chip" data-filter="liked">👍 Me gusta</button>
-        <button class="chip" data-filter="history">⏱ Historial</button>
+    <!-- Section cards -->
+    <div class="portal-cards" id="portal-cards"></div>
+
+    <!-- Novedades separator -->
+    <div class="section-separator">
+        <h2>Novedades</h2>
     </div>
 
-    <!-- ── PORTADA ── -->
-    <div id="portada-section">
-        <div id="portada-cards" style="
-            display:grid;
-            grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-            gap:1rem;
-            margin-bottom:2rem;
-        "></div>
-        <div id="portada-rows"></div>
-        <div id="portada-channels"></div>
-    </div>
-
-    <div class="video-grid" id="video-grid" style="display:none;"></div>
+    <!-- Latest content rows -->
+    <div id="latest-rows"></div>
 </main>
-
-<style>
-/* ── Portada section cards ── */
-.portada-card {
-    position:relative;
-    border-radius:12px;
-    overflow:hidden;
-    aspect-ratio:16/9;
-    cursor:pointer;
-    transition:transform .2s, box-shadow .2s;
-}
-.portada-card:hover {
-    transform:translateY(-4px);
-    box-shadow:0 8px 24px rgba(0,0,0,.4);
-}
-.portada-card-bg {
-    position:absolute;inset:0;
-    background-size:cover;background-position:center;
-}
-.portada-card-overlay {
-    position:absolute;inset:0;
-    background:linear-gradient(0deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.25) 50%, rgba(0,0,0,.1) 100%);
-}
-.portada-card-body {
-    position:absolute;bottom:0;left:0;right:0;
-    padding:1.2rem;
-    color:#fff;
-}
-.portada-card-icon {
-    font-size:1.6rem;
-    margin-bottom:.3rem;
-}
-.portada-card-name {
-    font-size:1.25rem;
-    font-weight:700;
-    margin-bottom:.25rem;
-}
-.portada-card-count {
-    display:inline-block;
-    background:rgba(255,255,255,.2);
-    padding:2px 8px;
-    border-radius:10px;
-    font-size:.75rem;
-    font-weight:600;
-    margin-bottom:.3rem;
-}
-.portada-card-desc {
-    font-size:.82rem;
-    opacity:.85;
-    line-height:1.3;
-}
-
-/* ── Portada latest rows ── */
-.portada-row {
-    margin-bottom:1.5rem;
-}
-.portada-row-header {
-    display:flex;
-    align-items:center;
-    gap:.5rem;
-    margin-bottom:.75rem;
-    padding:0 .25rem;
-}
-.portada-row-title {
-    font-size:1.1rem;
-    font-weight:600;
-    color:var(--text-primary, #fff);
-}
-.portada-row-scroll {
-    display:flex;
-    gap:.75rem;
-    overflow-x:auto;
-    scroll-snap-type:x mandatory;
-    padding-bottom:.5rem;
-    -webkit-overflow-scrolling:touch;
-}
-.portada-row-scroll::-webkit-scrollbar { height:6px; }
-.portada-row-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2);border-radius:3px; }
-.portada-row-scroll > .video-card {
-    flex:0 0 260px;
-    scroll-snap-align:start;
-    min-width:260px;
-}
-@media(max-width:600px) {
-    .portada-row-scroll > .video-card { flex:0 0 220px;min-width:220px; }
-}
-</style>
 
 <!-- ── BOTTOM NAV (mobile) ── -->
 <nav class="bottom-nav">
-    <a href="index.php" class="bottom-nav-item active">
+    <a href="/" class="bottom-nav-item active">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         Inicio
     </a>
-    <button class="bottom-nav-item" id="mobile-search-trigger">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        Buscar
-    </button>
-    <button class="bottom-nav-item" id="mobile-watchlater-nav">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>
-        Reproducir después
-    </button>
-    <button class="bottom-nav-item" id="mobile-history-nav">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
-        Historial
-    </button>
+    <a href="videos" class="bottom-nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+        Videos
+    </a>
+    <a href="cine" class="bottom-nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+        Cine
+    </a>
+    <a href="audiolibros" class="bottom-nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>
+        Audiolibros
+    </a>
 </nav>
 
 <div class="toast" id="toast"></div>
@@ -251,19 +309,6 @@ if (!localStorage.getItem('edutube_welcomed')) {
 <script>
 // ── Helpers ──
 function getStore(key) { try { return JSON.parse(localStorage.getItem('edutube_' + key)) || []; } catch(e) { return []; } }
-function setStore(key, val) { localStorage.setItem('edutube_' + key, JSON.stringify(val)); }
-function toggleStore(key, id) {
-    var list = getStore(key); var i = list.indexOf(id);
-    if (i > -1) list.splice(i, 1); else list.push(id);
-    setStore(key, list); return i === -1;
-}
-function isInStore(key, id) { return getStore(key).indexOf(id) > -1; }
-
-var toastTimer;
-function showToast(msg) {
-    var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(toastTimer); toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2500);
-}
 
 function timeAgo(dateStr) {
     if (!dateStr) return '';
@@ -272,746 +317,173 @@ function timeAgo(dateStr) {
     if (diff < 3600) return 'hace ' + Math.floor(diff/60) + ' min';
     if (diff < 86400) return 'hace ' + Math.floor(diff/3600) + ' h';
     var d = Math.floor(diff / 86400);
-    if (d < 7) return 'hace ' + d + (d===1?' día':' días');
+    if (d < 7) return 'hace ' + d + (d===1?' dia':' dias');
     if (d < 30) return 'hace ' + Math.floor(d/7) + (Math.floor(d/7)===1?' semana':' semanas');
     if (d < 365) return 'hace ' + Math.floor(d/30) + (Math.floor(d/30)===1?' mes':' meses');
-    return 'hace ' + Math.floor(d/365) + (Math.floor(d/365)===1?' año':' años');
+    return 'hace ' + Math.floor(d/365) + (Math.floor(d/365)===1?' anio':' anios');
 }
 
-function formatViews(n) {
-    n = parseInt(n) || 0;
-    if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + ' M';
-    if (n >= 1000) return (n/1000).toFixed(1).replace('.0','') + ' K';
-    return n.toString();
+var toastTimer;
+function showToast(msg) {
+    var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2500);
 }
 
-// ── Data from API ──
-var ALL_VIDEOS = [];
-var ALL_CHANNELS = [];
-var ALL_PLAYLISTS = [];
-var ALL_CATEGORIAS = [];
-var currentApiUrl = 'api.php?action=videos'; // portada por defecto
-
-function loadVideos(apiUrl) {
-    if (apiUrl) currentApiUrl = apiUrl;
-    fetch(currentApiUrl)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            ALL_VIDEOS = data.videos || [];
-            ALL_CHANNELS = data.canales || [];
-            ALL_PLAYLISTS = data.playlists || [];
-            ALL_CATEGORIAS = data.categorias || [];
-            buildSidebar();
-            // Check if URL has ?canal= parameter
-            var urlParams = new URLSearchParams(window.location.search);
-            var canalParam = urlParams.get('canal');
-            if (canalParam) {
-                isPortadaView = false;
-                filterCanal(canalParam);
-            } else {
-                showVideosWithSort(ALL_VIDEOS);
-            }
-            updateBadges();
-            // Show total count and build portada
-            fetch('api.php?action=total_titulos').then(function(r){return r.json();}).then(function(d){
-                document.getElementById('video-count').textContent = d.total + ' títulos';
-                document.getElementById('cnt-videos').textContent = '(' + d.videos + ')';
-                document.getElementById('cnt-cine').textContent = '(' + d.cine + ')';
-                document.getElementById('cnt-audiolibros').textContent = '(' + d.audiolibros + ')';
-                portadaCounts = { videos: d.videos, cine: d.cine, audiolibros: d.audiolibros };
-                if (isPortadaView) buildPortada();
-            });
-        });
-}
-
-function buildSidebarCategorias() {
-    var container = document.getElementById('sidebar-categorias');
-    if (!container) return;
-    var html = '';
-    ALL_CATEGORIAS.forEach(function(cat) {
-        // Canales de esta categoría
-        var catChannels = ALL_CHANNELS.filter(function(c) { return c.categoria_nombre === cat.nombre; });
-
-        html += '<div class="sidebar-channel-group">' +
-            '<a href="#" class="sidebar-item" data-categoria="' + cat.nombre + '" title="' + cat.nombre + '">' +
-                '<span class="si-icon">' + (cat.icono || '📁') + '</span>' +
-                '<span class="si-label">' + cat.nombre + '</span>' +
-                (catChannels.length > 0 ? '<span class="si-expand" data-toggle="cat-' + cat.id + '">▸</span>' : '') +
-            '</a>' +
-            '<div class="sidebar-playlists-group" id="cat-' + cat.id + '" style="display:none;">';
-        catChannels.forEach(function(c) {
-            html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '" title="' + c.nombre + '" style="padding-left:2.5rem;font-size:0.82rem;">' +
-                '<span class="si-icon" style="color:' + c.color + '">●</span>' +
-                '<span class="si-label">' + c.nombre + '</span></a>';
-        });
-        html += '</div></div>';
-    });
-    container.innerHTML = html;
-
-    // Click handlers para categorías
-    container.querySelectorAll('[data-categoria]').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            e.preventDefault();
-            isPortadaView = false;
-            hidePortadaSection();
-            var catName = this.getAttribute('data-categoria');
-            clearAllActive();
-            this.classList.add('active');
-            loadVideos('api.php?action=videos&categoria=' + encodeURIComponent(catName));
-            closeSidebar();
-        });
-    });
-
-    // Click handlers para canales dentro de categorías
-    container.querySelectorAll('[data-canal]').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            e.preventDefault();
-            filterCanal(this.getAttribute('data-canal'));
-            closeSidebar();
-        });
-    });
-
-    // Expand/collapse
-    container.querySelectorAll('.si-expand').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var targetId = this.getAttribute('data-toggle');
-            var target = document.getElementById(targetId);
-            if (target) {
-                var show = target.style.display === 'none';
-                target.style.display = show ? 'block' : 'none';
-                this.textContent = show ? '▾' : '▸';
-            }
-        });
-    });
-}
-
-function buildSidebarFollowing() {
-    var container = document.getElementById('sidebar-following');
-    if (!container) return;
-    var following = getStore('following');
-    if (following.length === 0) {
-        container.innerHTML = '<div style="padding:0.3rem 1rem;font-size:0.8rem;color:#999;">No seguís ningún canal</div>';
-        return;
-    }
-    var html = '';
-    ALL_CHANNELS.forEach(function(c) {
-        if (following.indexOf(String(c.id)) > -1) {
-            html += '<a href="#" class="sidebar-item" data-canal="' + c.id + '" title="' + c.nombre + '">' +
-                '<span class="si-icon" style="color:' + c.color + '">●</span>' +
-                '<span class="si-label">' + c.nombre + '</span></a>';
-        }
-    });
-    container.innerHTML = html || '<div style="padding:0.3rem 1rem;font-size:0.8rem;color:#999;">No seguís ningún canal</div>';
-
-    container.querySelectorAll('[data-canal]').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            e.preventDefault();
-            filterCanal(this.getAttribute('data-canal'));
-            closeSidebar();
-        });
-    });
-}
-
-function toggleFollow(canalId) {
-    var added = toggleStore('following', String(canalId));
-    showToast(added ? 'Siguiendo canal' : 'Dejaste de seguir');
-    buildSidebarFollowing();
-    return added;
-}
-
-function buildSidebar() {
-    buildSidebarCategorias();
-    buildSidebarFollowing();
-}
-
-function filterPlaylist(plId) {
-    hidePortadaSection();
-    clearAllActive();
-    var side = document.querySelector('.sidebar-item[data-playlist="' + plId + '"]');
-    if (side) side.classList.add('active');
-    fetch('api.php?action=playlist&id=' + plId)
-        .then(function(r) { return r.json(); })
-        .then(function(data) { showVideosWithSort(data.videos || []); });
-}
-
-// ── Render ──
-var PAGE_SIZE = 24;
-var currentVideos = [];
-var currentPage = 0;
-
-function videoCardHTML(v) {
-    var isWL = isInStore('watchlater', v.youtube_id);
-    return '<div class="video-card" data-id="' + v.youtube_id + '">' +
-        '<a href="watch?v=' + v.youtube_id + '" class="thumb">' +
-            '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
-            (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
-            '<div class="thumb-actions">' +
-                '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Reproducir después">🕐</button>' +
-            '</div>' +
-        '</a>' +
-        '<div class="card-info">' +
-            '<div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '?') + '</div>' +
-            '<div class="card-text">' +
-                '<a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
-                '<a href="canal?id=' + (v.canal_id || '') + '" class="card-channel">' + (v.canal_nombre || '') + '</a>' +
-                '<div class="card-stats">' + formatViews(v.vistas_yt) + ' reproducciones · ' + timeAgo(v.fecha_yt) + '</div>' +
-            '</div>' +
-        '</div>' +
-    '</div>';
-}
-
-function bindWatchLaterButtons(container) {
-    container.querySelectorAll('.btn-wl').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault(); e.stopPropagation();
-            var added = toggleStore('watchlater', this.getAttribute('data-id'));
-            this.classList.toggle('saved', added);
-            showToast(added ? 'Agregado a Reproducir después' : 'Quitado de Reproducir después');
-            updateBadges();
-        });
-    });
-}
-
-function renderGrid(videos) {
-    var list = videos || ALL_VIDEOS;
-    currentVideos = list;
-    currentPage = 0;
-    var grid = document.getElementById('video-grid');
-    grid.style.display = ''; // Restaurar grid CSS
-
-    var page = list.slice(0, PAGE_SIZE);
-    var html = '';
-    page.forEach(function(v) { html += videoCardHTML(v); });
-
-    if (list.length > PAGE_SIZE) {
-        html += '<div class="load-more-container" id="load-more-container">' +
-            '<button class="btn-load-more" id="btn-load-more">Cargar más videos (' + (list.length - PAGE_SIZE) + ' restantes)</button>' +
-        '</div>';
-    }
-
-    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron videos</p>';
-    bindWatchLaterButtons(grid);
-
-    var btnMore = document.getElementById('btn-load-more');
-    if (btnMore) {
-        btnMore.addEventListener('click', loadMoreVideos);
-    }
-}
-
-function loadMoreVideos() {
-    currentPage++;
-    var start = currentPage * PAGE_SIZE;
-    var end = start + PAGE_SIZE;
-    var page = currentVideos.slice(start, end);
-    var remaining = currentVideos.length - end;
-
-    // Quitar botón actual
-    var container = document.getElementById('load-more-container');
-    if (container) container.remove();
-
-    // Agregar videos
-    var grid = document.getElementById('video-grid');
-    var tempDiv = document.createElement('div');
-    var html = '';
-    page.forEach(function(v) { html += videoCardHTML(v); });
-
-    if (remaining > 0) {
-        html += '<div class="load-more-container" id="load-more-container">' +
-            '<button class="btn-load-more" id="btn-load-more">Cargar más videos (' + remaining + ' restantes)</button>' +
-        '</div>';
-    }
-
-    tempDiv.innerHTML = html;
-    while (tempDiv.firstChild) {
-        grid.appendChild(tempDiv.firstChild);
-    }
-    bindWatchLaterButtons(grid);
-
-    var btnMore = document.getElementById('btn-load-more');
-    if (btnMore) {
-        btnMore.addEventListener('click', loadMoreVideos);
-    }
-}
-
+// ── Activity badges ──
 function updateBadges() {
     ['history','watchlater','liked'].forEach(function(key) {
         var n = getStore(key).length;
         var el = document.getElementById(key + '-count');
-        if (n > 0) { el.textContent = n; el.style.display = ''; } else { el.style.display = 'none'; }
-    });
-}
-
-// ── Filters ──
-function clearAllActive() {
-    document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
-    document.querySelectorAll('.sidebar-item').forEach(function(s) { s.classList.remove('active'); });
-}
-
-function filterAll() {
-    clearAllActive();
-    document.querySelector('.chip[data-cat="todos"]').classList.add('active');
-    isPortadaView = true;
-    showPortadaSection();
-    loadVideos('api.php?action=videos');
-}
-
-function showPortadaSection() {
-    document.getElementById('portada-section').style.display = '';
-    document.getElementById('video-grid').style.display = 'none';
-}
-function hidePortadaSection() {
-    document.getElementById('portada-section').style.display = 'none';
-    document.getElementById('video-grid').style.display = '';
-}
-
-function filterCanal(canalId) {
-    isPortadaView = false;
-    hidePortadaSection();
-    clearAllActive();
-    var chip = document.querySelector('.chip[data-canal="' + canalId + '"]');
-    if (chip) chip.classList.add('active');
-    var side = document.querySelector('.sidebar-item[data-canal="' + canalId + '"]');
-    if (side) side.classList.add('active');
-
-    // Cargar todos los videos de este canal via API
-    fetch('api.php?action=videos&canal_id=' + canalId)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            var canalVideos = data.videos || [];
-            renderCanalView(canalId, canalVideos);
-        });
-}
-
-function renderCanalView(canalId, canalVideos) {
-    // Find channel info
-    var canal = null;
-    ALL_CHANNELS.forEach(function(c) { if (String(c.id) === String(canalId)) canal = c; });
-    if (!canal) return;
-
-    // Get playlists for this channel
-    var chPlaylists = ALL_PLAYLISTS.filter(function(p) { return String(p.canal_id) === String(canalId) && parseInt(p.total_videos) > 0; });
-    var totalVideos = canalVideos.length;
-
-    var grid = document.getElementById('video-grid');
-    grid.style.display = 'block';
-    var html = '';
-
-    // Channel header
-    var isFollowing = isInStore('following', String(canalId));
-    html += '<div class="channel-header">' +
-        '<div class="channel-header-avatar" style="background:' + canal.color + '">' + canal.codigo + '</div>' +
-        '<div class="channel-header-info">' +
-            '<div class="channel-header-name">' + canal.nombre + '</div>' +
-            '<div class="channel-header-stats">' + totalVideos + ' videos · ' + chPlaylists.length + ' listas</div>' +
-        '</div>' +
-        '<button class="btn-follow' + (isFollowing ? ' following' : '') + '" data-canal="' + canalId + '">' + (isFollowing ? 'Siguiendo' : 'Seguir') + '</button>' +
-    '</div>';
-
-    // Videos recientes row (newest 6)
-    var recentVideos = sortVideos(canalVideos, 'newest').slice(0, 6);
-    if (recentVideos.length > 0) {
-        html += '<div class="channel-row">' +
-            '<div class="channel-row-header">' +
-                '<span class="channel-section-title">Videos recientes</span>' +
-                (totalVideos > 6 ? '<a href="#" class="channel-row-more btn-all-videos">Ver todos los videos</a>' : '') +
-            '</div>' +
-            '<div class="channel-row-videos">';
-        recentVideos.forEach(function(v) { html += videoCardHTML(v); });
-        html += '</div></div>';
-    }
-
-    // Each playlist as a horizontal row with its videos
-    if (chPlaylists.length > 0) {
-        chPlaylists.forEach(function(p) {
-            html += '<div class="channel-row canal-playlist-row" data-playlist="' + p.id + '">' +
-                '<div class="channel-row-header">' +
-                    '<span class="channel-section-title">' + p.nombre + '</span>' +
-                    '<span class="channel-section-count">' + p.total_videos + ' videos</span>' +
-                    '<a href="#" class="channel-row-more playlist-row-more" data-playlist="' + p.id + '">Ver lista completa</a>' +
-                '</div>' +
-                '<div class="channel-row-videos playlist-videos-container" data-playlist="' + p.id + '">' +
-                    '<div class="playlist-loading">Cargando...</div>' +
-                '</div>' +
-            '</div>';
-        });
-    }
-
-    grid.innerHTML = html;
-    bindWatchLaterButtons(grid);
-
-    // Load videos for each playlist
-    chPlaylists.forEach(function(p) {
-        fetch('api.php?action=playlist&id=' + p.id)
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                var container = grid.querySelector('.playlist-videos-container[data-playlist="' + p.id + '"]');
-                if (!container) return;
-                var vids = (data.videos || []).slice(0, 6);
-                var vhtml = '';
-                vids.forEach(function(v) { vhtml += videoCardHTML(v); });
-                container.innerHTML = vhtml;
-                bindWatchLaterButtons(container);
-            });
-    });
-
-    // Bind follow button
-    var btnFollow = grid.querySelector('.btn-follow');
-    if (btnFollow) {
-        btnFollow.addEventListener('click', function() {
-            var cid = this.getAttribute('data-canal');
-            var added = toggleFollow(cid);
-            this.classList.toggle('following', added);
-            this.textContent = added ? 'Siguiendo' : 'Seguir';
-        });
-    }
-
-    // Bind "Ver todos los videos" button
-    var btnAll = grid.querySelector('.btn-all-videos');
-    if (btnAll) {
-        btnAll.addEventListener('click', function(e) {
-            e.preventDefault();
-            showVideosWithSort(canalVideos);
-        });
-    }
-
-    // Bind "Ver lista completa" links
-    grid.querySelectorAll('.playlist-row-more').forEach(function(link) {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            filterPlaylist(this.getAttribute('data-playlist'));
-        });
-    });
-}
-
-// ── Sort ──
-function sortVideos(videos, sortBy) {
-    var sorted = videos.slice();
-    switch (sortBy) {
-        case 'newest': sorted.sort(function(a,b) { return (b.fecha_yt||'').localeCompare(a.fecha_yt||''); }); break;
-        case 'oldest': sorted.sort(function(a,b) { return (a.fecha_yt||'').localeCompare(b.fecha_yt||''); }); break;
-        case 'popular': sorted.sort(function(a,b) { return (parseInt(b.vistas_yt)||0) - (parseInt(a.vistas_yt)||0); }); break;
-        case 'az': sorted.sort(function(a,b) { return (a.titulo||'').localeCompare(b.titulo||''); }); break;
-    }
-    return sorted;
-}
-
-var isPortadaView = true;
-var VIDEOS_PER_CHANNEL = 4;
-
-function showVideosWithSort(videos, activeSort) {
-    activeSort = activeSort || 'newest';
-    var sorted = sortVideos(videos, activeSort);
-
-    // Si estamos en la portada principal, mostrar agrupado por canal
-    if (isPortadaView && (!activeSort || activeSort === 'newest')) {
-        showPortadaSection();
-        renderPortadaGrouped(sorted);
-        return;
-    }
-
-    // Vista lista normal (cuando se filtra por canal, categoría, búsqueda, etc.)
-    hidePortadaSection();
-    var grid = document.getElementById('video-grid');
-    var sortBar = '<div class="sort-bar">' +
-        '<span class="sort-label">' + videos.length + ' videos · Ordenar por:</span>' +
-        '<button class="sort-btn' + (activeSort==='newest'?' active':'') + '" data-sort="newest">Más recientes</button>' +
-        '<button class="sort-btn' + (activeSort==='popular'?' active':'') + '" data-sort="popular">Más vistos</button>' +
-        '<button class="sort-btn' + (activeSort==='oldest'?' active':'') + '" data-sort="oldest">Más antiguos</button>' +
-        '<button class="sort-btn' + (activeSort==='az'?' active':'') + '" data-sort="az">A-Z</button>' +
-    '</div>';
-    renderGrid(sorted);
-    grid.insertAdjacentHTML('afterbegin', sortBar);
-
-    grid.querySelectorAll('.sort-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            isPortadaView = false;
-            showVideosWithSort(videos, this.getAttribute('data-sort'));
-        });
-    });
-}
-
-function renderPortadaGrouped(videos) {
-    var grid = document.getElementById('portada-channels');
-    grid.style.display = 'block';
-
-    // Agrupar videos por canal
-    var channelVideos = {};
-    videos.forEach(function(v) {
-        var cid = v.canal_id || 'sin_canal';
-        if (!channelVideos[cid]) channelVideos[cid] = [];
-        channelVideos[cid].push(v);
-    });
-
-    // Ordenar canales: primero por prioridad (desc), luego por fecha del video más nuevo
-    var channelOrder = [];
-    ALL_CHANNELS.forEach(function(c) {
-        if (channelVideos[c.id] && channelVideos[c.id].length > 0) {
-            var newestDate = channelVideos[c.id][0].fecha_yt || '';
-            channelOrder.push({
-                id: c.id,
-                nombre: c.nombre,
-                codigo: c.codigo,
-                color: c.color,
-                prioridad: parseInt(c.prioridad_portada) || 0,
-                newestDate: newestDate
-            });
+        if (el) {
+            if (n > 0) { el.textContent = n; el.style.display = ''; } else { el.style.display = 'none'; }
         }
     });
-
-    channelOrder.sort(function(a, b) {
-        if (a.prioridad !== b.prioridad) return b.prioridad - a.prioridad;
-        return (b.newestDate || '').localeCompare(a.newestDate || '');
-    });
-
-    var html = '';
-    var totalShown = 0;
-    var channelsShown = 0;
-    var maxChannelsInitial = 8;
-
-    channelOrder.forEach(function(ch) {
-        if (channelsShown >= maxChannelsInitial) return;
-        var vids = channelVideos[ch.id].slice(0, VIDEOS_PER_CHANNEL);
-
-        html += '<div class="channel-row">' +
-            '<div class="channel-row-header">' +
-                '<div class="channel-avatar-sm" style="background:' + ch.color + '">' + ch.codigo + '</div>' +
-                '<a href="#" class="channel-row-name" data-canal="' + ch.id + '">' + ch.nombre + '</a>' +
-                '<a href="#" class="channel-row-more" data-canal="' + ch.id + '">Ver todos</a>' +
-            '</div>' +
-            '<div class="channel-row-videos">';
-
-        vids.forEach(function(v) { html += videoCardHTML(v); });
-
-        html += '</div></div>';
-        totalShown += vids.length;
-        channelsShown++;
-    });
-
-    // Botón para cargar más canales
-    if (channelOrder.length > maxChannelsInitial) {
-        html += '<div class="load-more-container">' +
-            '<button class="btn-load-more" id="btn-load-more-channels">Mostrar más canales (' + (channelOrder.length - maxChannelsInitial) + ' restantes)</button>' +
-        '</div>';
-    }
-
-    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron videos</p>';
-    bindWatchLaterButtons(grid);
-
-    // Bind canal links
-    grid.querySelectorAll('[data-canal]').forEach(function(el) {
-        el.addEventListener('click', function(e) {
-            e.preventDefault();
-            isPortadaView = false;
-            filterCanal(this.getAttribute('data-canal'));
-        });
-    });
-
-    // Bind cargar más canales
-    var btnMoreCh = document.getElementById('btn-load-more-channels');
-    if (btnMoreCh) {
-        btnMoreCh.addEventListener('click', function() {
-            // Mostrar todos los canales
-            maxChannelsInitial = 999;
-            renderPortadaGrouped(videos);
-        });
-    }
 }
 
-// Catálogos IA para actividad cruzada (cargado desde API)
-var iaAllCatalog = [];
-fetch('api.php?action=contenido_ia')
-    .then(function(r) { return r.json(); })
-    .then(function(data) { iaAllCatalog = data; })
-    .catch(function() {});
-
-function iaCardHTML(item) {
-    var thumbUrl = 'https://archive.org/download/' + item.ia_id + '/__ia_thumb.jpg';
-    return '<div class="video-card">' +
-        '<a href="watch?v=' + item.id + '" class="thumb">' +
-            '<img src="' + thumbUrl + '" alt="" loading="lazy">' +
-            (item.duracion ? '<span class="duration-badge">' + item.duracion + '</span>' : '') +
-        '</a>' +
-        '<div class="card-info">' +
-            '<div class="channel-avatar" style="background:#e63946;font-size:0.65rem;">🎬</div>' +
-            '<div class="card-text">' +
-                '<a href="watch?v=' + item.id + '" class="card-title">' + item.titulo + '</a>' +
-                '<div class="card-channel-static">' + (item.director || '') + '</div>' +
-                '<div class="card-stats">' + item.section + '</div>' +
-            '</div>' +
-        '</div>' +
-    '</div>';
-}
-
-function filterSpecial(type) {
-    hidePortadaSection();
-    clearAllActive();
-    var chip = document.querySelector('.chip[data-filter="' + type + '"]');
-    if (chip) chip.classList.add('active');
-    var list = getStore(type);
-    var ytVideos = ALL_VIDEOS.filter(function(v) { return list.indexOf(v.youtube_id) > -1; });
-    var ytIds = ytVideos.map(function(v) { return v.youtube_id; });
-    var iaItems = iaAllCatalog.filter(function(item) { return list.indexOf(item.id) > -1; });
-
-    // Render YouTube videos + IA items
-    var grid = document.getElementById('video-grid');
-    grid.style.display = '';
-    var html = '';
-    ytVideos.forEach(function(v) { html += videoCardHTML(v); });
-    iaItems.forEach(function(item) { html += iaCardHTML(item); });
-    var total = ytVideos.length + iaItems.length;
-    grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No hay contenido guardado</p>';
-    bindWatchLaterButtons(grid);
-}
-
-function doSearch(q) {
-    q = q.trim();
-    if (!q) { filterAll(); return; }
-    hidePortadaSection();
-    fetch('api.php?action=search&q=' + encodeURIComponent(q))
-        .then(function(r) { return r.json(); })
-        .then(function(data) { renderGrid(data.videos || []); });
-}
-
-// ── Portada builder ──
-var portadaCounts = { videos: 0, cine: 0, audiolibros: 0 };
-
-function buildPortadaCards() {
+// ── Build portal cards ──
+function buildPortalCards(counts) {
     var sections = [
-        { name: 'Videos', href: 'index.php', img: 'img/card-videos.jpg', color: '#2e8b47', icon: '\uD83D\uDCFA', key: 'videos', desc: 'Videos educativos curados de YouTube' },
-        { name: 'Cine', href: 'cine', img: 'img/card-cine.jpg', color: '#e63946', icon: '\uD83C\uDFAC', key: 'cine', desc: 'Películas y documentales de Internet Archive' },
-        { name: 'Audiolibros', href: 'audiolibros', img: 'img/card-audiolibros.jpg', color: '#6a4c93', icon: '\uD83D\uDCD6', key: 'audiolibros', desc: 'Audiolibros completos de Internet Archive' }
+        { name: 'Videos', href: 'videos', img: 'img/card-videos.jpg', color: '#2e8b47', key: 'videos', desc: 'Videos educativos curados de YouTube' },
+        { name: 'Cine', href: 'cine', img: 'img/card-cine.jpg', color: '#e63946', key: 'cine', desc: 'Peliculas y documentales de Internet Archive' },
+        { name: 'Audiolibros', href: 'audiolibros', img: 'img/card-audiolibros.jpg', color: '#6a4c93', key: 'audiolibros', desc: 'Audiolibros completos de Internet Archive' }
     ];
     var html = '';
     sections.forEach(function(s) {
-        var count = portadaCounts[s.key] || 0;
-        html += '<a href="' + s.href + '" class="portada-card" style="text-decoration:none;">' +
-            '<div class="portada-card-bg" style="background-image:url(\'' + s.img + '\');background-color:' + s.color + ';"></div>' +
-            '<div class="portada-card-overlay"></div>' +
-            '<div class="portada-card-body">' +
-                '<div class="portada-card-icon">' + s.icon + '</div>' +
-                '<div class="portada-card-name">' + s.name + '</div>' +
-                (count ? '<span class="portada-card-count">' + count + ' títulos</span>' : '') +
-                '<div class="portada-card-desc">' + s.desc + '</div>' +
+        var count = counts[s.key] || 0;
+        html += '<a href="' + s.href + '" class="portal-card">' +
+            '<div class="portal-card-bg" style="background-image:url(\'' + s.img + '\');background-color:' + s.color + ';"></div>' +
+            '<div class="portal-card-overlay"></div>' +
+            '<div class="portal-card-body">' +
+                '<div class="portal-card-name">' + s.name + '</div>' +
+                (count ? '<span class="portal-card-count">' + count + ' titulos</span>' : '') +
+                '<div class="portal-card-desc">' + s.desc + '</div>' +
             '</div>' +
         '</a>';
     });
-    document.getElementById('portada-cards').innerHTML = html;
-
-    // Prevent Videos card from navigating (we're already on index.php)
-    var firstCard = document.querySelector('#portada-cards .portada-card');
-    if (firstCard) {
-        firstCard.addEventListener('click', function(e) {
-            e.preventDefault();
-            // Scroll down to the grouped channels below
-            var rows = document.getElementById('portada-rows');
-            if (rows) rows.scrollIntoView({ behavior: 'smooth' });
-        });
-    }
+    document.getElementById('portal-cards').innerHTML = html;
 }
 
-function buildPortadaRows() {
-    var rowsContainer = document.getElementById('portada-rows');
-    var html = '';
+// ── Build latest rows ──
+function buildLatestRows() {
+    var container = document.getElementById('latest-rows');
+    container.innerHTML =
+        '<div class="latest-row" id="row-videos"><div class="latest-row-header"><span class="latest-row-title">Ultimos videos</span><a href="videos" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-videos"></div></div>' +
+        '<div class="latest-row" id="row-cine" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimo en Cine</span><a href="cine" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-cine"></div></div>' +
+        '<div class="latest-row" id="row-audiolibros" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimos audiolibros</span><a href="audiolibros" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-audiolibros"></div></div>';
 
-    // Row 1: Últimos videos (from ALL_VIDEOS sorted by fecha_yt desc)
-    var latestVideos = sortVideos(ALL_VIDEOS, 'newest').slice(0, 5);
-    if (latestVideos.length > 0) {
-        html += '<div class="portada-row">' +
-            '<div class="portada-row-header"><span class="portada-row-title">Últimos videos</span></div>' +
-            '<div class="portada-row-scroll">';
-        latestVideos.forEach(function(v) { html += videoCardHTML(v); });
-        html += '</div></div>';
-    }
+    // Fetch latest videos
+    fetch('api.php?action=videos')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var videos = (data.videos || []).sort(function(a,b) {
+                return (b.fecha_yt||'').localeCompare(a.fecha_yt||'');
+            }).slice(0, 6);
+            var html = '';
+            videos.forEach(function(v) {
+                html += '<a href="watch?v=' + v.youtube_id + '" class="latest-card">' +
+                    '<img class="latest-card-thumb" src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                    '<div class="latest-card-title">' + v.titulo + '</div>' +
+                    '<div class="latest-card-sub">' + (v.canal_nombre || '') + '</div>' +
+                '</a>';
+            });
+            document.getElementById('scroll-videos').innerHTML = html;
+        }).catch(function(){});
 
-    // Placeholder rows for cine & audiolibros (filled async)
-    html += '<div class="portada-row" id="portada-row-cine" style="display:none;">' +
-        '<div class="portada-row-header"><span class="portada-row-title">Último en Cine</span></div>' +
-        '<div class="portada-row-scroll" id="portada-cine-scroll"></div>' +
-    '</div>';
-    html += '<div class="portada-row" id="portada-row-audiolibros" style="display:none;">' +
-        '<div class="portada-row-header"><span class="portada-row-title">Últimos audiolibros</span></div>' +
-        '<div class="portada-row-scroll" id="portada-audio-scroll"></div>' +
-    '</div>';
-
-    rowsContainer.innerHTML = html;
-    bindWatchLaterButtons(rowsContainer);
-
-    // Fetch cine
+    // Fetch latest cine
     fetch('api.php?action=contenido_ia&seccion=cine')
         .then(function(r) { return r.json(); })
         .then(function(items) {
-            var latest = items.slice(0, 5);
+            var latest = items.slice(0, 6);
             if (latest.length === 0) return;
-            var container = document.getElementById('portada-cine-scroll');
-            var h = '';
-            latest.forEach(function(item) { h += iaCardHTML(item); });
-            container.innerHTML = h;
-            document.getElementById('portada-row-cine').style.display = '';
+            var html = '';
+            latest.forEach(function(item) {
+                var thumbUrl = 'https://archive.org/download/' + item.ia_id + '/__ia_thumb.jpg';
+                html += '<a href="watch?v=' + item.id + '" class="latest-card">' +
+                    '<img class="latest-card-thumb" src="' + thumbUrl + '" alt="" loading="lazy">' +
+                    '<div class="latest-card-title">' + item.titulo + '</div>' +
+                    '<div class="latest-card-sub">' + (item.director || '') + '</div>' +
+                '</a>';
+            });
+            document.getElementById('scroll-cine').innerHTML = html;
+            document.getElementById('row-cine').style.display = '';
         }).catch(function(){});
 
-    // Fetch audiolibros
+    // Fetch latest audiolibros
     fetch('api.php?action=contenido_ia&seccion=audiolibros')
         .then(function(r) { return r.json(); })
         .then(function(items) {
-            var latest = items.slice(0, 5);
+            var latest = items.slice(0, 6);
             if (latest.length === 0) return;
-            var container = document.getElementById('portada-audio-scroll');
-            var h = '';
-            latest.forEach(function(item) { h += iaCardHTML(item); });
-            container.innerHTML = h;
-            document.getElementById('portada-row-audiolibros').style.display = '';
+            var html = '';
+            latest.forEach(function(item) {
+                var thumbUrl = 'https://archive.org/download/' + item.ia_id + '/__ia_thumb.jpg';
+                html += '<a href="watch?v=' + item.id + '" class="latest-card">' +
+                    '<img class="latest-card-thumb" src="' + thumbUrl + '" alt="" loading="lazy">' +
+                    '<div class="latest-card-title">' + item.titulo + '</div>' +
+                    '<div class="latest-card-sub">' + (item.autor || '') + '</div>' +
+                '</a>';
+            });
+            document.getElementById('scroll-audiolibros').innerHTML = html;
+            document.getElementById('row-audiolibros').style.display = '';
         }).catch(function(){});
 }
 
-function buildPortada() {
-    buildPortadaCards();
-    buildPortadaRows();
-}
-
 // ── Init ──
-loadVideos();
+updateBadges();
 
-// Chips (static)
-document.querySelector('.chip[data-cat="todos"]').addEventListener('click', filterAll);
-document.querySelectorAll('.chip[data-filter]').forEach(function(c) {
-    c.addEventListener('click', function() { filterSpecial(this.getAttribute('data-filter')); });
+// Load counts and build cards
+fetch('api.php?action=total_titulos')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        document.getElementById('video-count').textContent = d.total + ' titulos';
+        document.getElementById('cnt-videos').textContent = '(' + d.videos + ')';
+        document.getElementById('cnt-cine').textContent = '(' + d.cine + ')';
+        document.getElementById('cnt-audiolibros').textContent = '(' + d.audiolibros + ')';
+        buildPortalCards({ videos: d.videos, cine: d.cine, audiolibros: d.audiolibros });
+    });
+
+buildLatestRows();
+
+// Activity sidebar links → go to videos page with filter
+document.getElementById('nav-history').addEventListener('click', function(e) {
+    e.preventDefault();
+    window.location.href = 'videos';
+});
+document.getElementById('nav-watchlater').addEventListener('click', function(e) {
+    e.preventDefault();
+    window.location.href = 'videos';
+});
+document.getElementById('nav-liked').addEventListener('click', function(e) {
+    e.preventDefault();
+    window.location.href = 'videos';
 });
 
-// Sidebar static items
-document.querySelector('.sidebar-item[data-cat="todos"]').addEventListener('click', function(e) { e.preventDefault(); filterAll(); closeSidebar(); });
-document.getElementById('nav-history').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('history'); closeSidebar(); });
-document.getElementById('nav-watchlater').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('watchlater'); closeSidebar(); });
-document.getElementById('nav-liked').addEventListener('click', function(e) { e.preventDefault(); filterSpecial('liked'); closeSidebar(); });
+// Search → redirect to videos page
+function doSearch(q) {
+    q = q.trim();
+    if (!q) return;
+    window.location.href = 'videos?q=' + encodeURIComponent(q);
+}
 
-// Search
-var searchTimer;
-document.getElementById('search').addEventListener('input', function() {
-    clearTimeout(searchTimer);
-    var q = this.value;
-    searchTimer = setTimeout(function() { doSearch(q); }, 300);
+document.getElementById('search').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doSearch(this.value);
+});
+document.getElementById('search-btn').addEventListener('click', function() {
+    doSearch(document.getElementById('search').value);
 });
 
 // Mobile search
-['mobile-search-toggle','mobile-search-trigger'].forEach(function(id) {
-    document.getElementById(id).addEventListener('click', function() {
-        document.getElementById('mobile-search-overlay').classList.add('open');
-        document.getElementById('mobile-search-input').focus();
-    });
+document.getElementById('mobile-search-toggle').addEventListener('click', function() {
+    document.getElementById('mobile-search-overlay').classList.add('open');
+    document.getElementById('mobile-search-input').focus();
 });
 document.getElementById('mobile-search-close').addEventListener('click', function() {
     document.getElementById('mobile-search-overlay').classList.remove('open');
     document.getElementById('mobile-search-input').value = '';
-    filterAll();
 });
-document.getElementById('mobile-search-input').addEventListener('input', function() {
-    clearTimeout(searchTimer);
-    var q = this.value;
-    searchTimer = setTimeout(function() { doSearch(q); }, 300);
+document.getElementById('mobile-search-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doSearch(this.value);
 });
-document.getElementById('mobile-watchlater-nav').addEventListener('click', function() { filterSpecial('watchlater'); });
-document.getElementById('mobile-history-nav').addEventListener('click', function() { filterSpecial('history'); });
 
 // Sidebar toggle
 function closeSidebar() {

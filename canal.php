@@ -50,7 +50,7 @@ if ($canalId) {
 
 <header class="topbar">
     <div class="topbar-left">
-        <a href="index.php" class="logo">
+        <a href="/" class="logo">
             <img src="loguito-edutube.png" alt="EduTube" class="logo-icon">
             <span class="logo-text">EduTube</span>
         </a>
