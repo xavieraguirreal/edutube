@@ -20,6 +20,7 @@ CREATE TABLE canales (
     activo TINYINT(1) NOT NULL DEFAULT 1,
     prioridad_portada INT NOT NULL DEFAULT 0,
     auto_sync TINYINT(1) NOT NULL DEFAULT 0,
+    solo_nuevos TINYINT(1) NOT NULL DEFAULT 0,
     default_categoria_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (default_categoria_id) REFERENCES categorias(id) ON DELETE SET NULL

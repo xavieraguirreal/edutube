@@ -107,7 +107,8 @@ foreach ($canales as $canal) {
             $canal['id'],
             $canal['default_categoria_id'],
             'cron',
-            $videosRestantes
+            $videosRestantes,
+            !empty($canal['solo_nuevos'])
         );
 
         $totalVideos += $result['imported'];

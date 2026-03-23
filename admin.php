@@ -423,13 +423,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Add channel ──
         if ($action === 'add_channel') {
-            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, prioridad_portada, auto_sync, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, descripcion, prioridad_portada, auto_sync, solo_nuevos, default_categoria_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
                 $_POST['descripcion'] ?? '',
                 intval($_POST['prioridad_portada'] ?? 0),
                 isset($_POST['auto_sync']) ? 1 : 0,
+                isset($_POST['solo_nuevos']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null
             ]);
             $msg = 'Canal creado correctamente.'; $msgType = 'success';
@@ -437,18 +438,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // ── Edit channel ──
         if ($action === 'edit_channel') {
-            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, prioridad_portada=?, auto_sync=?, default_categoria_id=?, nota_interna=? WHERE id=?");
+            $stmt = $db->prepare("UPDATE canales SET nombre=?, youtube_channel_id=?, codigo=?, color=?, descripcion=?, prioridad_portada=?, auto_sync=?, solo_nuevos=?, default_categoria_id=?, nota_interna=? WHERE id=?");
             $stmt->execute([
                 $_POST['nombre'], $_POST['youtube_channel_id'] ?? '',
                 $_POST['codigo'], $_POST['color'] ?? '#2e8b47',
                 $_POST['descripcion'] ?? '',
                 intval($_POST['prioridad_portada'] ?? 0),
                 isset($_POST['auto_sync']) ? 1 : 0,
+                isset($_POST['solo_nuevos']) ? 1 : 0,
                 $_POST['default_categoria_id'] ?: null,
                 $_POST['nota_interna'] ?? '',
                 $_POST['canal_id']
             ]);
             $msg = 'Canal actualizado.'; $msgType = 'success';
+        }
+
+        // ── Toggle solo_nuevos ──
+        if ($action === 'toggle_solo_nuevos') {
+            $canalId = intval($_POST['canal_id']);
+            $db->prepare("UPDATE canales SET solo_nuevos = NOT solo_nuevos WHERE id = ?")->execute([$canalId]);
+            $msg = 'Configuración actualizada.'; $msgType = 'success';
         }
 
         // ── Toggle auto_sync ──
@@ -1149,10 +1158,14 @@ $section = $_GET['s'] ?? 'dashboard';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
+                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;gap:1.5rem;">
                             <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
                                 <input type="checkbox" name="auto_sync" value="1" <?= ($editCanal && $editCanal['auto_sync']) ? 'checked' : '' ?>>
                                 Sincronizar automático (cron)
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;" title="Solo importa videos con fecha posterior al último sincronizado de este canal">
+                                <input type="checkbox" name="solo_nuevos" value="1" <?= ($editCanal && !empty($editCanal['solo_nuevos'])) ? 'checked' : '' ?>>
+                                Solo nuevos
                             </label>
                         </div>
                     </div>
@@ -1182,7 +1195,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 <?php endif; ?>
             </div>
             <table>
-                <tr><th></th><th>Nombre</th><th>Channel ID</th><th>Categoría</th><th>Auto-sync</th><th>Metadata</th><th>Acciones</th></tr>
+                <tr><th></th><th>Nombre</th><th>Channel ID</th><th>Categoría</th><th>Auto-sync</th><th>Solo nuevos</th><th>Metadata</th><th>Acciones</th></tr>
                 <?php foreach ($canales as $c):
                     $catNombre = '—';
                     if (!empty($c['default_categoria_id'])) {
@@ -1208,6 +1221,14 @@ $section = $_GET['s'] ?? 'dashboard';
                             <input type="hidden" name="csrf" value="<?= $csrf ?>">
                             <input type="hidden" name="canal_id" value="<?= $c['id'] ?>">
                             <button type="submit" class="badge-btn <?= !empty($c['auto_sync']) ? 'badge-active' : 'badge-inactive' ?>" title="Clic para cambiar"><?= !empty($c['auto_sync']) ? 'Sí' : 'No' ?></button>
+                        </form>
+                    </td>
+                    <td>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="toggle_solo_nuevos">
+                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                            <input type="hidden" name="canal_id" value="<?= $c['id'] ?>">
+                            <button type="submit" class="badge-btn <?= !empty($c['solo_nuevos']) ? 'badge-active' : 'badge-inactive' ?>" title="Solo importa videos más nuevos que el último sincronizado"><?= !empty($c['solo_nuevos']) ? 'Sí' : 'No' ?></button>
                         </form>
                     </td>
                     <td>
