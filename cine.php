@@ -227,7 +227,9 @@ function renderGrid(genero) {
     var html = '';
     filtered.forEach(function(p) { html += cardHTML(p); });
     grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontró contenido</p>';
-    document.getElementById('movie-count').textContent = filtered.length + ' títulos';
+    // Show combined total (cine + videos)
+    var videoTotal = window._videoTotal || 0;
+    document.getElementById('movie-count').textContent = (catalogo.length + videoTotal) + ' títulos';
 
     document.querySelectorAll('.chip').forEach(function(c) {
         c.classList.toggle('active', c.getAttribute('data-genero') === activeGenero);
@@ -314,6 +316,11 @@ document.getElementById('nav-watchlater').addEventListener('click', function(e) 
 document.getElementById('nav-liked').addEventListener('click', function(e) { e.preventDefault(); filterActivity('liked'); closeSidebar(); });
 
 updateBadges();
+
+// Fetch video count for combined total
+fetch('api.php?action=videos').then(function(r){return r.json();}).then(function(d){
+    window._videoTotal = d.total_videos || 0;
+}).catch(function(){ window._videoTotal = 0; });
 
 // Load all IA content from API
 fetch('api.php?action=contenido_ia')

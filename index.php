@@ -209,7 +209,13 @@ function loadVideos(apiUrl) {
                 showVideosWithSort(ALL_VIDEOS);
             }
             updateBadges();
-            document.getElementById('video-count').textContent = (data.total_videos || ALL_VIDEOS.length) + ' videos';
+            var totalVideos = data.total_videos || ALL_VIDEOS.length;
+            // Fetch cine count and show combined total
+            fetch('api.php?action=contenido_ia').then(function(r){return r.json();}).then(function(ia){
+                document.getElementById('video-count').textContent = (totalVideos + ia.length) + ' títulos';
+            }).catch(function(){
+                document.getElementById('video-count').textContent = totalVideos + ' títulos';
+            });
         });
 }
 
