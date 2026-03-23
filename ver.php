@@ -660,12 +660,15 @@ function formatDate(dateStr) {
             }
         });
 
-        document.getElementById('btn-fullscreen').addEventListener('click', function() {
-            var w = document.querySelector('.player-wrapper');
-            if (document.fullscreenElement) document.exitFullscreen();
-            else if (w.requestFullscreen) w.requestFullscreen();
-            else if (w.webkitRequestFullscreen) w.webkitRequestFullscreen();
-        });
+        var btnFS = document.getElementById('btn-fullscreen');
+        if (btnFS) {
+            btnFS.addEventListener('click', function() {
+                var w = document.querySelector('.player-wrapper');
+                if (document.fullscreenElement) document.exitFullscreen();
+                else if (w.requestFullscreen) w.requestFullscreen();
+                else if (w.webkitRequestFullscreen) w.webkitRequestFullscreen();
+            });
+        }
 
         // Bind like & save
         document.getElementById('btn-like-ia').addEventListener('click', function() {
