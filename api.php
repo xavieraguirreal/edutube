@@ -418,14 +418,13 @@ if ($action === 'search_ia') {
         $iaQuery .= ' AND language:(' . $lang . ')';
     }
 
-    $url = 'https://archive.org/advancedsearch.php?' . http_build_query([
-        'q' => $iaQuery,
-        'fl' => ['identifier', 'title', 'creator', 'year', 'date', 'description', 'runtime', 'subject', 'language'],
-        'sort' => ['downloads desc'],
-        'rows' => $rows,
-        'start' => $start,
-        'output' => 'json'
-    ]);
+    $url = 'https://archive.org/advancedsearch.php?'
+        . 'q=' . urlencode($iaQuery)
+        . '&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&fl[]=date&fl[]=description&fl[]=runtime&fl[]=subject&fl[]=language'
+        . '&sort[]=downloads+desc'
+        . '&rows=' . $rows
+        . '&start=' . $start
+        . '&output=json';
 
     $ctx = stream_context_create(['http' => ['timeout' => 15]]);
     $json = @file_get_contents($url, false, $ctx);
