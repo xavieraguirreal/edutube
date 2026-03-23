@@ -546,7 +546,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($action === 'add_ia') {
             $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['slug'] ?? '');
             $ia_id = trim($_POST['ia_id'] ?? '');
-            $tipo = in_array($_POST['tipo'] ?? '', ['pelicula', 'documental']) ? $_POST['tipo'] : 'pelicula';
             $titulo = trim($_POST['titulo'] ?? '');
             if (!$slug || !$ia_id || !$titulo) {
                 $msg = 'Slug, ID de Archive.org y título son obligatorios.'; $msgType = 'error';
@@ -556,9 +555,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if ($dup->fetch()) {
                     $msg = 'Ya existe un contenido con ese slug.'; $msgType = 'error';
                 } else {
-                    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, tipo, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
-                        $slug, $ia_id, $tipo, $titulo,
+                        $slug, $ia_id, $titulo,
                         trim($_POST['director'] ?? ''),
                         intval($_POST['year'] ?? 0) ?: null,
                         trim($_POST['duracion'] ?? ''),
@@ -574,11 +573,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // ── Edit IA content ──
         if ($action === 'edit_ia') {
             $id = intval($_POST['ia_content_id'] ?? 0);
-            $stmt = $db->prepare("UPDATE contenido_ia SET slug=?, ia_id=?, tipo=?, titulo=?, director=?, year=?, duracion=?, genero=?, descripcion=? WHERE id=?");
+            $stmt = $db->prepare("UPDATE contenido_ia SET slug=?, ia_id=?, titulo=?, director=?, year=?, duracion=?, genero=?, descripcion=? WHERE id=?");
             $stmt->execute([
                 preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['slug'] ?? ''),
                 trim($_POST['ia_id'] ?? ''),
-                in_array($_POST['tipo'] ?? '', ['pelicula', 'documental']) ? $_POST['tipo'] : 'pelicula',
                 trim($_POST['titulo'] ?? ''),
                 trim($_POST['director'] ?? ''),
                 intval($_POST['year'] ?? 0) ?: null,
@@ -630,14 +628,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $imported = 0;
             $skipped = 0;
             if (is_array($items)) {
-                $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, tipo, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
                 foreach ($items as $item) {
                     $ia_id = trim($item['ia_id'] ?? '');
                     if (!$ia_id) continue;
                     $dupCheck->execute([$ia_id]);
                     if ($dupCheck->fetch()) { $skipped++; continue; }
-                    $tipo = in_array($item['tipo'] ?? '', ['pelicula', 'documental']) ? $item['tipo'] : 'pelicula';
                     $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $item['slug'] ?? $ia_id);
                     $baseSlug = $slug;
                     $n = 1;
@@ -653,7 +650,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $duracion = trim($item['duracion'] ?? '');
                     $genero = trim($item['genero'] ?? '');
                     $descripcion = trim($item['descripcion'] ?? '');
-                    $stmt->execute([$slug, $ia_id, $tipo, $titulo, $director, $year, $duracion, $genero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
+                    $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $genero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
                     $imported++;
                 }
             }
@@ -684,7 +681,7 @@ $totalVideos = $db->query("SELECT COUNT(*) FROM videos")->fetchColumn();
 $totalVistas = $db->query("SELECT COUNT(*) FROM registro_vistas")->fetchColumn();
 $totalCanales = $db->query("SELECT COUNT(*) FROM canales")->fetchColumn();
 $totalCategorias = $db->query("SELECT COUNT(*) FROM categorias")->fetchColumn();
-try { $totalIA = $db->query("SELECT COUNT(*) FROM contenido_ia")->fetchColumn(); } catch (Exception $e) { $totalIA = 0; }
+try { $totalCine = $db->query("SELECT COUNT(*) FROM contenido_ia")->fetchColumn(); } catch (Exception $e) { $totalCine = 0; }
 
 // Data
 $videos = $db->query("SELECT v.*, c.nombre as canal_nombre, cat.nombre as cat_nombre FROM videos v LEFT JOIN canales c ON v.canal_id = c.id LEFT JOIN categorias cat ON v.categoria_id = cat.id ORDER BY v.created_at DESC LIMIT 50")->fetchAll();
@@ -768,7 +765,7 @@ $section = $_GET['s'] ?? 'dashboard';
         <a href="?s=import" class="<?= $section==='import'?'active':'' ?>">📥 Importar canal</a>
         <a href="?s=canales" class="<?= $section==='canales'?'active':'' ?>">📺 Canales</a>
         <a href="?s=categorias" class="<?= $section==='categorias'?'active':'' ?>">🏷 Categorías</a>
-        <a href="?s=contenido_ia" class="<?= $section==='contenido_ia'?'active':'' ?>">🎬 Pelis/Docs</a>
+        <a href="?s=contenido_ia" class="<?= $section==='contenido_ia'?'active':'' ?>">🎬 Cine</a>
         <a href="?s=portada" class="<?= $section==='portada'?'active':'' ?>">🏠 Portada</a>
         <a href="?s=password" class="<?= $section==='password'?'active':'' ?>">🔑 Contraseña</a>
         <a href="/" target="_blank">🌐 Ver sitio</a>
@@ -786,7 +783,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 <div class="stat-card"><div class="stat-num"><?= $totalVideos ?></div><div class="stat-label">Videos</div></div>
                 <div class="stat-card"><div class="stat-num"><?= $totalCanales ?></div><div class="stat-label">Canales</div></div>
                 <div class="stat-card"><div class="stat-num"><?= $totalCategorias ?></div><div class="stat-label">Categorías</div></div>
-                <div class="stat-card"><div class="stat-num"><?= $totalIA ?></div><div class="stat-label">Pelis/Docs IA</div></div>
+                <div class="stat-card"><div class="stat-num"><?= $totalCine ?></div><div class="stat-label">Cine (IA)</div></div>
                 <div class="stat-card"><div class="stat-num"><?= $totalVistas ?></div><div class="stat-label">Vistas en EduTube</div></div>
             </div>
 
@@ -1305,7 +1302,7 @@ $section = $_GET['s'] ?? 'dashboard';
             <?php endif; ?>
 
         <?php elseif ($section === 'contenido_ia'): ?>
-            <h1>Películas y Documentales (<?= $totalIA ?>)</h1>
+            <h1>Cine (<?= $totalCine ?>)</h1>
 
             <?php
             $editIA = null;
@@ -1331,13 +1328,6 @@ $section = $_GET['s'] ?? 'dashboard';
                         </div>
                         <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
                             <button type="button" class="btn btn-outline" id="btn-fetch-meta" onclick="fetchIAMeta()">Obtener metadatos</button>
-                        </div>
-                        <div class="form-group">
-                            <label>Tipo *</label>
-                            <select name="tipo">
-                                <option value="pelicula" <?= ($editIA && $editIA['tipo'] === 'pelicula') ? 'selected' : '' ?>>Película</option>
-                                <option value="documental" <?= ($editIA && $editIA['tipo'] === 'documental') ? 'selected' : '' ?>>Documental</option>
-                            </select>
                         </div>
                     </div>
                     <div class="form-row">
@@ -1417,14 +1407,6 @@ $section = $_GET['s'] ?? 'dashboard';
                         <input type="text" id="ia-search-q" placeholder="ej: película drama, documental historia..." value="">
                     </div>
                     <div class="form-group" style="max-width:180px;">
-                        <label>Tipo</label>
-                        <select id="ia-search-tipo">
-                            <option value="pelicula">Películas</option>
-                            <option value="documental">Documentales</option>
-                            <option value="">Todo</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="max-width:180px;">
                         <label>Idioma</label>
                         <select id="ia-search-lang">
                             <option value="Spanish" selected>Español</option>
@@ -1455,7 +1437,6 @@ $section = $_GET['s'] ?? 'dashboard';
                 var q = document.getElementById('ia-search-q').value.trim();
                 if (!q) { alert('Ingresá un término de búsqueda.'); return; }
                 var lang = document.getElementById('ia-search-lang').value;
-                var tipo = document.getElementById('ia-search-tipo').value;
                 var btn = document.getElementById('btn-ia-search');
                 var status = document.getElementById('ia-search-status');
                 btn.textContent = 'Buscando...'; btn.disabled = true;
@@ -1465,7 +1446,6 @@ $section = $_GET['s'] ?? 'dashboard';
 
                 var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q);
                 if (lang) url += '&lang=' + encodeURIComponent(lang);
-                if (tipo) url += '&tipo=' + encodeURIComponent(tipo);
 
                 fetch(url)
                     .then(function(r) { return r.json(); })
@@ -1485,28 +1465,18 @@ $section = $_GET['s'] ?? 'dashboard';
             function renderIAResults() {
                 var container = document.getElementById('ia-search-results');
                 if (!iaSearchResults.length) { container.innerHTML = '<p style="color:#888;">Sin resultados.</p>'; return; }
-                var defaultTipo = document.getElementById('ia-search-tipo').value || 'pelicula';
-                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Tipo</th><th>Idioma</th><th></th></tr>';
+                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Idioma</th><th>Género</th><th></th></tr>';
                 iaSearchResults.forEach(function(r, i) {
                     var disabled = r.ya_existe ? ' disabled' : '';
                     var badge = r.ya_existe ? ' <span class="badge badge-active">Ya agregado</span>' : '';
-                    // Auto-detect tipo from genre/title keywords
-                    var autoTipo = defaultTipo;
-                    var lowerGenre = (r.genero || '').toLowerCase();
-                    var lowerTitle = (r.titulo || '').toLowerCase();
-                    if (lowerGenre.match(/document|documental/) || lowerTitle.match(/document|documental/)) autoTipo = 'documental';
-                    iaSearchResults[i]._tipo = autoTipo;
                     html += '<tr style="' + (r.ya_existe ? 'opacity:0.5;' : '') + '">' +
                         '<td><input type="checkbox" class="ia-check" data-idx="' + i + '"' + disabled + (r.ya_existe ? '' : ' checked') + '></td>' +
                         '<td><img src="https://archive.org/download/' + r.ia_id + '/__ia_thumb.jpg" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display=\'none\'"></td>' +
                         '<td>' + r.titulo + badge + '</td>' +
                         '<td>' + (r.director || '—') + '</td>' +
                         '<td>' + (r.year || '—') + '</td>' +
-                        '<td><select class="ia-tipo-select" data-idx="' + i + '" style="font-size:0.78rem;padding:2px 4px;border-radius:4px;border:1px solid #ddd;"' + (r.ya_existe ? ' disabled' : '') + '>' +
-                            '<option value="pelicula"' + (autoTipo === 'pelicula' ? ' selected' : '') + '>Película</option>' +
-                            '<option value="documental"' + (autoTipo === 'documental' ? ' selected' : '') + '>Documental</option>' +
-                        '</select></td>' +
                         '<td>' + (r.idioma || '—') + '</td>' +
+                        '<td style="font-size:0.78rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (r.genero || '—') + '</td>' +
                         '<td><a href="https://archive.org/details/' + r.ia_id + '" target="_blank" class="btn btn-sm btn-outline">Ver en IA</a></td>' +
                     '</tr>';
                 });
@@ -1516,11 +1486,6 @@ $section = $_GET['s'] ?? 'dashboard';
                 updateSelectedCount();
                 document.querySelectorAll('.ia-check').forEach(function(cb) {
                     cb.addEventListener('change', updateSelectedCount);
-                });
-                document.querySelectorAll('.ia-tipo-select').forEach(function(sel) {
-                    sel.addEventListener('change', function() {
-                        iaSearchResults[parseInt(this.getAttribute('data-idx'))]._tipo = this.value;
-                    });
                 });
             }
 
@@ -1544,7 +1509,6 @@ $section = $_GET['s'] ?? 'dashboard';
                     var r = iaSearchResults[idx];
                     items.push({
                         ia_id: r.ia_id,
-                        tipo: r._tipo || 'pelicula',
                         titulo: r.titulo,
                         director: r.director || '',
                         year: r.year || '',
@@ -1554,12 +1518,7 @@ $section = $_GET['s'] ?? 'dashboard';
                     });
                 });
                 if (!items.length) { alert('Seleccioná al menos un item.'); return; }
-                var pelis = items.filter(function(i) { return i.tipo === 'pelicula'; }).length;
-                var docs = items.filter(function(i) { return i.tipo === 'documental'; }).length;
-                var desc = [];
-                if (pelis) desc.push(pelis + ' película' + (pelis > 1 ? 's' : ''));
-                if (docs) desc.push(docs + ' documental' + (docs > 1 ? 'es' : ''));
-                if (!confirm('¿Importar ' + desc.join(' y ') + '?')) return;
+                if (!confirm('¿Importar ' + items.length + ' título' + (items.length > 1 ? 's' : '') + '?')) return;
 
                 // Submit via hidden form
                 var form = document.createElement('form');
@@ -1579,28 +1538,17 @@ $section = $_GET['s'] ?? 'dashboard';
             </script>
 
             <?php
-            // List IA content
-            $iaFilter = $_GET['tipo'] ?? '';
-            $iaWhere = '1=1';
-            if ($iaFilter === 'pelicula') $iaWhere = "tipo = 'pelicula'";
-            if ($iaFilter === 'documental') $iaWhere = "tipo = 'documental'";
-            $iaItems = $db->query("SELECT * FROM contenido_ia WHERE $iaWhere ORDER BY tipo, orden, titulo")->fetchAll();
+            $iaItems = $db->query("SELECT * FROM contenido_ia ORDER BY orden, titulo")->fetchAll();
             ?>
 
             <div class="card">
-                <h2>Lista de contenido</h2>
-                <div style="margin-bottom:1rem;">
-                    <a href="?s=contenido_ia" class="btn btn-sm <?= !$iaFilter ? 'btn-primary' : 'btn-outline' ?>">Todos</a>
-                    <a href="?s=contenido_ia&tipo=pelicula" class="btn btn-sm <?= $iaFilter==='pelicula' ? 'btn-primary' : 'btn-outline' ?>">Películas</a>
-                    <a href="?s=contenido_ia&tipo=documental" class="btn btn-sm <?= $iaFilter==='documental' ? 'btn-primary' : 'btn-outline' ?>">Documentales</a>
-                </div>
+                <h2>Catálogo (<?= count($iaItems) ?>)</h2>
                 <table>
-                    <tr><th></th><th>Título</th><th>Tipo</th><th>Director</th><th>Género</th><th>Estado</th><th>Acciones</th></tr>
+                    <tr><th></th><th>Título</th><th>Director</th><th>Género</th><th>Estado</th><th>Acciones</th></tr>
                     <?php foreach ($iaItems as $ia): ?>
                     <tr>
                         <td><img src="https://archive.org/download/<?= e($ia['ia_id']) ?>/__ia_thumb.jpg" class="thumb-sm" style="width:60px;height:40px;object-fit:cover;"></td>
                         <td><a href="watch?v=ia:<?= e($ia['slug']) ?>" target="_blank"><?= e(mb_substr($ia['titulo'], 0, 50)) ?><?= mb_strlen($ia['titulo'])>50?'...':'' ?></a></td>
-                        <td><?= $ia['tipo'] === 'pelicula' ? 'Película' : 'Documental' ?></td>
                         <td><?= e(mb_substr($ia['director'], 0, 25)) ?></td>
                         <td><?= e($ia['genero']) ?></td>
                         <td><span class="badge <?= $ia['activo']?'badge-active':'badge-inactive' ?>"><?= $ia['activo']?'Activo':'Inactivo' ?></span></td>

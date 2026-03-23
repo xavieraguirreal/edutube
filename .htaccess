@@ -9,11 +9,12 @@ RewriteRule ^watch$ ver.php [QSA,L]
 # /canal?id=ID → canal.php
 RewriteRule ^canal$ canal.php [QSA,L]
 
-# /peliculas → peliculas.php
-RewriteRule ^peliculas$ peliculas.php [QSA,L]
+# /cine → cine.php
+RewriteRule ^cine$ cine.php [QSA,L]
 
-# /documentales → documentales.php
-RewriteRule ^documentales$ documentales.php [QSA,L]
+# /peliculas and /documentales → redirect to /cine
+RewriteRule ^peliculas$ cine [R=301,L]
+RewriteRule ^documentales$ cine [R=301,L]
 
 # /landing → landing.php
 RewriteRule ^landing$ landing.php [L]

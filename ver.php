@@ -181,7 +181,7 @@ function formatDate(dateStr) {
                     }
                 }
                 if (!mp4) {
-                    page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">No se encontró archivo de video</h2><a href="/peliculas" class="btn-back">← Volver a Películas</a></div>';
+                    page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">No se encontró archivo de video</h2><a href="/cine" class="btn-back">← Volver a Cine</a></div>';
                     return;
                 }
                 var desc = md.description || '';
@@ -200,7 +200,7 @@ function formatDate(dateStr) {
                 });
             })
             .catch(function() {
-                page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">Error al cargar la película</h2><a href="/peliculas" class="btn-back">← Volver a Películas</a></div>';
+                page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">Error al cargar la película</h2><a href="/cine" class="btn-back">← Volver a Cine</a></div>';
             });
         return;
     }

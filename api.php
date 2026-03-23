@@ -306,80 +306,26 @@ if ($action === 'canal') {
     exit;
 }
 
-// ── Películas (Internet Archive) ──
-if ($action === 'peliculas') {
-    $stmt = $db->query("
-        SELECT slug, ia_id, titulo, director, year, duracion, genero, descripcion
-        FROM contenido_ia
-        WHERE tipo = 'pelicula' AND activo = 1
-        ORDER BY orden, titulo
-    ");
-    $items = [];
-    foreach ($stmt->fetchAll() as $row) {
-        $items[] = [
-            'id' => 'ia:' . $row['slug'],
-            'ia_id' => $row['ia_id'],
-            'titulo' => $row['titulo'],
-            'director' => $row['director'],
-            'year' => intval($row['year']),
-            'duracion' => $row['duracion'],
-            'genero' => $row['genero'],
-            'descargas' => 0
-        ];
-    }
-    echo json_encode($items, JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// ── Documentales (Internet Archive) ──
-if ($action === 'documentales') {
-    $stmt = $db->query("
-        SELECT slug, ia_id, titulo, director, year, duracion, genero, descripcion
-        FROM contenido_ia
-        WHERE tipo = 'documental' AND activo = 1
-        ORDER BY orden, titulo
-    ");
-    $items = [];
-    foreach ($stmt->fetchAll() as $row) {
-        $items[] = [
-            'id' => 'ia:' . $row['slug'],
-            'ia_id' => $row['ia_id'],
-            'titulo' => $row['titulo'],
-            'director' => $row['director'],
-            'year' => intval($row['year']),
-            'duracion' => $row['duracion'],
-            'genero' => $row['genero'],
-            'descargas' => 0
-        ];
-    }
-    echo json_encode($items, JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// ── All IA content (for cross-activity and ver.php lookups) ──
+// ── Contenido Internet Archive (cine) ──
 if ($action === 'contenido_ia') {
-    $where = 'activo = 1';
-    if (!empty($_GET['tipo']) && in_array($_GET['tipo'], ['pelicula', 'documental'])) {
-        $where .= " AND tipo = " . $db->quote($_GET['tipo']);
-    }
     $stmt = $db->query("
-        SELECT slug, ia_id, tipo, titulo, director, year, duracion, genero
+        SELECT slug, ia_id, titulo, director, year, duracion, genero
         FROM contenido_ia
-        WHERE $where
-        ORDER BY tipo, orden, titulo
+        WHERE activo = 1
+        ORDER BY orden, titulo
     ");
     $items = [];
     foreach ($stmt->fetchAll() as $row) {
         $items[] = [
             'id' => 'ia:' . $row['slug'],
             'ia_id' => $row['ia_id'],
-            'tipo' => $row['tipo'],
             'titulo' => $row['titulo'],
             'director' => $row['director'],
             'year' => intval($row['year']),
             'duracion' => $row['duracion'],
             'genero' => $row['genero'],
-            'section' => $row['tipo'] === 'pelicula' ? 'Película' : 'Documental'
+            'descargas' => 0,
+            'section' => 'Cine'
         ];
     }
     echo json_encode($items, JSON_UNESCAPED_UNICODE);
@@ -397,13 +343,7 @@ if ($action === 'search_ia') {
     }
 
     // Build IA advanced search query
-    $tipo = trim($_GET['tipo'] ?? '');
     $iaQuery = '(' . $q . ') AND mediatype:movies';
-    if ($tipo === 'documental') {
-        $iaQuery .= ' AND (subject:(documentary OR documental) OR title:(documentary OR documental))';
-    } elseif ($tipo === 'pelicula') {
-        $iaQuery .= ' AND NOT (subject:(documentary OR documental) OR title:(documentary OR documental))';
-    }
     if ($lang) {
         $iaQuery .= ' AND language:(' . $lang . ')';
     }

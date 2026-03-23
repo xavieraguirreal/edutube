@@ -138,7 +138,6 @@ CREATE TABLE contenido_ia (
     id INT AUTO_INCREMENT PRIMARY KEY,
     slug VARCHAR(100) NOT NULL UNIQUE,
     ia_id VARCHAR(200) NOT NULL,
-    tipo ENUM('pelicula','documental') NOT NULL,
     titulo VARCHAR(500) NOT NULL,
     director VARCHAR(200) DEFAULT '',
     year INT DEFAULT NULL,
@@ -150,7 +149,6 @@ CREATE TABLE contenido_ia (
     agregado_por VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_tipo (tipo),
     INDEX idx_activo (activo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

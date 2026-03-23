@@ -79,11 +79,8 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <a href="index.php" class="sidebar-item active" data-cat="todos">
             <span class="si-icon">📺</span><span class="si-label">Videos</span>
         </a>
-        <a href="peliculas" class="sidebar-item">
-            <span class="si-icon">🎬</span><span class="si-label">Películas</span>
-        </a>
-        <a href="documentales" class="sidebar-item">
-            <span class="si-icon">🎞️</span><span class="si-label">Documentales</span>
+        <a href="cine" class="sidebar-item">
+            <span class="si-icon">🎬</span><span class="si-label">Cine</span>
         </a>
     </div>
     <div class="sidebar-section">
@@ -710,7 +707,7 @@ function iaCardHTML(item) {
             (item.duracion ? '<span class="duration-badge">' + item.duracion + '</span>' : '') +
         '</a>' +
         '<div class="card-info">' +
-            '<div class="channel-avatar" style="background:#e63946;font-size:0.65rem;">' + (item.section === 'Documental' ? '📄' : '🎬') + '</div>' +
+            '<div class="channel-avatar" style="background:#e63946;font-size:0.65rem;">🎬</div>' +
             '<div class="card-text">' +
                 '<a href="watch?v=' + item.id + '" class="card-title">' + item.titulo + '</a>' +
                 '<div class="card-channel-static">' + (item.director || '') + '</div>' +
