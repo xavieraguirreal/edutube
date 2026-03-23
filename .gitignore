@@ -13,6 +13,9 @@ Thumbs.db
 # Logs
 cron-sync.log
 
+# Cache
+cache/
+
 # Misc
 *.docx
 Captura de pantalla*

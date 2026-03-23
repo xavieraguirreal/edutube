@@ -606,6 +606,105 @@ if ($action === 'proxy_gutenberg') {
     exit;
 }
 
+// ── Proxy Gutenberg EPUB file (for epub.js reader) ──
+if ($action === 'proxy_gutenberg_epub') {
+    // Switch to binary output — remove JSON content-type set at top
+    header_remove('Content-Type');
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(400);
+        echo json_encode(['error' => 'ID inválido']);
+        exit;
+    }
+
+    // Cache directory
+    $cacheDir = __DIR__ . '/cache/epub';
+    if (!is_dir($cacheDir)) {
+        @mkdir($cacheDir, 0755, true);
+    }
+    $cacheFile = $cacheDir . '/' . $id . '.epub';
+
+    // Serve from cache if available and less than 30 days old
+    if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 2592000) {
+        header('Content-Type: application/epub+zip');
+        header('Content-Length: ' . filesize($cacheFile));
+        header('Cache-Control: public, max-age=86400');
+        readfile($cacheFile);
+        exit;
+    }
+
+    // Download EPUB from Gutenberg
+    $epubUrl = 'https://www.gutenberg.org/ebooks/' . $id . '.epub3.images';
+    $epubData = false;
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($epubUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_USERAGENT => 'EduTube/1.0 (educational platform)',
+        ]);
+        $epubData = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($httpCode !== 200 || !$epubData) $epubData = false;
+    }
+
+    // Fallback to file_get_contents
+    if (!$epubData) {
+        $ctx = stream_context_create(['http' => [
+            'timeout' => 60,
+            'follow_location' => true,
+            'max_redirects' => 5,
+            'header' => 'User-Agent: EduTube/1.0 (educational platform)'
+        ]]);
+        $epubData = @file_get_contents($epubUrl, false, $ctx);
+    }
+
+    // Fallback: try .epub.noimages (smaller, no images)
+    if (!$epubData) {
+        $epubUrlNoImg = 'https://www.gutenberg.org/ebooks/' . $id . '.epub.noimages';
+        if (function_exists('curl_init')) {
+            $ch = curl_init($epubUrlNoImg);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => 5,
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_USERAGENT => 'EduTube/1.0 (educational platform)',
+            ]);
+            $epubData = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($httpCode !== 200 || !$epubData) $epubData = false;
+        }
+        if (!$epubData) {
+            $epubData = @file_get_contents($epubUrlNoImg, false, $ctx);
+        }
+    }
+
+    if (!$epubData) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(502);
+        echo json_encode(['error' => 'No se pudo descargar el EPUB de Gutenberg']);
+        exit;
+    }
+
+    // Cache the file
+    @file_put_contents($cacheFile, $epubData);
+
+    // Serve it
+    header('Content-Type: application/epub+zip');
+    header('Content-Length: ' . strlen($epubData));
+    header('Cache-Control: public, max-age=86400');
+    echo $epubData;
+    exit;
+}
+
 // ── Search Gutenberg (admin proxy) ──
 if ($action === 'search_gutenberg') {
     $q = trim($_GET['q'] ?? '');
