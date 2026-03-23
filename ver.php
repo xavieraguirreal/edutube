@@ -550,7 +550,25 @@ function formatDate(dateStr) {
                     '<div class="player-wrapper">' +
                         '<div class="player-container" id="player-container"' + (video.isAudio ? ' style="background:#1a1a2e;display:flex;align-items:center;justify-content:center;min-height:300px;"' : '') + '>' +
                             (video.isAudio
-                                ? '<div style="text-align:center;padding:2rem;"><img src="' + thumbSrc + '" style="width:200px;height:200px;object-fit:cover;border-radius:12px;margin-bottom:1rem;" onerror="this.style.display=\'none\'"><div style="color:#fff;font-size:1.1rem;">' + video.titulo + '</div><div style="color:#aaa;font-size:0.85rem;margin-top:0.3rem;">' + (video.fuente || '') + '</div></div><audio id="html5-player" src="' + videoSrc + '" preload="metadata"></audio>'
+                                ? '<div style="text-align:center;padding:2rem;position:relative;">' +
+                                    '<img src="' + thumbSrc + '" style="width:180px;height:180px;object-fit:cover;border-radius:12px;margin-bottom:1rem;" onerror="this.style.display=\'none\'">' +
+                                    '<div id="audio-waveform" class="waveform paused">' +
+                                        (function(){ var b=''; for(var i=0;i<40;i++) b+='<span style="animation-delay:'+(Math.random()*1.2).toFixed(2)+'s"></span>'; return b; })() +
+                                    '</div>' +
+                                    '<div id="audio-loading" style="color:#aaa;font-size:0.85rem;margin-top:0.5rem;">Cargando audio...</div>' +
+                                    '<div style="color:#fff;font-size:1.1rem;margin-top:0.5rem;">' + video.titulo + '</div>' +
+                                    '<div style="color:#aaa;font-size:0.85rem;margin-top:0.3rem;">' + (video.fuente || '') + '</div>' +
+                                  '</div>' +
+                                  '<style>' +
+                                    '.waveform{display:flex;align-items:center;justify-content:center;gap:2px;height:60px;margin-top:1rem;}' +
+                                    '.waveform span{display:inline-block;width:3px;background:#2e8b47;border-radius:2px;height:10px;animation:wave 1.2s ease-in-out infinite;}' +
+                                    '.waveform.paused span{animation-play-state:paused;height:4px !important;opacity:0.4;}' +
+                                    '@keyframes wave{0%,100%{height:8px;opacity:0.5;}50%{height:' + (30 + Math.floor(Math.random()*25)) + 'px;opacity:1;}}' +
+                                    '.waveform span:nth-child(odd){animation-duration:0.9s;}' +
+                                    '.waveform span:nth-child(3n){animation-duration:1.4s;}' +
+                                    '.waveform span:nth-child(5n){animation-duration:0.7s;}' +
+                                  '</style>' +
+                                  '<audio id="html5-player" src="' + videoSrc + '" preload="metadata"></audio>'
                                 : '<video id="html5-player" src="' + videoSrc + '" poster="' + thumbSrc + '" preload="metadata" playsinline></video>'
                             ) +
                         '</div>' +
@@ -624,8 +642,23 @@ function formatDate(dateStr) {
             }
         });
 
-        vid.addEventListener('play', function() { document.getElementById('btn-play').innerHTML = pauseIcon; });
-        vid.addEventListener('pause', function() { document.getElementById('btn-play').innerHTML = playIcon; });
+        vid.addEventListener('play', function() {
+            document.getElementById('btn-play').innerHTML = pauseIcon;
+            var wf = document.getElementById('audio-waveform');
+            if (wf) wf.classList.remove('paused');
+            var ld = document.getElementById('audio-loading');
+            if (ld) ld.style.display = 'none';
+        });
+        vid.addEventListener('pause', function() {
+            document.getElementById('btn-play').innerHTML = playIcon;
+            var wf = document.getElementById('audio-waveform');
+            if (wf) wf.classList.add('paused');
+        });
+        // Hide loading when audio is ready
+        vid.addEventListener('canplay', function() {
+            var ld = document.getElementById('audio-loading');
+            if (ld) ld.style.display = 'none';
+        });
 
         document.getElementById('btn-play').addEventListener('click', function() {
             if (vid.paused) vid.play(); else vid.pause();
