@@ -101,7 +101,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
             <span class="si-badge" id="history-count" style="display:none">0</span>
         </a>
         <a href="#" class="sidebar-item" id="nav-watchlater">
-            <span class="si-icon">🕐</span><span class="si-label">Ver después</span>
+            <span class="si-icon">🕐</span><span class="si-label">Reproducir después</span>
             <span class="si-badge" id="watchlater-count" style="display:none">0</span>
         </a>
         <a href="#" class="sidebar-item" id="nav-liked">
@@ -119,7 +119,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
 <main class="main" id="main-content">
     <div class="chips" id="chips">
         <button class="chip active" data-cat="todos">Todos</button>
-        <button class="chip" data-filter="watchlater">🕐 Ver después</button>
+        <button class="chip" data-filter="watchlater">🕐 Reproducir después</button>
         <button class="chip" data-filter="liked">👍 Me gusta</button>
         <button class="chip" data-filter="history">⏱ Historial</button>
     </div>
@@ -138,7 +138,7 @@ if (!localStorage.getItem('edutube_welcomed')) {
     </button>
     <button class="bottom-nav-item" id="mobile-watchlater-nav">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>
-        Ver después
+        Reproducir después
     </button>
     <button class="bottom-nav-item" id="mobile-history-nav">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
@@ -343,7 +343,7 @@ function videoCardHTML(v) {
             '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
             (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
             '<div class="thumb-actions">' +
-                '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Ver después">🕐</button>' +
+                '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Reproducir después">🕐</button>' +
             '</div>' +
         '</a>' +
         '<div class="card-info">' +
@@ -363,7 +363,7 @@ function bindWatchLaterButtons(container) {
             e.preventDefault(); e.stopPropagation();
             var added = toggleStore('watchlater', this.getAttribute('data-id'));
             this.classList.toggle('saved', added);
-            showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');
+            showToast(added ? 'Agregado a Reproducir después' : 'Quitado de Reproducir después');
             updateBadges();
         });
     });

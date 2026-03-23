@@ -321,7 +321,7 @@ function formatDate(dateStr) {
                         '</div>' +
                         '<div class="video-actions">' +
                             '<button class="action-btn' + (isLiked ? ' active' : '') + '" id="btn-like"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><span id="like-label">' + (isLiked ? 'Te gusta' : 'Me gusta') + '</span></button>' +
-                            '<button class="action-btn' + (isWL ? ' active' : '') + '" id="btn-save"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg><span id="save-label">' + (isWL ? 'Guardado' : 'Ver después') + '</span></button>' +
+                            '<button class="action-btn' + (isWL ? ' active' : '') + '" id="btn-save"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg><span id="save-label">' + (isWL ? 'Guardado' : 'Reproducir después') + '</span></button>' +
                             '<button class="action-btn" id="btn-share"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M14 9V3.5L20.5 10 14 16.5V11c-5.52 0-9.27 1.76-12 5.5 1.09-5.48 4.47-10.97 12-12.5z"/></svg>Compartir</button>' +
                             '<a href="index.php" class="action-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Inicio</a>' +
                         '</div>' +
@@ -420,8 +420,8 @@ function formatDate(dateStr) {
     document.getElementById('btn-save').addEventListener('click', function() {
         var added = toggleStore('watchlater', videoId);
         this.classList.toggle('active', added);
-        document.getElementById('save-label').textContent = added ? 'Guardado' : 'Ver después';
-        showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');
+        document.getElementById('save-label').textContent = added ? 'Guardado' : 'Reproducir después';
+        showToast(added ? 'Agregado a Reproducir después' : 'Quitado de Reproducir después');
     });
 
     // Share
@@ -603,7 +603,7 @@ function formatDate(dateStr) {
                             '</div>' +
                             '<div class="video-actions">' +
                                 '<button class="action-btn' + (isLiked ? ' active' : '') + '" id="btn-like-ia"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><span id="like-label-ia">' + (isLiked ? 'Te gusta' : 'Me gusta') + '</span></button>' +
-                                '<button class="action-btn' + (isWL ? ' active' : '') + '" id="btn-save-ia"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg><span id="save-label-ia">' + (isWL ? 'Guardado' : (video.isAudio ? 'Escuchar después' : 'Ver después')) + '</span></button>' +
+                                '<button class="action-btn' + (isWL ? ' active' : '') + '" id="btn-save-ia"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg><span id="save-label-ia">' + (isWL ? 'Guardado' : (video.isAudio ? 'Reproducir después' : 'Reproducir después')) + '</span></button>' +
                                 '<a href="index.php" class="action-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Inicio</a>' +
                             '</div>' +
                         '</div>' +
@@ -713,7 +713,7 @@ function formatDate(dateStr) {
         document.getElementById('btn-save-ia').addEventListener('click', function() {
             var added = toggleStore('watchlater', videoId);
             this.classList.toggle('active', added);
-            var saveLabel = video.isAudio ? 'Escuchar después' : 'Ver después';
+            var saveLabel = video.isAudio ? 'Reproducir después' : 'Reproducir después';
             document.getElementById('save-label-ia').textContent = added ? 'Guardado' : saveLabel;
             showToast(added ? 'Agregado a ' + saveLabel : 'Quitado de ' + saveLabel);
         });

@@ -81,7 +81,7 @@ $description = 'Audiolibros de dominio público en EduTube.';
             <span class="si-badge" id="history-count" style="display:none">0</span>
         </a>
         <a href="#" class="sidebar-item" id="nav-watchlater">
-            <span class="si-icon">🕐</span><span class="si-label">Escuchar después</span>
+            <span class="si-icon">🕐</span><span class="si-label">Reproducir después</span>
             <span class="si-badge" id="watchlater-count" style="display:none">0</span>
         </a>
         <a href="#" class="sidebar-item" id="nav-liked">
@@ -269,7 +269,7 @@ function filterActivity(type) {
     grid.style.display = '';
     var html = '';
     filtered.forEach(function(p) { html += cardHTML(p); });
-    var labels = {history:'historial',watchlater:'escuchar después',liked:'me gusta'};
+    var labels = {history:'historial',watchlater:'reproducir después',liked:'me gusta'};
     grid.innerHTML = html || '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No hay contenido en ' + (labels[type]||type) + '</p>';
     document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
     document.querySelectorAll('.sidebar-genero').forEach(function(s) { s.classList.remove('active'); });

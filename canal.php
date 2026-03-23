@@ -117,7 +117,7 @@ function videoCardHTML(v) {
             '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
             (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
             '<div class="thumb-actions">' +
-                '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Ver después">🕐</button>' +
+                '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Reproducir después">🕐</button>' +
             '</div>' +
         '</a>' +
         '<div class="card-info">' +
@@ -137,7 +137,7 @@ function bindWatchLaterButtons(container) {
             e.preventDefault(); e.stopPropagation();
             var added = toggleStore('watchlater', this.getAttribute('data-id'));
             this.classList.toggle('saved', added);
-            showToast(added ? 'Agregado a Ver después' : 'Quitado de Ver después');
+            showToast(added ? 'Agregado a Reproducir después' : 'Quitado de Reproducir después');
         });
     });
 }
