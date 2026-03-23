@@ -347,11 +347,39 @@ if ($action === 'import_ia_batch') {
     $items = $input['items'] ?? [];
     $genero = trim($input['genero'] ?? '');
 
-    // Validate genre
+    // Genre detection
     $GENEROS_VALIDOS = ['Drama','Comedia','Terror','Ciencia ficción','Aventura','Acción','Suspenso','Film Noir','Animación','Documental','Historia','Sociedad','Musical','Romance','Western','Bélico','Cine mudo'];
-    $generoFinal = '';
+    $GENERO_MAP = [
+        'drama'=>'Drama','dramatic'=>'Drama','tragedy'=>'Drama',
+        'comedy'=>'Comedia','comedia'=>'Comedia','comic'=>'Comedia','humor'=>'Comedia',
+        'horror'=>'Terror','terror'=>'Terror','scary'=>'Terror',
+        'sci-fi'=>'Ciencia ficción','science fiction'=>'Ciencia ficción','scifi'=>'Ciencia ficción',
+        'adventure'=>'Aventura','aventura'=>'Aventura',
+        'action'=>'Acción',
+        'thriller'=>'Suspenso','suspense'=>'Suspenso','mystery'=>'Suspenso',
+        'noir'=>'Film Noir','film noir'=>'Film Noir',
+        'animation'=>'Animación','animated'=>'Animación','cartoon'=>'Animación',
+        'documentary'=>'Documental','documental'=>'Documental',
+        'history'=>'Historia','historia'=>'Historia','historical'=>'Historia',
+        'musical'=>'Musical',
+        'romance'=>'Romance','romantic'=>'Romance',
+        'western'=>'Western',
+        'war'=>'Bélico','military'=>'Bélico','guerra'=>'Bélico',
+        'silent'=>'Cine mudo','silent film'=>'Cine mudo'
+    ];
+    function detectGenero($text, $map) {
+        $lower = mb_strtolower($text);
+        // Longest keys first
+        $keys = array_keys($map);
+        usort($keys, function($a,$b) { return strlen($b) - strlen($a); });
+        foreach ($keys as $k) {
+            if (strpos($lower, $k) !== false) return $map[$k];
+        }
+        return '';
+    }
+    $generoDefault = '';
     foreach ($GENEROS_VALIDOS as $v) {
-        if (mb_strtolower($genero) === mb_strtolower($v)) { $generoFinal = $v; break; }
+        if (mb_strtolower($genero) === mb_strtolower($v)) { $generoDefault = $v; break; }
     }
 
     $imported = 0;
@@ -384,8 +412,11 @@ if ($action === 'import_ia_batch') {
         $year = intval($item['year'] ?? 0) ?: null;
         $duracion = substr(trim($item['duracion'] ?? ''), 0, 14);
         $descripcion = trim($item['descripcion'] ?? '');
+        // Auto-detect genre from subject/title, fallback to global default
+        $subject = trim($item['subject'] ?? '');
+        $itemGenero = detectGenero($subject, $GENERO_MAP) ?: detectGenero($titulo, $GENERO_MAP) ?: $generoDefault;
         try {
-            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $generoFinal, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo]);
+            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $itemGenero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo]);
             $imported++;
         } catch (Exception $e) {
             $errors++;

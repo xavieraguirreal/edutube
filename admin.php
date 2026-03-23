@@ -1748,7 +1748,8 @@ $section = $_GET['s'] ?? 'dashboard';
                                     director: r.director || '',
                                     year: r.year || '',
                                     duracion: r.duracion || '',
-                                    descripcion: r.descripcion || ''
+                                    descripcion: r.descripcion || '',
+                                    subject: r.genero || ''
                                 };
                             });
                             totalSkipped += data.results.length - items.length;
