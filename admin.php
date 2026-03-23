@@ -121,6 +121,19 @@ $csrf = generateCSRF();
 $msg = '';
 $msgType = '';
 
+$GENEROS_VALIDOS = ['Drama','Comedia','Terror','Ciencia ficción','Aventura','Acción','Suspenso','Film Noir','Animación','Documental','Historia','Sociedad','Musical','Romance','Western','Bélico','Cine mudo'];
+function validarGenero($g) {
+    global $GENEROS_VALIDOS;
+    $g = trim($g);
+    // Exact match
+    if (in_array($g, $GENEROS_VALIDOS)) return $g;
+    // Case-insensitive match
+    foreach ($GENEROS_VALIDOS as $v) {
+        if (mb_strtolower($g) === mb_strtolower($v)) return $v;
+    }
+    return '';
+}
+
 // Handle actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] !== 'login') {
     if (!validateCSRF($_POST['csrf'] ?? '')) {
@@ -561,7 +574,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         trim($_POST['director'] ?? ''),
                         intval($_POST['year'] ?? 0) ?: null,
                         trim($_POST['duracion'] ?? ''),
-                        trim($_POST['genero'] ?? ''),
+                        validarGenero($_POST['genero'] ?? ''),
                         trim($_POST['descripcion'] ?? ''),
                         $_SESSION['admin_nombre'] ?? 'admin'
                     ]);
@@ -581,7 +594,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 trim($_POST['director'] ?? ''),
                 intval($_POST['year'] ?? 0) ?: null,
                 trim($_POST['duracion'] ?? ''),
-                trim($_POST['genero'] ?? ''),
+                validarGenero($_POST['genero'] ?? ''),
                 trim($_POST['descripcion'] ?? ''),
                 $id
             ]);
@@ -648,7 +661,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $director = trim($item['director'] ?? '');
                     $year = intval($item['year'] ?? 0) ?: null;
                     $duracion = trim($item['duracion'] ?? '');
-                    $genero = trim($item['genero'] ?? '');
+                    $genero = validarGenero($item['genero'] ?? '');
                     $descripcion = trim($item['descripcion'] ?? '');
                     $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $genero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
                     $imported++;
