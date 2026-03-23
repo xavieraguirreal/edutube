@@ -25,12 +25,11 @@ if ($itemId) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        frame-src https://www.gutenberg.org https://*.gutenberg.org;
         img-src 'self' https://www.gutenberg.org https://*.gutenberg.org https://archive.org https://*.archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline';
-        connect-src 'self' https://www.gutenberg.org https://*.gutenberg.org;
+        connect-src 'self';
     ">
     <title><?= htmlspecialchars($title) ?></title>
     <link rel="icon" type="image/png" href="loguito-edutube.png">
@@ -91,8 +90,38 @@ if ($itemId) {
                 <?= nl2br(htmlspecialchars(mb_substr($bookData['descripcion'], 0, 500))) ?>
             </div>
         <?php endif; ?>
-        <?php if ($bookData['url_contenido']): ?>
-            <iframe id="book-frame" class="reader-frame" src="<?= htmlspecialchars($bookData['url_contenido']) ?>" style="display:none;" sandbox="allow-same-origin allow-scripts"></iframe>
+        <?php if ($bookData['url_contenido']):
+            // Fetch book content via proxy (Gutenberg blocks iframes)
+            $bookUrl = $bookData['url_contenido'];
+            // Prefer text/plain URL for cleaner reading
+            $gutenbergId = intval(str_replace('gutenberg_', '', $bookData['ia_id']));
+            $textUrl = 'https://www.gutenberg.org/ebooks/' . $gutenbergId . '.txt.utf-8';
+            $htmlUrl = str_replace('http://', 'https://', $bookUrl);
+        ?>
+            <div id="book-content" style="display:none;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:2rem;margin-top:1rem;max-height:80vh;overflow-y:auto;font-family:Georgia,serif;font-size:1.05rem;line-height:1.8;color:#333;">
+                <div style="text-align:center;padding:2rem;color:#888;">Cargando libro...</div>
+            </div>
+            <script>
+            document.querySelector('.btn-read').addEventListener('click', function() {
+                var contentDiv = document.getElementById('book-content');
+                contentDiv.style.display = '';
+                this.style.display = 'none';
+                // Fetch text version of book
+                fetch('api.php?action=proxy_gutenberg&id=<?= $gutenbergId ?>')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.error) {
+                            contentDiv.innerHTML = '<p style="color:#c00;text-align:center;">' + data.error + '</p>';
+                            return;
+                        }
+                        contentDiv.innerHTML = data.html;
+                        contentDiv.scrollTop = 0;
+                    })
+                    .catch(function() {
+                        contentDiv.innerHTML = '<p style="color:#c00;text-align:center;">Error al cargar el libro. <a href="<?= htmlspecialchars($htmlUrl) ?>" target="_blank">Leer en Gutenberg →</a></p>';
+                    });
+            });
+            </script>
         <?php endif; ?>
     </div>
 <?php else: ?>

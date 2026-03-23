@@ -556,6 +556,36 @@ if ($action === 'search_ia') {
     exit;
 }
 
+// ── Proxy Gutenberg book content ──
+if ($action === 'proxy_gutenberg') {
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        echo json_encode(['error' => 'ID inválido']);
+        exit;
+    }
+
+    // Try plain text first (lighter), then HTML
+    $textUrl = 'https://www.gutenberg.org/ebooks/' . $id . '.txt.utf-8';
+    $ctx = stream_context_create(['http' => ['timeout' => 20, 'follow_location' => true]]);
+    $content = @file_get_contents($textUrl, false, $ctx);
+
+    if ($content) {
+        // Convert plain text to HTML paragraphs
+        $content = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
+        // Split into paragraphs (double newline)
+        $paragraphs = preg_split('/\n\s*\n/', $content);
+        $html = '';
+        foreach ($paragraphs as $p) {
+            $p = trim($p);
+            if ($p) $html .= '<p>' . nl2br($p) . '</p>';
+        }
+        echo json_encode(['html' => $html], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo json_encode(['error' => 'No se pudo cargar el libro']);
+    }
+    exit;
+}
+
 // ── Search Gutenberg (admin proxy) ──
 if ($action === 'search_gutenberg') {
     $q = trim($_GET['q'] ?? '');
