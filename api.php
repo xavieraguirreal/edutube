@@ -356,6 +356,8 @@ if ($action === 'import_ia_batch') {
 
     $imported = 0;
     $skipped = 0;
+    $errors = 0;
+    $lastError = '';
     $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
     $slugCheck = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");
@@ -365,26 +367,32 @@ if ($action === 'import_ia_batch') {
         if (!$ia_id) continue;
         $dupCheck->execute([$ia_id]);
         if ($dupCheck->fetch()) { $skipped++; continue; }
+        // Generate slug: clean ia_id, truncate to 90 chars
         $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $ia_id);
-        if (!$slug) $slug = 'ia_' . $imported;
-        $baseSlug = mb_substr($slug, 0, 90);
+        if (strlen($slug) < 2) $slug = 'ia_' . md5($ia_id);
+        $baseSlug = substr($slug, 0, 90);
         $slug = $baseSlug;
         $n = 1;
         $slugCheck->execute([$slug]);
         while ($slugCheck->fetch()) {
-            $slug = $baseSlug . '_' . $n++;
+            $slug = substr($baseSlug, 0, 85) . '_' . $n++;
             $slugCheck->execute([$slug]);
         }
-        $titulo = trim($item['titulo'] ?? $ia_id);
-        $director = trim($item['director'] ?? '');
+        $titulo = mb_substr(trim($item['titulo'] ?? $ia_id), 0, 490);
+        $director = mb_substr(trim($item['director'] ?? ''), 0, 195);
         $year = intval($item['year'] ?? 0) ?: null;
-        $duracion = trim($item['duracion'] ?? '');
+        $duracion = substr(trim($item['duracion'] ?? ''), 0, 14);
         $descripcion = trim($item['descripcion'] ?? '');
-        $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $generoFinal, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
-        $imported++;
+        try {
+            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $generoFinal, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
+            $imported++;
+        } catch (Exception $e) {
+            $errors++;
+            $lastError = $e->getMessage();
+        }
     }
 
-    echo json_encode(['imported' => $imported, 'skipped' => $skipped], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['imported' => $imported, 'skipped' => $skipped, 'errors' => $errors, 'lastError' => $lastError], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

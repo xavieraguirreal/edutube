@@ -1703,7 +1703,7 @@ $section = $_GET['s'] ?? 'dashboard';
                     if (currentPage >= totalPages) {
                         // Done
                         progressBar.style.width = '100%';
-                        progressText.textContent = 'Completado: ' + totalImported + ' importados, ' + totalSkipped + ' ya existían';
+                        progressText.textContent = 'Completado: ' + totalImported + ' nuevos importados, ' + totalSkipped + ' ya existían. Recargando...';
                         btn.textContent = 'Importar TODOS los resultados'; btn.disabled = false;
                         // Reload page to refresh list
                         setTimeout(function() { window.location.href = '?s=contenido_ia'; }, 2000);
@@ -1755,6 +1755,9 @@ $section = $_GET['s'] ?? 'dashboard';
                             .then(function(result) {
                                 totalImported += result.imported || 0;
                                 totalSkipped += result.skipped || 0;
+                                if (result.errors) {
+                                    progressText.textContent += ' ⚠ ' + result.errors + ' errores: ' + (result.lastError || '').substring(0, 80);
+                                }
                                 currentPage++;
                                 processBatch();
                             })
