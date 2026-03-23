@@ -615,6 +615,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $msg = 'Contenido eliminado.'; $msgType = 'success';
         }
 
+        // ── Bulk actions IA ──
+        if (in_array($action, ['bulk_activar_ia', 'bulk_desactivar_ia', 'bulk_bloquear_ia', 'bulk_eliminar_ia'])) {
+            $ids = json_decode($_POST['ids'] ?? '[]', true);
+            if (is_array($ids) && count($ids) > 0) {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $intIds = array_map('intval', $ids);
+                if ($action === 'bulk_activar_ia') {
+                    $db->prepare("UPDATE contenido_ia SET activo = 1, bloqueado = 0 WHERE id IN ($placeholders)")->execute($intIds);
+                    $msg = count($intIds) . ' items activados.';
+                } elseif ($action === 'bulk_desactivar_ia') {
+                    $db->prepare("UPDATE contenido_ia SET activo = 0 WHERE id IN ($placeholders)")->execute($intIds);
+                    $msg = count($intIds) . ' items desactivados.';
+                } elseif ($action === 'bulk_bloquear_ia') {
+                    $db->prepare("UPDATE contenido_ia SET activo = 0, bloqueado = 1 WHERE id IN ($placeholders)")->execute($intIds);
+                    $msg = count($intIds) . ' items bloqueados.';
+                } elseif ($action === 'bulk_eliminar_ia') {
+                    $db->prepare("DELETE FROM contenido_ia WHERE id IN ($placeholders)")->execute($intIds);
+                    $msg = count($intIds) . ' items eliminados.';
+                }
+                $msgType = 'success';
+            }
+        }
+
         // ── Fetch IA metadata ──
         if ($action === 'fetch_ia_meta') {
             $ia_id = trim($_POST['ia_id'] ?? '');
@@ -1826,35 +1849,72 @@ $section = $_GET['s'] ?? 'dashboard';
 
             <?php
             $iaEstado = $_GET['estado'] ?? '';
+            $iaBuscar = trim($_GET['buscar'] ?? '');
             $iaPage = max(intval($_GET['p'] ?? 1), 1);
             $iaPerPage = 50;
             $iaOffset = ($iaPage - 1) * $iaPerPage;
             $iaWhere = '1=1';
-            if ($iaEstado === 'activo') $iaWhere = 'activo = 1';
-            elseif ($iaEstado === 'inactivo') $iaWhere = 'activo = 0';
-            $iaTotalItems = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE $iaWhere")->fetchColumn();
-            $iaTotalActivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1")->fetchColumn();
-            $iaTotalInactivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 0")->fetchColumn();
+            if ($iaEstado === 'activo') $iaWhere = 'activo = 1 AND bloqueado = 0';
+            elseif ($iaEstado === 'inactivo') $iaWhere = 'activo = 0 AND bloqueado = 0';
+            elseif ($iaEstado === 'bloqueado') $iaWhere = 'bloqueado = 1';
+            $iaParams = [];
+            if ($iaBuscar) {
+                $iaWhere .= ' AND (titulo LIKE ? OR director LIKE ? OR genero LIKE ?)';
+                $iaParams = ["%$iaBuscar%", "%$iaBuscar%", "%$iaBuscar%"];
+            }
+            $countStmt = $db->prepare("SELECT COUNT(*) FROM contenido_ia WHERE $iaWhere");
+            $countStmt->execute($iaParams);
+            $iaTotalItems = $countStmt->fetchColumn();
+            $iaTotalActivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0")->fetchColumn();
+            $iaTotalInactivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 0 AND bloqueado = 0")->fetchColumn();
+            $iaTotalBloqueados = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE bloqueado = 1")->fetchColumn();
             $iaTotalPages = max(ceil($iaTotalItems / $iaPerPage), 1);
-            $iaItems = $db->query("SELECT * FROM contenido_ia WHERE $iaWhere ORDER BY activo DESC, orden, titulo LIMIT $iaPerPage OFFSET $iaOffset")->fetchAll();
+            $listStmt = $db->prepare("SELECT * FROM contenido_ia WHERE $iaWhere ORDER BY activo DESC, orden, titulo LIMIT $iaPerPage OFFSET $iaOffset");
+            $listStmt->execute($iaParams);
+            $iaItems = $listStmt->fetchAll();
+            $iaQS = 's=contenido_ia' . ($iaEstado ? '&estado='.$iaEstado : '') . ($iaBuscar ? '&buscar='.urlencode($iaBuscar) : '');
             ?>
 
             <div class="card">
                 <h2>Catálogo</h2>
-                <div style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-                    <a href="?s=contenido_ia" class="btn btn-sm <?= !$iaEstado ? 'btn-primary' : 'btn-outline' ?>">Todos (<?= $iaTotalActivos + $iaTotalInactivos ?>)</a>
+                <div style="margin-bottom:0.75rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                    <a href="?s=contenido_ia" class="btn btn-sm <?= !$iaEstado ? 'btn-primary' : 'btn-outline' ?>">Todos (<?= $iaTotalActivos + $iaTotalInactivos + $iaTotalBloqueados ?>)</a>
                     <a href="?s=contenido_ia&estado=activo" class="btn btn-sm <?= $iaEstado==='activo' ? 'btn-primary' : 'btn-outline' ?>">Activos (<?= $iaTotalActivos ?>)</a>
-                    <a href="?s=contenido_ia&estado=inactivo" class="btn btn-sm <?= $iaEstado==='inactivo' ? 'btn-primary' : 'btn-outline' ?>">Pendientes de revisión (<?= $iaTotalInactivos ?>)</a>
+                    <a href="?s=contenido_ia&estado=inactivo" class="btn btn-sm <?= $iaEstado==='inactivo' ? 'btn-primary' : 'btn-outline' ?>">Pendientes (<?= $iaTotalInactivos ?>)</a>
+                    <a href="?s=contenido_ia&estado=bloqueado" class="btn btn-sm <?= $iaEstado==='bloqueado' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $iaTotalBloqueados ? '' : 'opacity:0.5;' ?>">Bloqueados (<?= $iaTotalBloqueados ?>)</a>
+                    <form style="margin-left:auto;display:flex;gap:0.3rem;" method="GET">
+                        <input type="hidden" name="s" value="contenido_ia">
+                        <?php if ($iaEstado): ?><input type="hidden" name="estado" value="<?= $iaEstado ?>"><?php endif; ?>
+                        <input type="text" name="buscar" value="<?= e($iaBuscar) ?>" placeholder="Buscar título, director, género..." style="padding:0.3rem 0.6rem;border:1px solid #ddd;border-radius:6px;font-size:0.82rem;width:220px;">
+                        <button class="btn btn-sm btn-outline">Buscar</button>
+                        <?php if ($iaBuscar): ?><a href="?s=contenido_ia<?= $iaEstado ? '&estado='.$iaEstado : '' ?>" class="btn btn-sm btn-outline">✕</a><?php endif; ?>
+                    </form>
+                </div>
+                <!-- Bulk actions -->
+                <div id="ia-bulk-bar" style="display:none;margin-bottom:0.75rem;padding:0.5rem 0.75rem;background:#eef7f0;border-radius:8px;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                    <span id="ia-bulk-count" style="font-size:0.85rem;font-weight:500;"></span>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="bulkAction('activar')">Activar</button>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="bulkAction('desactivar')">Desactivar</button>
+                    <button type="button" class="btn btn-sm btn-outline" onclick="bulkAction('bloquear')" style="color:#e67e22;border-color:#e67e22;">Bloquear</button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="bulkAction('eliminar')">Eliminar</button>
                 </div>
                 <table>
-                    <tr><th></th><th>Título</th><th>Director</th><th>Género</th><th>Estado</th><th>Acciones</th></tr>
-                    <?php foreach ($iaItems as $ia): ?>
                     <tr>
+                        <th style="width:30px;"><input type="checkbox" id="ia-cat-select-all"></th>
+                        <th></th><th>Título</th><th>Director</th><th>Género</th><th>Estado</th><th>Acciones</th>
+                    </tr>
+                    <?php foreach ($iaItems as $ia):
+                        $estadoLabel = 'Inactivo'; $estadoClass = 'badge-inactive';
+                        if ($ia['bloqueado']) { $estadoLabel = 'Bloqueado'; $estadoClass = ''; }
+                        elseif ($ia['activo']) { $estadoLabel = 'Activo'; $estadoClass = 'badge-active'; }
+                    ?>
+                    <tr>
+                        <td><input type="checkbox" class="ia-cat-check" value="<?= $ia['id'] ?>"></td>
                         <td><img src="https://archive.org/download/<?= e($ia['ia_id']) ?>/__ia_thumb.jpg" class="thumb-sm" style="width:60px;height:40px;object-fit:cover;"></td>
                         <td><a href="watch?v=ia:<?= e($ia['slug']) ?>" target="_blank"><?= e(mb_substr($ia['titulo'], 0, 50)) ?><?= mb_strlen($ia['titulo'])>50?'...':'' ?></a></td>
                         <td><?= e(mb_substr($ia['director'], 0, 25)) ?></td>
                         <td><?= e($ia['genero']) ?></td>
-                        <td><span class="badge <?= $ia['activo']?'badge-active':'badge-inactive' ?>"><?= $ia['activo']?'Activo':'Inactivo' ?></span></td>
+                        <td><span class="badge <?= $estadoClass ?>" <?= $ia['bloqueado'] ? 'style="background:#fff3e0;color:#e67e22;"' : '' ?>><?= $estadoLabel ?></span></td>
                         <td>
                             <a href="?s=contenido_ia&edit=<?= $ia['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
                             <form method="POST" style="display:inline">
@@ -1863,12 +1923,6 @@ $section = $_GET['s'] ?? 'dashboard';
                                 <input type="hidden" name="csrf" value="<?= $csrf ?>">
                                 <button class="btn btn-sm btn-outline"><?= $ia['activo']?'Desactivar':'Activar' ?></button>
                             </form>
-                            <form method="POST" style="display:inline" onsubmit="return confirm('¿Eliminar este contenido?')">
-                                <input type="hidden" name="action" value="delete_ia">
-                                <input type="hidden" name="ia_content_id" value="<?= $ia['id'] ?>">
-                                <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                                <button class="btn btn-sm btn-danger">Eliminar</button>
-                            </form>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -1876,14 +1930,54 @@ $section = $_GET['s'] ?? 'dashboard';
                 <?php if ($iaTotalPages > 1): ?>
                 <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;justify-content:center;">
                     <?php if ($iaPage > 1): ?>
-                        <a href="?s=contenido_ia<?= $iaEstado ? '&estado='.$iaEstado : '' ?>&p=<?= $iaPage-1 ?>" class="btn btn-sm btn-outline">← Anterior</a>
+                        <a href="?<?= $iaQS ?>&p=<?= $iaPage-1 ?>" class="btn btn-sm btn-outline">← Anterior</a>
                     <?php endif; ?>
                     <span style="font-size:0.85rem;color:#888;">Pág. <?= $iaPage ?> de <?= $iaTotalPages ?> (<?= $iaTotalItems ?> items)</span>
                     <?php if ($iaPage < $iaTotalPages): ?>
-                        <a href="?s=contenido_ia<?= $iaEstado ? '&estado='.$iaEstado : '' ?>&p=<?= $iaPage+1 ?>" class="btn btn-sm btn-outline">Siguiente →</a>
+                        <a href="?<?= $iaQS ?>&p=<?= $iaPage+1 ?>" class="btn btn-sm btn-outline">Siguiente →</a>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
+
+                <!-- Bulk action form (hidden) -->
+                <form method="POST" id="ia-bulk-form" style="display:none;">
+                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <input type="hidden" name="action" id="ia-bulk-action" value="">
+                    <input type="hidden" name="ids" id="ia-bulk-ids" value="">
+                </form>
+
+                <script>
+                // Select all checkbox
+                document.getElementById('ia-cat-select-all').addEventListener('change', function() {
+                    var checked = this.checked;
+                    document.querySelectorAll('.ia-cat-check').forEach(function(cb) { cb.checked = checked; });
+                    updateBulkBar();
+                });
+                document.querySelectorAll('.ia-cat-check').forEach(function(cb) {
+                    cb.addEventListener('change', updateBulkBar);
+                });
+                function updateBulkBar() {
+                    var checked = document.querySelectorAll('.ia-cat-check:checked');
+                    var bar = document.getElementById('ia-bulk-bar');
+                    if (checked.length > 0) {
+                        bar.style.display = 'flex';
+                        document.getElementById('ia-bulk-count').textContent = checked.length + ' seleccionados';
+                    } else {
+                        bar.style.display = 'none';
+                    }
+                }
+                function bulkAction(action) {
+                    var ids = [];
+                    document.querySelectorAll('.ia-cat-check:checked').forEach(function(cb) { ids.push(cb.value); });
+                    if (!ids.length) return;
+                    var labels = {activar:'activar',desactivar:'desactivar',bloquear:'bloquear (no se re-importa)',eliminar:'ELIMINAR permanentemente'};
+                    if (!confirm('¿' + labels[action].charAt(0).toUpperCase() + labels[action].slice(1) + ' ' + ids.length + ' items?')) return;
+                    document.getElementById('ia-bulk-action').value = 'bulk_' + action + '_ia';
+                    document.getElementById('ia-bulk-ids').value = JSON.stringify(ids);
+                    document.getElementById('ia-bulk-form').submit();
+                }
+                updateBulkBar();
+                </script>
             </div>
 
         <?php elseif ($section === 'password'): ?>

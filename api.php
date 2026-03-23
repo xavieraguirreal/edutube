@@ -311,7 +311,7 @@ if ($action === 'contenido_ia') {
     $stmt = $db->query("
         SELECT slug, ia_id, titulo, director, year, duracion, genero
         FROM contenido_ia
-        WHERE activo = 1
+        WHERE activo = 1 AND bloqueado = 0
         ORDER BY orden, titulo
     ");
     $items = [];

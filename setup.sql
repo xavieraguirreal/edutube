@@ -145,6 +145,7 @@ CREATE TABLE contenido_ia (
     genero VARCHAR(100) DEFAULT '',
     descripcion TEXT,
     activo TINYINT(1) NOT NULL DEFAULT 1,
+    bloqueado TINYINT(1) NOT NULL DEFAULT 0,
     orden INT NOT NULL DEFAULT 0,
     agregado_por VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
