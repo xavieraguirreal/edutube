@@ -470,100 +470,134 @@ document.getElementById('nav-liked').addEventListener('click', function(e) {
 });
 
 // Search → redirect to videos page
-function doSearch(q) {
-    q = q.trim();
-    if (!q) {
-        document.getElementById('search-results').style.display = 'none';
-        document.getElementById('portal-cards').style.display = '';
-        document.querySelector('[style*="Novedades"]') && document.querySelectorAll('#main-content > div').forEach(function(d) { d.style.display = ''; });
-        document.getElementById('search-results').style.display = 'none';
-        return;
+// Cache IA content for instant search
+var cachedIA = [];
+fetch('api.php?action=contenido_ia').then(function(r){return r.json();}).then(function(d){ cachedIA = d; });
+
+var searchTimer = null;
+
+function showPortal() {
+    var main = document.getElementById('main-content');
+    for (var i = 0; i < main.children.length; i++) {
+        main.children[i].style.display = '';
     }
-    // Hide portal, show results
-    document.getElementById('portal-cards').style.display = 'none';
-    document.getElementById('latest-rows').style.display = 'none';
-    var sloganEl = document.getElementById('main-content').children[0];
-    if (sloganEl) sloganEl.style.display = 'none';
-    var sepEl = document.getElementById('main-content').children[2];
-    if (sepEl) sepEl.style.display = 'none';
-    var resultsDiv = document.getElementById('search-results');
-    resultsDiv.style.display = '';
-    resultsDiv.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">Buscando "' + q + '"...</p>';
-
-    // Search across all sections in parallel
-    var lq = q.toLowerCase();
-    Promise.all([
-        fetch('api.php?action=search&q=' + encodeURIComponent(q)).then(function(r) { return r.json(); }),
-        fetch('api.php?action=contenido_ia').then(function(r) { return r.json(); })
-    ]).then(function(res) {
-        var videos = (res[0].videos || []).slice(0, 10);
-        var iaAll = res[1] || [];
-        var iaResults = iaAll.filter(function(item) {
-            return item.titulo.toLowerCase().indexOf(lq) > -1 ||
-                   (item.director || '').toLowerCase().indexOf(lq) > -1 ||
-                   (item.genero || '').toLowerCase().indexOf(lq) > -1;
-        });
-        var cineResults = iaResults.filter(function(i) { return i.section === 'Cine'; }).slice(0, 10);
-        var audioResults = iaResults.filter(function(i) { return i.section === 'Audiolibro'; }).slice(0, 10);
-        var total = videos.length + cineResults.length + audioResults.length;
-
-        if (!total) {
-            resultsDiv.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron resultados para "' + q + '"</p>';
-            return;
-        }
-
-        var html = '<div style="padding:0.5rem 0;">';
-        html += '<div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">' + total + ' resultados para "' + q + '"</div>';
-
-        if (videos.length) {
-            html += '<h3 style="font-size:1rem;margin:1rem 0 0.5rem;"><a href="videos?q=' + encodeURIComponent(q) + '" style="color:var(--text-primary);text-decoration:none;">Videos (' + videos.length + ') →</a></h3>';
-            html += '<div class="video-grid" style="display:grid;">';
-            videos.forEach(function(v) {
-                html += '<div class="video-card"><a href="watch?v=' + v.youtube_id + '" class="thumb"><img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
-                    (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
-                    '</a><div class="card-info"><div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '▶') + '</div>' +
-                    '<div class="card-text"><a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
-                    '<div class="card-channel-static">' + (v.canal_nombre || '') + '</div></div></div></div>';
-            });
-            html += '</div>';
-        }
-
-        if (cineResults.length) {
-            html += '<h3 style="font-size:1rem;margin:1.5rem 0 0.5rem;"><a href="cine" style="color:var(--text-primary);text-decoration:none;">Cine (' + cineResults.length + ') →</a></h3>';
-            html += '<div class="video-grid" style="display:grid;">';
-            cineResults.forEach(function(p) {
-                html += '<div class="video-card"><a href="watch?v=' + p.id + '" class="thumb"><img src="https://archive.org/download/' + p.ia_id + '/__ia_thumb.jpg" alt="" loading="lazy">' +
-                    (p.duracion ? '<span class="duration-badge">' + p.duracion + '</span>' : '') +
-                    '</a><div class="card-info"><div class="channel-avatar" style="background:#e63946;font-size:0.65rem;">🎬</div>' +
-                    '<div class="card-text"><a href="watch?v=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
-                    '<div class="card-channel-static">' + (p.director || '') + '</div></div></div></div>';
-            });
-            html += '</div>';
-        }
-
-        if (audioResults.length) {
-            html += '<h3 style="font-size:1rem;margin:1.5rem 0 0.5rem;"><a href="audiolibros" style="color:var(--text-primary);text-decoration:none;">Audiolibros (' + audioResults.length + ') →</a></h3>';
-            html += '<div class="video-grid" style="display:grid;">';
-            audioResults.forEach(function(p) {
-                html += '<div class="video-card"><a href="watch?v=' + p.id + '" class="thumb"><img src="https://archive.org/download/' + p.ia_id + '/__ia_thumb.jpg" alt="" loading="lazy">' +
-                    '</a><div class="card-info"><div class="channel-avatar" style="background:#6a4c93;font-size:0.65rem;">📖</div>' +
-                    '<div class="card-text"><a href="watch?v=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
-                    '<div class="card-channel-static">' + (p.director || '') + '</div></div></div></div>';
-            });
-            html += '</div>';
-        }
-
-        html += '</div>';
-        resultsDiv.innerHTML = html;
-    }).catch(function() {
-        resultsDiv.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">Error al buscar</p>';
-    });
+    document.getElementById('search-results').style.display = 'none';
 }
 
+function hidePortal() {
+    document.getElementById('portal-cards').style.display = 'none';
+    document.getElementById('latest-rows').style.display = 'none';
+    // Hide slogan and separator
+    var main = document.getElementById('main-content');
+    for (var i = 0; i < main.children.length; i++) {
+        if (main.children[i].id !== 'search-results') main.children[i].style.display = 'none';
+    }
+    document.getElementById('search-results').style.display = '';
+}
+
+function doSearch(q) {
+    q = q.trim();
+    if (!q) { showPortal(); return; }
+    hidePortal();
+
+    var resultsDiv = document.getElementById('search-results');
+    var lq = q.toLowerCase();
+
+    // Instant: search cached IA content
+    var cineResults = cachedIA.filter(function(item) {
+        return item.section === 'Cine' && (
+            item.titulo.toLowerCase().indexOf(lq) > -1 ||
+            (item.director || '').toLowerCase().indexOf(lq) > -1 ||
+            (item.genero || '').toLowerCase().indexOf(lq) > -1);
+    }).slice(0, 10);
+    var audioResults = cachedIA.filter(function(item) {
+        return item.section === 'Audiolibro' && (
+            item.titulo.toLowerCase().indexOf(lq) > -1 ||
+            (item.director || '').toLowerCase().indexOf(lq) > -1 ||
+            (item.genero || '').toLowerCase().indexOf(lq) > -1);
+    }).slice(0, 10);
+
+    // Show instant results immediately, then fetch videos
+    renderSearchResults(q, [], cineResults, audioResults, true);
+
+    // Fetch videos from API (slightly slower)
+    fetch('api.php?action=search&q=' + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            var videos = (res.videos || []).slice(0, 10);
+            renderSearchResults(q, videos, cineResults, audioResults, false);
+        })
+        .catch(function() {
+            renderSearchResults(q, [], cineResults, audioResults, false);
+        });
+}
+
+function renderSearchResults(q, videos, cineResults, audioResults, loading) {
+    var resultsDiv = document.getElementById('search-results');
+    var total = videos.length + cineResults.length + audioResults.length;
+
+    if (!total && !loading) {
+        resultsDiv.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron resultados para "' + q + '"</p>';
+        return;
+    }
+
+    var html = '<div style="padding:0.5rem 0;">';
+    html += '<div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">' + (loading ? 'Buscando' : total + ' resultados para') + ' "' + q + '"' + (loading ? '...' : '') + '</div>';
+
+    if (videos.length) {
+        html += '<h3 style="font-size:1rem;margin:1rem 0 0.5rem;"><a href="videos?q=' + encodeURIComponent(q) + '" style="color:var(--text-primary);text-decoration:none;">Videos (' + videos.length + ') →</a></h3>';
+        html += '<div class="video-grid" style="display:grid;">';
+        videos.forEach(function(v) {
+            html += '<div class="video-card"><a href="watch?v=' + v.youtube_id + '" class="thumb"><img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
+                '</a><div class="card-info"><div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '▶') + '</div>' +
+                '<div class="card-text"><a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
+                '<div class="card-channel-static">' + (v.canal_nombre || '') + '</div></div></div></div>';
+        });
+        html += '</div>';
+    } else if (loading) {
+        html += '<h3 style="font-size:1rem;margin:1rem 0 0.5rem;color:var(--text-muted);">Videos — buscando...</h3>';
+    }
+
+    if (cineResults.length) {
+        html += '<h3 style="font-size:1rem;margin:1.5rem 0 0.5rem;"><a href="cine" style="color:var(--text-primary);text-decoration:none;">Cine (' + cineResults.length + ') →</a></h3>';
+        html += '<div class="video-grid" style="display:grid;">';
+        cineResults.forEach(function(p) {
+            html += '<div class="video-card"><a href="watch?v=' + p.id + '" class="thumb"><img src="https://archive.org/download/' + p.ia_id + '/__ia_thumb.jpg" alt="" loading="lazy">' +
+                (p.duracion ? '<span class="duration-badge">' + p.duracion + '</span>' : '') +
+                '</a><div class="card-info"><div class="channel-avatar" style="background:#e63946;font-size:0.65rem;">🎬</div>' +
+                '<div class="card-text"><a href="watch?v=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
+                '<div class="card-channel-static">' + (p.director || '') + '</div></div></div></div>';
+        });
+        html += '</div>';
+    }
+
+    if (audioResults.length) {
+        html += '<h3 style="font-size:1rem;margin:1.5rem 0 0.5rem;"><a href="audiolibros" style="color:var(--text-primary);text-decoration:none;">Audiolibros (' + audioResults.length + ') →</a></h3>';
+        html += '<div class="video-grid" style="display:grid;">';
+        audioResults.forEach(function(p) {
+            html += '<div class="video-card"><a href="watch?v=' + p.id + '" class="thumb"><img src="https://archive.org/download/' + p.ia_id + '/__ia_thumb.jpg" alt="" loading="lazy">' +
+                '</a><div class="card-info"><div class="channel-avatar" style="background:#6a4c93;font-size:0.65rem;">📖</div>' +
+                '<div class="card-text"><a href="watch?v=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
+                '<div class="card-channel-static">' + (p.director || '') + '</div></div></div></div>';
+        });
+        html += '</div>';
+    }
+
+    html += '</div>';
+    resultsDiv.innerHTML = html;
+}
+
+document.getElementById('search').addEventListener('input', function() {
+    var val = this.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() { doSearch(val); }, 300);
+});
 document.getElementById('search').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') doSearch(this.value);
+    if (e.key === 'Enter') { clearTimeout(searchTimer); doSearch(this.value); }
 });
 document.getElementById('search-btn').addEventListener('click', function() {
+    clearTimeout(searchTimer);
     doSearch(document.getElementById('search').value);
 });
 
@@ -576,8 +610,13 @@ document.getElementById('mobile-search-close').addEventListener('click', functio
     document.getElementById('mobile-search-overlay').classList.remove('open');
     document.getElementById('mobile-search-input').value = '';
 });
+document.getElementById('mobile-search-input').addEventListener('input', function() {
+    var val = this.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function() { doSearch(val); }, 300);
+});
 document.getElementById('mobile-search-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') doSearch(this.value);
+    if (e.key === 'Enter') { clearTimeout(searchTimer); doSearch(this.value); }
 });
 
 // Sidebar toggle
