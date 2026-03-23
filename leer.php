@@ -337,6 +337,9 @@ if ($itemId) {
                     updateProgress(location);
                 });
 
+                // Register touch swipe inside epub iframe
+                rendition.hooks.content.register(registerSwipeInContent);
+
                 // Keyboard navigation
                 rendition.on('keyup', handleKeyboard);
                 document.addEventListener('keyup', handleKeyboard);
@@ -408,20 +411,28 @@ if ($itemId) {
         rendition.themes.fontSize(fontSize + '%');
     }
 
-    // Touch swipe support
+    // Touch swipe support (inside epub.js iframe + outside)
     var touchStartX = 0;
-    document.addEventListener('touchstart', function(e) {
-        if (!document.getElementById('epub-reader').classList.contains('active')) return;
-        touchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
-    document.addEventListener('touchend', function(e) {
-        if (!document.getElementById('epub-reader').classList.contains('active')) return;
-        var diff = e.changedTouches[0].screenX - touchStartX;
-        if (Math.abs(diff) > 50) {
+    function onTouchStart(e) {
+        touchStartX = (e.changedTouches || [{screenX:0}])[0].screenX;
+    }
+    function onTouchEnd(e) {
+        var diff = (e.changedTouches || [{screenX:0}])[0].screenX - touchStartX;
+        if (Math.abs(diff) > 40) {
             if (diff < 0) window.goNext();
             else window.goPrev();
         }
-    }, { passive: true });
+    }
+    // Register on main document
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    // Also register inside epub.js iframe content (where touch actually happens)
+    function registerSwipeInContent(contents) {
+        var doc = contents.document;
+        doc.addEventListener('touchstart', onTouchStart, { passive: true });
+        doc.addEventListener('touchend', onTouchEnd, { passive: true });
+    }
 
 })();
 </script>
