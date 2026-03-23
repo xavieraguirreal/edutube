@@ -657,7 +657,7 @@ function formatDate(dateStr) {
         var iaAllContent = <?php
             try {
                 if (!isset($db)) { require_once __DIR__ . '/config.php'; $db = getDB(); }
-                $iaAllStmt = $db->query("SELECT slug, ia_id, titulo, director, genero FROM contenido_ia WHERE activo = 1 ORDER BY tipo, orden");
+                $iaAllStmt = $db->query("SELECT slug, ia_id, titulo, director, genero FROM contenido_ia WHERE activo = 1 ORDER BY orden, titulo");
                 $iaAll = [];
                 foreach ($iaAllStmt->fetchAll() as $row) {
                     $iaAll[] = [
