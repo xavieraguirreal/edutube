@@ -386,4 +386,78 @@ if ($action === 'contenido_ia') {
     exit;
 }
 
+// ── Search Internet Archive (admin proxy) ──
+if ($action === 'search_ia') {
+    $q = trim($_GET['q'] ?? '');
+    $lang = trim($_GET['lang'] ?? 'Spanish');
+    $rows = min(intval($_GET['rows'] ?? 30), 50);
+    if (!$q) {
+        echo json_encode(['error' => 'Falta parámetro q']);
+        exit;
+    }
+
+    // Build IA advanced search query
+    $iaQuery = '(' . $q . ') AND mediatype:movies';
+    if ($lang) {
+        $iaQuery .= ' AND language:(' . $lang . ')';
+    }
+
+    $url = 'https://archive.org/advancedsearch.php?' . http_build_query([
+        'q' => $iaQuery,
+        'fl' => ['identifier', 'title', 'creator', 'year', 'date', 'description', 'runtime', 'subject', 'language'],
+        'sort' => ['downloads desc'],
+        'rows' => $rows,
+        'output' => 'json'
+    ]);
+
+    $ctx = stream_context_create(['http' => ['timeout' => 15]]);
+    $json = @file_get_contents($url, false, $ctx);
+    if (!$json) {
+        echo json_encode(['error' => 'No se pudo conectar con Archive.org']);
+        exit;
+    }
+
+    $data = json_decode($json, true);
+    $docs = $data['response']['docs'] ?? [];
+
+    // Check which ia_ids already exist in our DB
+    $existingIds = [];
+    if ($docs) {
+        $placeholders = implode(',', array_fill(0, count($docs), '?'));
+        $ids = array_map(function($d) { return $d['identifier']; }, $docs);
+        $stmt = $db->prepare("SELECT ia_id FROM contenido_ia WHERE ia_id IN ($placeholders)");
+        $stmt->execute($ids);
+        $existingIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    $results = [];
+    foreach ($docs as $doc) {
+        $desc = $doc['description'] ?? '';
+        if (is_array($desc)) $desc = implode(' ', $desc);
+        $creator = $doc['creator'] ?? '';
+        if (is_array($creator)) $creator = implode(', ', $creator);
+        $subject = $doc['subject'] ?? '';
+        if (is_array($subject)) $subject = implode(', ', $subject);
+        $lang = $doc['language'] ?? '';
+        if (is_array($lang)) $lang = implode(', ', $lang);
+        $year = $doc['year'] ?? '';
+        if (!$year && !empty($doc['date'])) $year = substr($doc['date'], 0, 4);
+
+        $results[] = [
+            'ia_id' => $doc['identifier'],
+            'titulo' => $doc['title'] ?? $doc['identifier'],
+            'director' => $creator,
+            'year' => $year,
+            'duracion' => $doc['runtime'] ?? '',
+            'genero' => $subject,
+            'descripcion' => mb_substr(strip_tags($desc), 0, 200),
+            'idioma' => $lang,
+            'ya_existe' => in_array($doc['identifier'], $existingIds)
+        ];
+    }
+
+    echo json_encode(['results' => $results, 'total' => $data['response']['numFound'] ?? 0], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 echo json_encode(['error' => 'Acción no válida']);

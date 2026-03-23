@@ -624,6 +624,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         }
 
+        // ── Bulk import IA content ──
+        if ($action === 'bulk_import_ia') {
+            $items = json_decode($_POST['items'] ?? '[]', true);
+            $tipo = in_array($_POST['tipo'] ?? '', ['pelicula', 'documental']) ? $_POST['tipo'] : 'pelicula';
+            $imported = 0;
+            $skipped = 0;
+            if (is_array($items)) {
+                $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, tipo, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
+                foreach ($items as $item) {
+                    $ia_id = trim($item['ia_id'] ?? '');
+                    if (!$ia_id) continue;
+                    // Check duplicate
+                    $dupCheck->execute([$ia_id]);
+                    if ($dupCheck->fetch()) { $skipped++; continue; }
+                    // Generate slug from ia_id (clean it)
+                    $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $item['slug'] ?? $ia_id);
+                    // Check slug duplicate, append number if needed
+                    $baseSlug = $slug;
+                    $n = 1;
+                    $slugCheck = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");
+                    $slugCheck->execute([$slug]);
+                    while ($slugCheck->fetch()) {
+                        $slug = $baseSlug . '_' . $n++;
+                        $slugCheck->execute([$slug]);
+                    }
+                    $titulo = trim($item['titulo'] ?? $ia_id);
+                    $director = trim($item['director'] ?? '');
+                    $year = intval($item['year'] ?? 0) ?: null;
+                    $duracion = trim($item['duracion'] ?? '');
+                    $genero = trim($item['genero'] ?? '');
+                    $descripcion = trim($item['descripcion'] ?? '');
+                    $stmt->execute([$slug, $ia_id, $tipo, $titulo, $director, $year, $duracion, $genero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
+                    $imported++;
+                }
+            }
+            $msg = "Importados: $imported" . ($skipped ? " (ya existían: $skipped)" : '');
+            $msgType = $imported > 0 ? 'success' : 'error';
+        }
+
         // ── Change password ──
         if ($action === 'change_password') {
             $newPass = $_POST['new_password'] ?? '';
@@ -1369,6 +1409,154 @@ $section = $_GET['s'] ?? 'dashboard';
                         btn.textContent = 'Obtener metadatos'; btn.disabled = false;
                     });
             }
+            </script>
+
+            <!-- ── Buscar en Internet Archive ── -->
+            <div class="card">
+                <h2>Buscar en Internet Archive</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Buscar</label>
+                        <input type="text" id="ia-search-q" placeholder="ej: película drama, documental historia..." value="">
+                    </div>
+                    <div class="form-group" style="max-width:180px;">
+                        <label>Idioma</label>
+                        <select id="ia-search-lang">
+                            <option value="Spanish" selected>Español</option>
+                            <option value="Spanish OR español">Español (amplio)</option>
+                            <option value="">Cualquier idioma</option>
+                            <option value="English">Inglés</option>
+                            <option value="Portuguese">Portugués</option>
+                            <option value="French">Francés</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="max-width:150px;">
+                        <label>Importar como</label>
+                        <select id="ia-import-tipo">
+                            <option value="pelicula">Película</option>
+                            <option value="documental">Documental</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
+                        <button type="button" class="btn btn-primary" id="btn-ia-search" onclick="searchIA()">Buscar</button>
+                    </div>
+                </div>
+                <div id="ia-search-status" style="font-size:0.85rem;color:#888;margin-bottom:0.5rem;"></div>
+                <div id="ia-search-results"></div>
+                <div id="ia-import-actions" style="display:none;margin-top:1rem;">
+                    <button type="button" class="btn btn-primary" onclick="importSelected()">Importar seleccionados</button>
+                    <button type="button" class="btn btn-outline" onclick="toggleSelectAll()">Seleccionar/deseleccionar todos</button>
+                    <span id="ia-selected-count" style="font-size:0.85rem;color:#888;margin-left:0.5rem;"></span>
+                </div>
+            </div>
+
+            <script>
+            var iaSearchResults = [];
+
+            function searchIA() {
+                var q = document.getElementById('ia-search-q').value.trim();
+                if (!q) { alert('Ingresá un término de búsqueda.'); return; }
+                var lang = document.getElementById('ia-search-lang').value;
+                var btn = document.getElementById('btn-ia-search');
+                var status = document.getElementById('ia-search-status');
+                btn.textContent = 'Buscando...'; btn.disabled = true;
+                status.textContent = 'Consultando Archive.org...';
+                document.getElementById('ia-search-results').innerHTML = '';
+                document.getElementById('ia-import-actions').style.display = 'none';
+
+                var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q);
+                if (lang) url += '&lang=' + encodeURIComponent(lang);
+
+                fetch(url)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        btn.textContent = 'Buscar'; btn.disabled = false;
+                        if (data.error) { status.textContent = data.error; return; }
+                        iaSearchResults = data.results || [];
+                        status.textContent = data.total + ' resultados en Archive.org (mostrando ' + iaSearchResults.length + ')';
+                        renderIAResults();
+                    })
+                    .catch(function() {
+                        btn.textContent = 'Buscar'; btn.disabled = false;
+                        status.textContent = 'Error al buscar.';
+                    });
+            }
+
+            function renderIAResults() {
+                var container = document.getElementById('ia-search-results');
+                if (!iaSearchResults.length) { container.innerHTML = '<p style="color:#888;">Sin resultados.</p>'; return; }
+                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Idioma</th><th>Género</th><th></th></tr>';
+                iaSearchResults.forEach(function(r, i) {
+                    var disabled = r.ya_existe ? ' disabled' : '';
+                    var badge = r.ya_existe ? ' <span class="badge badge-active">Ya agregado</span>' : '';
+                    html += '<tr style="' + (r.ya_existe ? 'opacity:0.5;' : '') + '">' +
+                        '<td><input type="checkbox" class="ia-check" data-idx="' + i + '"' + disabled + (r.ya_existe ? '' : ' checked') + '></td>' +
+                        '<td><img src="https://archive.org/download/' + r.ia_id + '/__ia_thumb.jpg" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display=\'none\'"></td>' +
+                        '<td>' + r.titulo + badge + '</td>' +
+                        '<td>' + (r.director || '—') + '</td>' +
+                        '<td>' + (r.year || '—') + '</td>' +
+                        '<td>' + (r.idioma || '—') + '</td>' +
+                        '<td style="font-size:0.78rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (r.genero || '—') + '</td>' +
+                        '<td><a href="https://archive.org/details/' + r.ia_id + '" target="_blank" class="btn btn-sm btn-outline">Ver en IA</a></td>' +
+                    '</tr>';
+                });
+                html += '</table>';
+                container.innerHTML = html;
+                document.getElementById('ia-import-actions').style.display = '';
+                updateSelectedCount();
+                // Bind checkboxes
+                document.querySelectorAll('.ia-check').forEach(function(cb) {
+                    cb.addEventListener('change', updateSelectedCount);
+                });
+            }
+
+            function updateSelectedCount() {
+                var checked = document.querySelectorAll('.ia-check:checked:not(:disabled)').length;
+                document.getElementById('ia-selected-count').textContent = checked + ' seleccionados';
+            }
+
+            function toggleSelectAll() {
+                var cbs = document.querySelectorAll('.ia-check:not(:disabled)');
+                var allChecked = true;
+                cbs.forEach(function(cb) { if (!cb.checked) allChecked = false; });
+                cbs.forEach(function(cb) { cb.checked = !allChecked; });
+                updateSelectedCount();
+            }
+
+            function importSelected() {
+                var tipo = document.getElementById('ia-import-tipo').value;
+                var items = [];
+                document.querySelectorAll('.ia-check:checked:not(:disabled)').forEach(function(cb) {
+                    var r = iaSearchResults[parseInt(cb.getAttribute('data-idx'))];
+                    items.push({
+                        ia_id: r.ia_id,
+                        titulo: r.titulo,
+                        director: r.director || '',
+                        year: r.year || '',
+                        duracion: r.duracion || '',
+                        genero: r.genero || '',
+                        descripcion: r.descripcion || ''
+                    });
+                });
+                if (!items.length) { alert('Seleccioná al menos un item.'); return; }
+                if (!confirm('¿Importar ' + items.length + ' items como ' + (tipo === 'pelicula' ? 'películas' : 'documentales') + '?')) return;
+
+                // Submit via hidden form
+                var form = document.createElement('form');
+                form.method = 'POST'; form.style.display = 'none';
+                form.innerHTML = '<input name="action" value="bulk_import_ia">' +
+                    '<input name="csrf" value="<?= $csrf ?>">' +
+                    '<input name="tipo" value="' + tipo + '">' +
+                    '<input name="items" value="">';
+                form.querySelector('[name="items"]').value = JSON.stringify(items);
+                document.body.appendChild(form);
+                form.submit();
+            }
+
+            // Search on Enter
+            document.getElementById('ia-search-q').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); searchIA(); }
+            });
             </script>
 
             <?php
