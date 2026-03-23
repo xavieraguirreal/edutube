@@ -1463,12 +1463,11 @@ $section = $_GET['s'] ?? 'dashboard';
                         <label>Buscar (vacío = todo)</label>
                         <input type="text" id="ia-search-q" placeholder="ej: drama, Truffaut, terror..." value="">
                     </div>
+                    <?php if (!$isLibros): ?>
                     <div class="form-group" style="max-width:200px;">
                         <label>Colección</label>
                         <select id="ia-search-col">
-                            <?php if ($isLibros): ?>
-                            <!-- Gutenberg no necesita colección ni idioma (ya filtra español) -->
-                    <?php elseif ($isAudio): ?>
+                            <?php if ($isAudio): ?>
                             <option value="" selected>Todas</option>
                             <option value="librivoxaudio">LibriVox (audiolibros)</option>
                             <option value="audio_bookspoetry">Libros y poesía</option>
@@ -1485,12 +1484,8 @@ $section = $_GET['s'] ?? 'dashboard';
                             <option value="ephemera">Films educativos</option>
                             <option value="opensource_movies">Videos comunidad</option>
                             <?php endif; ?>
-                        <?php if (!$isLibros): ?></select>
-                    </div><?php endif; ?>
-                    <input type="hidden" id="ia-search-mediatype" value="<?= $isAudio ? 'audio' : 'movies' ?>">
-                    <input type="hidden" id="ia-search-seccion" value="<?= $seccionDB ?>">
-                    <input type="hidden" id="ia-search-source" value="<?= $isLibros ? 'gutenberg' : 'ia' ?>">
-                    <?php if (!$isLibros): ?>
+                        </select>
+                    </div>
                     <div class="form-group" style="max-width:160px;">
                         <label>Idioma</label>
                         <select id="ia-search-lang">
@@ -1502,6 +1497,9 @@ $section = $_GET['s'] ?? 'dashboard';
                         </select>
                     </div>
                     <?php endif; ?>
+                    <input type="hidden" id="ia-search-mediatype" value="<?= $isAudio ? 'audio' : 'movies' ?>">
+                    <input type="hidden" id="ia-search-seccion" value="<?= $seccionDB ?>">
+                    <input type="hidden" id="ia-search-source" value="<?= $isLibros ? 'gutenberg' : 'ia' ?>">
                     <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
                         <button type="button" class="btn btn-primary" id="btn-ia-search" onclick="searchIA(0)">Buscar</button>
                     </div>
@@ -1610,9 +1608,12 @@ $section = $_GET['s'] ?? 'dashboard';
 
             function searchIA(page) {
                 var q = document.getElementById('ia-search-q').value.trim();
-                var lang = document.getElementById('ia-search-lang').value;
-                var col = document.getElementById('ia-search-col').value;
-                if (!q && !col && !lang) { alert('Elegí al menos una colección o idioma.'); return; }
+                var langEl = document.getElementById('ia-search-lang');
+                var colEl = document.getElementById('ia-search-col');
+                var lang = langEl ? langEl.value : '';
+                var col = colEl ? colEl.value : '';
+                var source = document.getElementById('ia-search-source').value;
+                if (source !== 'gutenberg' && !q && !col && !lang) { alert('Elegí al menos una colección o idioma.'); return; }
                 iaCurrentPage = (page !== undefined && page !== null) ? page : 0;
                 var btn = document.getElementById('btn-ia-search');
                 var status = document.getElementById('ia-search-status');
@@ -1773,8 +1774,10 @@ $section = $_GET['s'] ?? 'dashboard';
 
                 // Build the same search URL but with bigger batches
                 var q = document.getElementById('ia-search-q').value.trim() || '*';
-                var lang = document.getElementById('ia-search-lang').value;
-                var col = document.getElementById('ia-search-col').value;
+                var langEl = document.getElementById('ia-search-lang');
+                var colEl = document.getElementById('ia-search-col');
+                var lang = langEl ? langEl.value : '';
+                var col = colEl ? colEl.value : '';
                 var batchSize = 100;
                 var totalPages = Math.ceil(iaTotalResults / batchSize);
                 var totalImported = 0;
@@ -1789,7 +1792,8 @@ $section = $_GET['s'] ?? 'dashboard';
                         btn.textContent = 'Importar TODOS los resultados'; btn.disabled = false;
                         // Reload page to refresh list
                         var sec = document.getElementById('ia-search-seccion').value;
-                        setTimeout(function() { window.location.href = '?s=' + (sec === 'audiolibros' ? 'audiolibros' : 'contenido_ia'); }, 2000);
+                        var sMap = {audiolibros:'audiolibros',libros:'libros'};
+                        setTimeout(function() { window.location.href = '?s=' + (sMap[sec] || 'contenido_ia'); }, 2000);
                         return;
                     }
 
@@ -1797,10 +1801,17 @@ $section = $_GET['s'] ?? 'dashboard';
                     progressBar.style.width = pct + '%';
                     progressText.textContent = 'Página ' + (currentPage + 1) + ' de ' + totalPages + ' — importados: ' + totalImported + ', ya existían: ' + totalSkipped;
 
-                    // Fetch results from IA search
-                    var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q) + '&mediatype=' + document.getElementById('ia-search-mediatype').value + '&rows=' + batchSize + '&page=' + currentPage;
-                    if (lang) url += '&lang=' + encodeURIComponent(lang);
-                    if (col) url += '&collection=' + encodeURIComponent(col);
+                    // Fetch results
+                    var importSource = document.getElementById('ia-search-source').value;
+                    var url;
+                    if (importSource === 'gutenberg') {
+                        url = 'api.php?action=search_gutenberg&page=' + (currentPage + 1);
+                        if (q && q !== '*') url += '&q=' + encodeURIComponent(q);
+                    } else {
+                        url = 'api.php?action=search_ia&q=' + encodeURIComponent(q) + '&mediatype=' + document.getElementById('ia-search-mediatype').value + '&rows=' + batchSize + '&page=' + currentPage;
+                        if (lang) url += '&lang=' + encodeURIComponent(lang);
+                        if (col) url += '&collection=' + encodeURIComponent(col);
+                    }
 
                     fetch(url)
                         .then(function(r) { return r.json(); })
