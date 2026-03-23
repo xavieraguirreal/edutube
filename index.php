@@ -118,13 +118,113 @@ if (!localStorage.getItem('edutube_welcomed')) {
 <!-- ── MAIN ── -->
 <main class="main" id="main-content">
     <div class="chips" id="chips">
-        <button class="chip active" data-cat="todos">Todos</button>
+        <button class="chip active" data-cat="todos">Inicio</button>
         <button class="chip" data-filter="watchlater">🕐 Reproducir después</button>
         <button class="chip" data-filter="liked">👍 Me gusta</button>
         <button class="chip" data-filter="history">⏱ Historial</button>
     </div>
-    <div class="video-grid" id="video-grid"></div>
+
+    <!-- ── PORTADA ── -->
+    <div id="portada-section">
+        <div id="portada-cards" style="
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+            gap:1rem;
+            margin-bottom:2rem;
+        "></div>
+        <div id="portada-rows"></div>
+        <div id="portada-channels"></div>
+    </div>
+
+    <div class="video-grid" id="video-grid" style="display:none;"></div>
 </main>
+
+<style>
+/* ── Portada section cards ── */
+.portada-card {
+    position:relative;
+    border-radius:12px;
+    overflow:hidden;
+    aspect-ratio:16/9;
+    cursor:pointer;
+    transition:transform .2s, box-shadow .2s;
+}
+.portada-card:hover {
+    transform:translateY(-4px);
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+.portada-card-bg {
+    position:absolute;inset:0;
+    background-size:cover;background-position:center;
+}
+.portada-card-overlay {
+    position:absolute;inset:0;
+    background:linear-gradient(0deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.25) 50%, rgba(0,0,0,.1) 100%);
+}
+.portada-card-body {
+    position:absolute;bottom:0;left:0;right:0;
+    padding:1.2rem;
+    color:#fff;
+}
+.portada-card-icon {
+    font-size:1.6rem;
+    margin-bottom:.3rem;
+}
+.portada-card-name {
+    font-size:1.25rem;
+    font-weight:700;
+    margin-bottom:.25rem;
+}
+.portada-card-count {
+    display:inline-block;
+    background:rgba(255,255,255,.2);
+    padding:2px 8px;
+    border-radius:10px;
+    font-size:.75rem;
+    font-weight:600;
+    margin-bottom:.3rem;
+}
+.portada-card-desc {
+    font-size:.82rem;
+    opacity:.85;
+    line-height:1.3;
+}
+
+/* ── Portada latest rows ── */
+.portada-row {
+    margin-bottom:1.5rem;
+}
+.portada-row-header {
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+    margin-bottom:.75rem;
+    padding:0 .25rem;
+}
+.portada-row-title {
+    font-size:1.1rem;
+    font-weight:600;
+    color:var(--text-primary, #fff);
+}
+.portada-row-scroll {
+    display:flex;
+    gap:.75rem;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    padding-bottom:.5rem;
+    -webkit-overflow-scrolling:touch;
+}
+.portada-row-scroll::-webkit-scrollbar { height:6px; }
+.portada-row-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2);border-radius:3px; }
+.portada-row-scroll > .video-card {
+    flex:0 0 260px;
+    scroll-snap-align:start;
+    min-width:260px;
+}
+@media(max-width:600px) {
+    .portada-row-scroll > .video-card { flex:0 0 220px;min-width:220px; }
+}
+</style>
 
 <!-- ── BOTTOM NAV (mobile) ── -->
 <nav class="bottom-nav">
@@ -212,12 +312,14 @@ function loadVideos(apiUrl) {
                 showVideosWithSort(ALL_VIDEOS);
             }
             updateBadges();
-            // Show total count
+            // Show total count and build portada
             fetch('api.php?action=total_titulos').then(function(r){return r.json();}).then(function(d){
                 document.getElementById('video-count').textContent = d.total + ' títulos';
                 document.getElementById('cnt-videos').textContent = '(' + d.videos + ')';
                 document.getElementById('cnt-cine').textContent = '(' + d.cine + ')';
                 document.getElementById('cnt-audiolibros').textContent = '(' + d.audiolibros + ')';
+                portadaCounts = { videos: d.videos, cine: d.cine, audiolibros: d.audiolibros };
+                if (isPortadaView) buildPortada();
             });
         });
 }
@@ -250,6 +352,8 @@ function buildSidebarCategorias() {
     container.querySelectorAll('[data-categoria]').forEach(function(el) {
         el.addEventListener('click', function(e) {
             e.preventDefault();
+            isPortadaView = false;
+            hidePortadaSection();
             var catName = this.getAttribute('data-categoria');
             clearAllActive();
             this.classList.add('active');
@@ -323,6 +427,7 @@ function buildSidebar() {
 }
 
 function filterPlaylist(plId) {
+    hidePortadaSection();
     clearAllActive();
     var side = document.querySelector('.sidebar-item[data-playlist="' + plId + '"]');
     if (side) side.classList.add('active');
@@ -448,11 +553,22 @@ function filterAll() {
     clearAllActive();
     document.querySelector('.chip[data-cat="todos"]').classList.add('active');
     isPortadaView = true;
+    showPortadaSection();
     loadVideos('api.php?action=videos');
+}
+
+function showPortadaSection() {
+    document.getElementById('portada-section').style.display = '';
+    document.getElementById('video-grid').style.display = 'none';
+}
+function hidePortadaSection() {
+    document.getElementById('portada-section').style.display = 'none';
+    document.getElementById('video-grid').style.display = '';
 }
 
 function filterCanal(canalId) {
     isPortadaView = false;
+    hidePortadaSection();
     clearAllActive();
     var chip = document.querySelector('.chip[data-canal="' + canalId + '"]');
     if (chip) chip.classList.add('active');
@@ -590,11 +706,13 @@ function showVideosWithSort(videos, activeSort) {
 
     // Si estamos en la portada principal, mostrar agrupado por canal
     if (isPortadaView && (!activeSort || activeSort === 'newest')) {
+        showPortadaSection();
         renderPortadaGrouped(sorted);
         return;
     }
 
     // Vista lista normal (cuando se filtra por canal, categoría, búsqueda, etc.)
+    hidePortadaSection();
     var grid = document.getElementById('video-grid');
     var sortBar = '<div class="sort-bar">' +
         '<span class="sort-label">' + videos.length + ' videos · Ordenar por:</span>' +
@@ -615,8 +733,8 @@ function showVideosWithSort(videos, activeSort) {
 }
 
 function renderPortadaGrouped(videos) {
-    var grid = document.getElementById('video-grid');
-    grid.style.display = 'block'; // Desactivar grid CSS para vista agrupada
+    var grid = document.getElementById('portada-channels');
+    grid.style.display = 'block';
 
     // Agrupar videos por canal
     var channelVideos = {};
@@ -727,6 +845,7 @@ function iaCardHTML(item) {
 }
 
 function filterSpecial(type) {
+    hidePortadaSection();
     clearAllActive();
     var chip = document.querySelector('.chip[data-filter="' + type + '"]');
     if (chip) chip.classList.add('active');
@@ -748,10 +867,107 @@ function filterSpecial(type) {
 
 function doSearch(q) {
     q = q.trim();
-    if (!q) { renderGrid(); return; }
+    if (!q) { filterAll(); return; }
+    hidePortadaSection();
     fetch('api.php?action=search&q=' + encodeURIComponent(q))
         .then(function(r) { return r.json(); })
         .then(function(data) { renderGrid(data.videos || []); });
+}
+
+// ── Portada builder ──
+var portadaCounts = { videos: 0, cine: 0, audiolibros: 0 };
+
+function buildPortadaCards() {
+    var sections = [
+        { name: 'Videos', href: 'index.php', img: 'img/card-videos.jpg', color: '#2e8b47', icon: '\uD83D\uDCFA', key: 'videos', desc: 'Videos educativos curados de YouTube' },
+        { name: 'Cine', href: 'cine', img: 'img/card-cine.jpg', color: '#e63946', icon: '\uD83C\uDFAC', key: 'cine', desc: 'Películas y documentales de Internet Archive' },
+        { name: 'Audiolibros', href: 'audiolibros', img: 'img/card-audiolibros.jpg', color: '#6a4c93', icon: '\uD83D\uDCD6', key: 'audiolibros', desc: 'Audiolibros completos de Internet Archive' }
+    ];
+    var html = '';
+    sections.forEach(function(s) {
+        var count = portadaCounts[s.key] || 0;
+        html += '<a href="' + s.href + '" class="portada-card" style="text-decoration:none;">' +
+            '<div class="portada-card-bg" style="background-image:url(\'' + s.img + '\');background-color:' + s.color + ';"></div>' +
+            '<div class="portada-card-overlay"></div>' +
+            '<div class="portada-card-body">' +
+                '<div class="portada-card-icon">' + s.icon + '</div>' +
+                '<div class="portada-card-name">' + s.name + '</div>' +
+                (count ? '<span class="portada-card-count">' + count + ' títulos</span>' : '') +
+                '<div class="portada-card-desc">' + s.desc + '</div>' +
+            '</div>' +
+        '</a>';
+    });
+    document.getElementById('portada-cards').innerHTML = html;
+
+    // Prevent Videos card from navigating (we're already on index.php)
+    var firstCard = document.querySelector('#portada-cards .portada-card');
+    if (firstCard) {
+        firstCard.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Scroll down to the grouped channels below
+            var rows = document.getElementById('portada-rows');
+            if (rows) rows.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+}
+
+function buildPortadaRows() {
+    var rowsContainer = document.getElementById('portada-rows');
+    var html = '';
+
+    // Row 1: Últimos videos (from ALL_VIDEOS sorted by fecha_yt desc)
+    var latestVideos = sortVideos(ALL_VIDEOS, 'newest').slice(0, 5);
+    if (latestVideos.length > 0) {
+        html += '<div class="portada-row">' +
+            '<div class="portada-row-header"><span class="portada-row-title">Últimos videos</span></div>' +
+            '<div class="portada-row-scroll">';
+        latestVideos.forEach(function(v) { html += videoCardHTML(v); });
+        html += '</div></div>';
+    }
+
+    // Placeholder rows for cine & audiolibros (filled async)
+    html += '<div class="portada-row" id="portada-row-cine" style="display:none;">' +
+        '<div class="portada-row-header"><span class="portada-row-title">Último en Cine</span></div>' +
+        '<div class="portada-row-scroll" id="portada-cine-scroll"></div>' +
+    '</div>';
+    html += '<div class="portada-row" id="portada-row-audiolibros" style="display:none;">' +
+        '<div class="portada-row-header"><span class="portada-row-title">Últimos audiolibros</span></div>' +
+        '<div class="portada-row-scroll" id="portada-audio-scroll"></div>' +
+    '</div>';
+
+    rowsContainer.innerHTML = html;
+    bindWatchLaterButtons(rowsContainer);
+
+    // Fetch cine
+    fetch('api.php?action=contenido_ia&seccion=cine')
+        .then(function(r) { return r.json(); })
+        .then(function(items) {
+            var latest = items.slice(0, 5);
+            if (latest.length === 0) return;
+            var container = document.getElementById('portada-cine-scroll');
+            var h = '';
+            latest.forEach(function(item) { h += iaCardHTML(item); });
+            container.innerHTML = h;
+            document.getElementById('portada-row-cine').style.display = '';
+        }).catch(function(){});
+
+    // Fetch audiolibros
+    fetch('api.php?action=contenido_ia&seccion=audiolibros')
+        .then(function(r) { return r.json(); })
+        .then(function(items) {
+            var latest = items.slice(0, 5);
+            if (latest.length === 0) return;
+            var container = document.getElementById('portada-audio-scroll');
+            var h = '';
+            latest.forEach(function(item) { h += iaCardHTML(item); });
+            container.innerHTML = h;
+            document.getElementById('portada-row-audiolibros').style.display = '';
+        }).catch(function(){});
+}
+
+function buildPortada() {
+    buildPortadaCards();
+    buildPortadaRows();
 }
 
 // ── Init ──
@@ -787,7 +1003,7 @@ document.getElementById('search').addEventListener('input', function() {
 document.getElementById('mobile-search-close').addEventListener('click', function() {
     document.getElementById('mobile-search-overlay').classList.remove('open');
     document.getElementById('mobile-search-input').value = '';
-    renderGrid();
+    filterAll();
 });
 document.getElementById('mobile-search-input').addEventListener('input', function() {
     clearTimeout(searchTimer);
