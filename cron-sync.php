@@ -75,7 +75,7 @@ logMsg(count($canales) . " canal(es) para sincronizar.");
 
 $totalVideos = 0;
 $totalPlaylists = 0;
-$maxVideosTotal = 50; // Límite global por ejecución del cron
+$maxVideosTotal = 100; // Límite global por ejecución del cron
 $videosRestantes = $maxVideosTotal;
 
 foreach ($canales as $canal) {
