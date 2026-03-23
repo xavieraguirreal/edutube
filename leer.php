@@ -27,7 +27,7 @@ if ($itemId) {
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         img-src 'self' https://www.gutenberg.org https://*.gutenberg.org https://archive.org https://*.archive.org blob: data:;
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com blob:;
         font-src 'self' https://fonts.gstatic.com blob: data:;
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
         connect-src 'self' blob:;
