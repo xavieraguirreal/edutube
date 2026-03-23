@@ -35,7 +35,7 @@ if ($action === 'videos') {
         LEFT JOIN categorias cat ON v.categoria_id = cat.id
         LEFT JOIN categorias dcat ON c.default_categoria_id = dcat.id
         WHERE $where
-        ORDER BY v.fecha_yt DESC
+        ORDER BY c.prioridad_portada DESC, v.fecha_yt DESC
     ");
     $videos = $stmt->fetchAll();
 

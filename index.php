@@ -395,9 +395,7 @@ function buildLatestRows() {
     fetch('api.php?action=videos')
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            var videos = (data.videos || []).sort(function(a,b) {
-                return (b.fecha_yt||'').localeCompare(a.fecha_yt||'');
-            }).slice(0, 6);
+            var videos = (data.videos || []).slice(0, 6);
             var html = '';
             videos.forEach(function(v) {
                 html += '<a href="watch?v=' + v.youtube_id + '" class="latest-card">' +
