@@ -440,11 +440,14 @@ if ($action === 'search_ia') {
     // Check which ia_ids already exist in our DB
     $existingIds = [];
     if ($docs) {
-        $placeholders = implode(',', array_fill(0, count($docs), '?'));
-        $ids = array_map(function($d) { return $d['identifier']; }, $docs);
-        $stmt = $db->prepare("SELECT ia_id FROM contenido_ia WHERE ia_id IN ($placeholders)");
-        $stmt->execute($ids);
-        $existingIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $checkStmt = $db->prepare("SELECT ia_id FROM contenido_ia WHERE ia_id = ? LIMIT 1");
+        foreach ($docs as $doc) {
+            $checkStmt->execute([$doc['identifier']]);
+            $found = $checkStmt->fetchColumn();
+            if ($found !== false) {
+                $existingIds[] = $doc['identifier'];
+            }
+        }
     }
 
     $results = [];
