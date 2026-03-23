@@ -141,7 +141,7 @@ function formatDate(dateStr) {
             // Generate iaLookup from DB
             try {
                 if (!isset($db)) { require_once __DIR__ . '/config.php'; $db = getDB(); }
-                $iaStmt = $db->query("SELECT slug, ia_id FROM contenido_ia WHERE activo = 1 AND bloqueado = 0");
+                $iaStmt = $db->query("SELECT slug, ia_id FROM contenido_ia WHERE activo = 1");
                 $iaMap = [];
                 foreach ($iaStmt->fetchAll() as $row) {
                     $iaMap['ia:' . $row['slug']] = $row['ia_id'];
@@ -227,7 +227,8 @@ function formatDate(dateStr) {
                 });
             })
             .catch(function() {
-                page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">Error al cargar el contenido</h2><a href="javascript:history.back()" class="btn-back">← Volver</a></div>';
+                page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">Error al cargar el contenido</h2><p style="color:#888;font-size:0.85rem;">ID: ' + iaId + '</p><a href="javascript:history.back()" class="btn-back">← Volver</a></div>';
+                console.error('IA fetch error for', iaId, arguments);
             });
         return;
     }
@@ -687,7 +688,7 @@ function formatDate(dateStr) {
         var iaAllContent = <?php
             try {
                 if (!isset($db)) { require_once __DIR__ . '/config.php'; $db = getDB(); }
-                $iaAllStmt = $db->query("SELECT slug, ia_id, titulo, director, genero FROM contenido_ia WHERE activo = 1 AND bloqueado = 0 ORDER BY orden, titulo");
+                $iaAllStmt = $db->query("SELECT slug, ia_id, titulo, director, genero FROM contenido_ia WHERE activo = 1 ORDER BY orden, titulo LIMIT 50");
                 $iaAll = [];
                 foreach ($iaAllStmt->fetchAll() as $row) {
                     $iaAll[] = [
