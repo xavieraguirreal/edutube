@@ -272,16 +272,27 @@ if (!localStorage.getItem('edutube_welcomed')) {
 
 <!-- ── MAIN ── -->
 <main class="main" id="main-content">
+    <!-- Slogan -->
+    <div style="text-align:center;padding:1.5rem 1rem 0.5rem;">
+        <div style="font-size:1.15rem;font-weight:600;color:var(--text-primary);">Plataforma de contenido educativo y cultural</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.3rem;">Sin algoritmos, sin publicidad. Solo educación.</div>
+    </div>
+
     <!-- Section cards -->
     <div class="portal-cards" id="portal-cards"></div>
 
     <!-- Novedades separator -->
-    <div class="section-separator">
-        <h2>Novedades</h2>
+    <div style="display:flex;align-items:center;gap:1rem;margin:1.5rem 0 1rem;padding:0 0.5rem;">
+        <div style="flex:1;height:1px;background:var(--border-color,#e0e0e0);"></div>
+        <h2 style="font-size:1.1rem;font-weight:600;color:var(--text-secondary,#555);white-space:nowrap;margin:0;">Novedades</h2>
+        <div style="flex:1;height:1px;background:var(--border-color,#e0e0e0);"></div>
     </div>
 
     <!-- Latest content rows -->
     <div id="latest-rows"></div>
+
+    <!-- Search results (hidden by default) -->
+    <div id="search-results" style="display:none;"></div>
 </main>
 
 <!-- ── BOTTOM NAV (mobile) ── -->
@@ -461,8 +472,92 @@ document.getElementById('nav-liked').addEventListener('click', function(e) {
 // Search → redirect to videos page
 function doSearch(q) {
     q = q.trim();
-    if (!q) return;
-    window.location.href = 'videos?q=' + encodeURIComponent(q);
+    if (!q) {
+        document.getElementById('search-results').style.display = 'none';
+        document.getElementById('portal-cards').style.display = '';
+        document.querySelector('[style*="Novedades"]') && document.querySelectorAll('#main-content > div').forEach(function(d) { d.style.display = ''; });
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+    // Hide portal, show results
+    document.getElementById('portal-cards').style.display = 'none';
+    document.getElementById('latest-rows').style.display = 'none';
+    var sloganEl = document.getElementById('main-content').children[0];
+    if (sloganEl) sloganEl.style.display = 'none';
+    var sepEl = document.getElementById('main-content').children[2];
+    if (sepEl) sepEl.style.display = 'none';
+    var resultsDiv = document.getElementById('search-results');
+    resultsDiv.style.display = '';
+    resultsDiv.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">Buscando "' + q + '"...</p>';
+
+    // Search across all sections in parallel
+    var lq = q.toLowerCase();
+    Promise.all([
+        fetch('api.php?action=search&q=' + encodeURIComponent(q)).then(function(r) { return r.json(); }),
+        fetch('api.php?action=contenido_ia').then(function(r) { return r.json(); })
+    ]).then(function(res) {
+        var videos = (res[0].videos || []).slice(0, 10);
+        var iaAll = res[1] || [];
+        var iaResults = iaAll.filter(function(item) {
+            return item.titulo.toLowerCase().indexOf(lq) > -1 ||
+                   (item.director || '').toLowerCase().indexOf(lq) > -1 ||
+                   (item.genero || '').toLowerCase().indexOf(lq) > -1;
+        });
+        var cineResults = iaResults.filter(function(i) { return i.section === 'Cine'; }).slice(0, 10);
+        var audioResults = iaResults.filter(function(i) { return i.section === 'Audiolibro'; }).slice(0, 10);
+        var total = videos.length + cineResults.length + audioResults.length;
+
+        if (!total) {
+            resultsDiv.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron resultados para "' + q + '"</p>';
+            return;
+        }
+
+        var html = '<div style="padding:0.5rem 0;">';
+        html += '<div style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">' + total + ' resultados para "' + q + '"</div>';
+
+        if (videos.length) {
+            html += '<h3 style="font-size:1rem;margin:1rem 0 0.5rem;"><a href="videos?q=' + encodeURIComponent(q) + '" style="color:var(--text-primary);text-decoration:none;">Videos (' + videos.length + ') →</a></h3>';
+            html += '<div class="video-grid" style="display:grid;">';
+            videos.forEach(function(v) {
+                html += '<div class="video-card"><a href="watch?v=' + v.youtube_id + '" class="thumb"><img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                    (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
+                    '</a><div class="card-info"><div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '▶') + '</div>' +
+                    '<div class="card-text"><a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +
+                    '<div class="card-channel-static">' + (v.canal_nombre || '') + '</div></div></div></div>';
+            });
+            html += '</div>';
+        }
+
+        if (cineResults.length) {
+            html += '<h3 style="font-size:1rem;margin:1.5rem 0 0.5rem;"><a href="cine" style="color:var(--text-primary);text-decoration:none;">Cine (' + cineResults.length + ') →</a></h3>';
+            html += '<div class="video-grid" style="display:grid;">';
+            cineResults.forEach(function(p) {
+                html += '<div class="video-card"><a href="watch?v=' + p.id + '" class="thumb"><img src="https://archive.org/download/' + p.ia_id + '/__ia_thumb.jpg" alt="" loading="lazy">' +
+                    (p.duracion ? '<span class="duration-badge">' + p.duracion + '</span>' : '') +
+                    '</a><div class="card-info"><div class="channel-avatar" style="background:#e63946;font-size:0.65rem;">🎬</div>' +
+                    '<div class="card-text"><a href="watch?v=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
+                    '<div class="card-channel-static">' + (p.director || '') + '</div></div></div></div>';
+            });
+            html += '</div>';
+        }
+
+        if (audioResults.length) {
+            html += '<h3 style="font-size:1rem;margin:1.5rem 0 0.5rem;"><a href="audiolibros" style="color:var(--text-primary);text-decoration:none;">Audiolibros (' + audioResults.length + ') →</a></h3>';
+            html += '<div class="video-grid" style="display:grid;">';
+            audioResults.forEach(function(p) {
+                html += '<div class="video-card"><a href="watch?v=' + p.id + '" class="thumb"><img src="https://archive.org/download/' + p.ia_id + '/__ia_thumb.jpg" alt="" loading="lazy">' +
+                    '</a><div class="card-info"><div class="channel-avatar" style="background:#6a4c93;font-size:0.65rem;">📖</div>' +
+                    '<div class="card-text"><a href="watch?v=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
+                    '<div class="card-channel-static">' + (p.director || '') + '</div></div></div></div>';
+            });
+            html += '</div>';
+        }
+
+        html += '</div>';
+        resultsDiv.innerHTML = html;
+    }).catch(function() {
+        resultsDiv.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">Error al buscar</p>';
+    });
 }
 
 document.getElementById('search').addEventListener('keydown', function(e) {
