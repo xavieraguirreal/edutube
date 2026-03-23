@@ -332,11 +332,67 @@ if ($action === 'contenido_ia') {
     exit;
 }
 
+// ── Bulk import IA content (AJAX, no page reload) ──
+if ($action === 'import_ia_batch') {
+    // Verify admin session
+    session_start();
+    require_once __DIR__ . '/config.php';
+    if (empty($_SESSION[ADMIN_SESSION_NAME])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'No autorizado']);
+        exit;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $items = $input['items'] ?? [];
+    $genero = trim($input['genero'] ?? '');
+
+    // Validate genre
+    $GENEROS_VALIDOS = ['Drama','Comedia','Terror','Ciencia ficción','Aventura','Acción','Suspenso','Film Noir','Animación','Documental','Historia','Sociedad','Musical','Romance','Western','Bélico','Cine mudo'];
+    $generoFinal = '';
+    foreach ($GENEROS_VALIDOS as $v) {
+        if (mb_strtolower($genero) === mb_strtolower($v)) { $generoFinal = $v; break; }
+    }
+
+    $imported = 0;
+    $skipped = 0;
+    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
+    $slugCheck = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");
+
+    foreach ($items as $item) {
+        $ia_id = trim($item['ia_id'] ?? '');
+        if (!$ia_id) continue;
+        $dupCheck->execute([$ia_id]);
+        if ($dupCheck->fetch()) { $skipped++; continue; }
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $ia_id);
+        if (!$slug) $slug = 'ia_' . $imported;
+        $baseSlug = mb_substr($slug, 0, 90);
+        $slug = $baseSlug;
+        $n = 1;
+        $slugCheck->execute([$slug]);
+        while ($slugCheck->fetch()) {
+            $slug = $baseSlug . '_' . $n++;
+            $slugCheck->execute([$slug]);
+        }
+        $titulo = trim($item['titulo'] ?? $ia_id);
+        $director = trim($item['director'] ?? '');
+        $year = intval($item['year'] ?? 0) ?: null;
+        $duracion = trim($item['duracion'] ?? '');
+        $descripcion = trim($item['descripcion'] ?? '');
+        $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $generoFinal, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
+        $imported++;
+    }
+
+    echo json_encode(['imported' => $imported, 'skipped' => $skipped], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // ── Search Internet Archive (admin proxy) ──
 if ($action === 'search_ia') {
     $q = trim($_GET['q'] ?? '');
     $lang = trim($_GET['lang'] ?? 'Spanish');
-    $rows = min(intval($_GET['rows'] ?? 30), 50);
+    $rows = min(intval($_GET['rows'] ?? 30), 200);
     $page = max(intval($_GET['page'] ?? 0), 0);
     $start = $page * $rows;
     if (!$q) {

@@ -1487,12 +1487,24 @@ $section = $_GET['s'] ?? 'dashboard';
                 <div id="ia-search-results"></div>
                 <div id="ia-import-actions" style="display:none;margin-top:1rem;flex-wrap:wrap;gap:0.5rem;align-items:center;">
                     <button type="button" class="btn btn-primary" onclick="importSelected()">Importar seleccionados</button>
-                    <button type="button" class="btn btn-outline" onclick="toggleSelectAll()">Seleccionar/deseleccionar todos</button>
+                    <button type="button" class="btn btn-outline" onclick="toggleSelectAll()">Sel./desel. todos</button>
                     <span id="ia-selected-count" style="font-size:0.85rem;color:#888;"></span>
                     <span style="flex:1;"></span>
                     <button type="button" class="btn btn-outline btn-sm" id="ia-prev-btn" onclick="searchIA(iaCurrentPage-1)" disabled>← Anterior</button>
                     <span id="ia-page-info" style="font-size:0.82rem;color:#888;"></span>
                     <button type="button" class="btn btn-outline btn-sm" id="ia-next-btn" onclick="searchIA(iaCurrentPage+1)">Siguiente →</button>
+                </div>
+                <div id="ia-import-all-actions" style="display:none;margin-top:0.5rem;padding:0.75rem;background:#f9f9f9;border-radius:8px;border:1px solid #e0e0e0;">
+                    <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                        <button type="button" class="btn btn-primary" id="btn-import-all" onclick="importAll()">Importar TODOS los resultados</button>
+                        <span id="ia-import-all-info" style="font-size:0.85rem;color:#888;"></span>
+                    </div>
+                    <div id="ia-import-progress" style="display:none;margin-top:0.5rem;">
+                        <div style="background:#e0e0e0;border-radius:4px;height:8px;overflow:hidden;">
+                            <div id="ia-progress-bar" style="background:#2e8b47;height:100%;width:0%;transition:width 0.3s;"></div>
+                        </div>
+                        <div id="ia-progress-text" style="font-size:0.82rem;color:#888;margin-top:0.3rem;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -1610,6 +1622,13 @@ $section = $_GET['s'] ?? 'dashboard';
                 document.getElementById('ia-prev-btn').disabled = iaCurrentPage <= 0;
                 document.getElementById('ia-next-btn').disabled = iaCurrentPage >= totalPages - 1;
                 document.getElementById('ia-page-info').textContent = 'Pág. ' + (iaCurrentPage + 1) + ' de ' + totalPages;
+                // Show import-all if there are many results
+                if (iaTotalResults > iaPageSize) {
+                    document.getElementById('ia-import-all-actions').style.display = '';
+                    document.getElementById('ia-import-all-info').textContent = iaTotalResults.toLocaleString() + ' títulos en total — importa todos de una vez';
+                } else {
+                    document.getElementById('ia-import-all-actions').style.display = 'none';
+                }
             }
 
             function updateSelectedCount() {
@@ -1656,6 +1675,101 @@ $section = $_GET['s'] ?? 'dashboard';
                 form.querySelector('[name="items"]').value = JSON.stringify(items);
                 document.body.appendChild(form);
                 form.submit();
+            }
+
+            // ── Import ALL results ──
+            function importAll() {
+                var genero = document.getElementById('ia-import-genero').value;
+                if (!confirm('¿Importar los ' + iaTotalResults.toLocaleString() + ' resultados?\nGénero: ' + (genero || 'Sin género') + '\nEsto puede tardar unos minutos.')) return;
+
+                var btn = document.getElementById('btn-import-all');
+                btn.disabled = true; btn.textContent = 'Importando...';
+                var progressDiv = document.getElementById('ia-import-progress');
+                var progressBar = document.getElementById('ia-progress-bar');
+                var progressText = document.getElementById('ia-progress-text');
+                progressDiv.style.display = '';
+
+                // Build the same search URL but with bigger batches
+                var q = document.getElementById('ia-search-q').value.trim() || '*';
+                var lang = document.getElementById('ia-search-lang').value;
+                var col = document.getElementById('ia-search-col').value;
+                var batchSize = 100;
+                var totalPages = Math.ceil(iaTotalResults / batchSize);
+                var totalImported = 0;
+                var totalSkipped = 0;
+                var currentPage = 0;
+
+                function processBatch() {
+                    if (currentPage >= totalPages) {
+                        // Done
+                        progressBar.style.width = '100%';
+                        progressText.textContent = 'Completado: ' + totalImported + ' importados, ' + totalSkipped + ' ya existían';
+                        btn.textContent = 'Importar TODOS los resultados'; btn.disabled = false;
+                        // Reload page to refresh list
+                        setTimeout(function() { window.location.href = '?s=contenido_ia'; }, 2000);
+                        return;
+                    }
+
+                    var pct = Math.round((currentPage / totalPages) * 100);
+                    progressBar.style.width = pct + '%';
+                    progressText.textContent = 'Página ' + (currentPage + 1) + ' de ' + totalPages + ' — importados: ' + totalImported + ', ya existían: ' + totalSkipped;
+
+                    // Fetch results from IA search
+                    var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q) + '&rows=' + batchSize + '&page=' + currentPage;
+                    if (lang) url += '&lang=' + encodeURIComponent(lang);
+                    if (col) url += '&collection=' + encodeURIComponent(col);
+
+                    fetch(url)
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            if (data.error || !data.results || !data.results.length) {
+                                currentPage = totalPages; // stop
+                                processBatch();
+                                return;
+                            }
+                            // Send items to import endpoint
+                            var items = data.results.filter(function(r) { return !r.ya_existe; }).map(function(r) {
+                                return {
+                                    ia_id: r.ia_id,
+                                    titulo: r.titulo,
+                                    director: r.director || '',
+                                    year: r.year || '',
+                                    duracion: r.duracion || '',
+                                    descripcion: r.descripcion || ''
+                                };
+                            });
+                            totalSkipped += data.results.length - items.length;
+
+                            if (!items.length) {
+                                currentPage++;
+                                processBatch();
+                                return;
+                            }
+
+                            fetch('api.php?action=import_ia_batch', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({items: items, genero: genero})
+                            })
+                            .then(function(r) { return r.json(); })
+                            .then(function(result) {
+                                totalImported += result.imported || 0;
+                                totalSkipped += result.skipped || 0;
+                                currentPage++;
+                                processBatch();
+                            })
+                            .catch(function() {
+                                progressText.textContent = 'Error en lote ' + (currentPage + 1) + '. Reintentando...';
+                                setTimeout(processBatch, 2000);
+                            });
+                        })
+                        .catch(function() {
+                            progressText.textContent = 'Error de conexión. Reintentando...';
+                            setTimeout(processBatch, 2000);
+                        });
+                }
+
+                processBatch();
             }
 
             // When global genre changes, fill empty per-row selects
