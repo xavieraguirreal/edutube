@@ -1485,7 +1485,7 @@ $section = $_GET['s'] ?? 'dashboard';
                     </div>
                     <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
                         <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;">
-                            <input type="checkbox" id="ia-import-inactive" checked>
+                            <input type="checkbox" id="ia-import-inactive">
                             Importar como inactivo (requiere revisión)
                         </label>
                     </div>
@@ -1787,6 +1787,11 @@ $section = $_GET['s'] ?? 'dashboard';
 
                 processBatch();
             }
+
+            // Auto-check "inactivo" for community collection
+            document.getElementById('ia-search-col').addEventListener('change', function() {
+                document.getElementById('ia-import-inactive').checked = (this.value === 'opensource_movies' || this.value === '');
+            });
 
             // When global genre changes, fill empty per-row selects
             document.getElementById('ia-import-genero').addEventListener('change', function() {
