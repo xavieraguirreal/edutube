@@ -397,7 +397,13 @@ if ($action === 'search_ia') {
     }
 
     // Build IA advanced search query
+    $tipo = trim($_GET['tipo'] ?? '');
     $iaQuery = '(' . $q . ') AND mediatype:movies';
+    if ($tipo === 'documental') {
+        $iaQuery .= ' AND (subject:(documentary OR documental) OR title:(documentary OR documental))';
+    } elseif ($tipo === 'pelicula') {
+        $iaQuery .= ' AND NOT (subject:(documentary OR documental) OR title:(documentary OR documental))';
+    }
     if ($lang) {
         $iaQuery .= ' AND language:(' . $lang . ')';
     }

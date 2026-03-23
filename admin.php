@@ -627,7 +627,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // ── Bulk import IA content ──
         if ($action === 'bulk_import_ia') {
             $items = json_decode($_POST['items'] ?? '[]', true);
-            $tipo = in_array($_POST['tipo'] ?? '', ['pelicula', 'documental']) ? $_POST['tipo'] : 'pelicula';
             $imported = 0;
             $skipped = 0;
             if (is_array($items)) {
@@ -636,12 +635,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 foreach ($items as $item) {
                     $ia_id = trim($item['ia_id'] ?? '');
                     if (!$ia_id) continue;
-                    // Check duplicate
                     $dupCheck->execute([$ia_id]);
                     if ($dupCheck->fetch()) { $skipped++; continue; }
-                    // Generate slug from ia_id (clean it)
+                    $tipo = in_array($item['tipo'] ?? '', ['pelicula', 'documental']) ? $item['tipo'] : 'pelicula';
                     $slug = preg_replace('/[^a-zA-Z0-9_-]/', '', $item['slug'] ?? $ia_id);
-                    // Check slug duplicate, append number if needed
                     $baseSlug = $slug;
                     $n = 1;
                     $slugCheck = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");
@@ -1420,6 +1417,14 @@ $section = $_GET['s'] ?? 'dashboard';
                         <input type="text" id="ia-search-q" placeholder="ej: película drama, documental historia..." value="">
                     </div>
                     <div class="form-group" style="max-width:180px;">
+                        <label>Tipo</label>
+                        <select id="ia-search-tipo">
+                            <option value="pelicula">Películas</option>
+                            <option value="documental">Documentales</option>
+                            <option value="">Todo</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="max-width:180px;">
                         <label>Idioma</label>
                         <select id="ia-search-lang">
                             <option value="Spanish" selected>Español</option>
@@ -1428,13 +1433,6 @@ $section = $_GET['s'] ?? 'dashboard';
                             <option value="English">Inglés</option>
                             <option value="Portuguese">Portugués</option>
                             <option value="French">Francés</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="max-width:150px;">
-                        <label>Importar como</label>
-                        <select id="ia-import-tipo">
-                            <option value="pelicula">Película</option>
-                            <option value="documental">Documental</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
@@ -1457,6 +1455,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 var q = document.getElementById('ia-search-q').value.trim();
                 if (!q) { alert('Ingresá un término de búsqueda.'); return; }
                 var lang = document.getElementById('ia-search-lang').value;
+                var tipo = document.getElementById('ia-search-tipo').value;
                 var btn = document.getElementById('btn-ia-search');
                 var status = document.getElementById('ia-search-status');
                 btn.textContent = 'Buscando...'; btn.disabled = true;
@@ -1466,6 +1465,7 @@ $section = $_GET['s'] ?? 'dashboard';
 
                 var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q);
                 if (lang) url += '&lang=' + encodeURIComponent(lang);
+                if (tipo) url += '&tipo=' + encodeURIComponent(tipo);
 
                 fetch(url)
                     .then(function(r) { return r.json(); })
@@ -1485,18 +1485,28 @@ $section = $_GET['s'] ?? 'dashboard';
             function renderIAResults() {
                 var container = document.getElementById('ia-search-results');
                 if (!iaSearchResults.length) { container.innerHTML = '<p style="color:#888;">Sin resultados.</p>'; return; }
-                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Idioma</th><th>Género</th><th></th></tr>';
+                var defaultTipo = document.getElementById('ia-search-tipo').value || 'pelicula';
+                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Tipo</th><th>Idioma</th><th></th></tr>';
                 iaSearchResults.forEach(function(r, i) {
                     var disabled = r.ya_existe ? ' disabled' : '';
                     var badge = r.ya_existe ? ' <span class="badge badge-active">Ya agregado</span>' : '';
+                    // Auto-detect tipo from genre/title keywords
+                    var autoTipo = defaultTipo;
+                    var lowerGenre = (r.genero || '').toLowerCase();
+                    var lowerTitle = (r.titulo || '').toLowerCase();
+                    if (lowerGenre.match(/document|documental/) || lowerTitle.match(/document|documental/)) autoTipo = 'documental';
+                    iaSearchResults[i]._tipo = autoTipo;
                     html += '<tr style="' + (r.ya_existe ? 'opacity:0.5;' : '') + '">' +
                         '<td><input type="checkbox" class="ia-check" data-idx="' + i + '"' + disabled + (r.ya_existe ? '' : ' checked') + '></td>' +
                         '<td><img src="https://archive.org/download/' + r.ia_id + '/__ia_thumb.jpg" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display=\'none\'"></td>' +
                         '<td>' + r.titulo + badge + '</td>' +
                         '<td>' + (r.director || '—') + '</td>' +
                         '<td>' + (r.year || '—') + '</td>' +
+                        '<td><select class="ia-tipo-select" data-idx="' + i + '" style="font-size:0.78rem;padding:2px 4px;border-radius:4px;border:1px solid #ddd;"' + (r.ya_existe ? ' disabled' : '') + '>' +
+                            '<option value="pelicula"' + (autoTipo === 'pelicula' ? ' selected' : '') + '>Película</option>' +
+                            '<option value="documental"' + (autoTipo === 'documental' ? ' selected' : '') + '>Documental</option>' +
+                        '</select></td>' +
                         '<td>' + (r.idioma || '—') + '</td>' +
-                        '<td style="font-size:0.78rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (r.genero || '—') + '</td>' +
                         '<td><a href="https://archive.org/details/' + r.ia_id + '" target="_blank" class="btn btn-sm btn-outline">Ver en IA</a></td>' +
                     '</tr>';
                 });
@@ -1504,9 +1514,13 @@ $section = $_GET['s'] ?? 'dashboard';
                 container.innerHTML = html;
                 document.getElementById('ia-import-actions').style.display = '';
                 updateSelectedCount();
-                // Bind checkboxes
                 document.querySelectorAll('.ia-check').forEach(function(cb) {
                     cb.addEventListener('change', updateSelectedCount);
+                });
+                document.querySelectorAll('.ia-tipo-select').forEach(function(sel) {
+                    sel.addEventListener('change', function() {
+                        iaSearchResults[parseInt(this.getAttribute('data-idx'))]._tipo = this.value;
+                    });
                 });
             }
 
@@ -1524,12 +1538,13 @@ $section = $_GET['s'] ?? 'dashboard';
             }
 
             function importSelected() {
-                var tipo = document.getElementById('ia-import-tipo').value;
                 var items = [];
                 document.querySelectorAll('.ia-check:checked:not(:disabled)').forEach(function(cb) {
-                    var r = iaSearchResults[parseInt(cb.getAttribute('data-idx'))];
+                    var idx = parseInt(cb.getAttribute('data-idx'));
+                    var r = iaSearchResults[idx];
                     items.push({
                         ia_id: r.ia_id,
+                        tipo: r._tipo || 'pelicula',
                         titulo: r.titulo,
                         director: r.director || '',
                         year: r.year || '',
@@ -1539,14 +1554,18 @@ $section = $_GET['s'] ?? 'dashboard';
                     });
                 });
                 if (!items.length) { alert('Seleccioná al menos un item.'); return; }
-                if (!confirm('¿Importar ' + items.length + ' items como ' + (tipo === 'pelicula' ? 'películas' : 'documentales') + '?')) return;
+                var pelis = items.filter(function(i) { return i.tipo === 'pelicula'; }).length;
+                var docs = items.filter(function(i) { return i.tipo === 'documental'; }).length;
+                var desc = [];
+                if (pelis) desc.push(pelis + ' película' + (pelis > 1 ? 's' : ''));
+                if (docs) desc.push(docs + ' documental' + (docs > 1 ? 'es' : ''));
+                if (!confirm('¿Importar ' + desc.join(' y ') + '?')) return;
 
                 // Submit via hidden form
                 var form = document.createElement('form');
                 form.method = 'POST'; form.style.display = 'none';
                 form.innerHTML = '<input name="action" value="bulk_import_ia">' +
                     '<input name="csrf" value="<?= $csrf ?>">' +
-                    '<input name="tipo" value="' + tipo + '">' +
                     '<input name="items" value="">';
                 form.querySelector('[name="items"]').value = JSON.stringify(items);
                 document.body.appendChild(form);
