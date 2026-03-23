@@ -1488,7 +1488,7 @@ $section = $_GET['s'] ?? 'dashboard';
                     <div class="form-group" style="max-width:160px;">
                         <label>Idioma</label>
                         <select id="ia-search-lang">
-                            <option value="Spanish OR español" selected>Español</option>
+                            <option value="Spanish OR español OR spa" selected>Español</option>
                             <option value="">Cualquier idioma</option>
                             <option value="English">Inglés</option>
                             <option value="Portuguese OR portugués">Portugués</option>
