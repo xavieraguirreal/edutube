@@ -705,6 +705,31 @@ if ($action === 'proxy_gutenberg_epub') {
     exit;
 }
 
+// ── Submit suggestion ──
+if ($action === 'sugerencia') {
+    $tipo = in_array($_POST['tipo'] ?? '', ['canal', 'tema', 'contenido', 'otro']) ? $_POST['tipo'] : 'otro';
+    $texto = trim($_POST['texto'] ?? '');
+    if (!$texto || strlen($texto) < 3) {
+        echo json_encode(['error' => 'Escribí tu sugerencia']);
+        exit;
+    }
+    if (strlen($texto) > 2000) $texto = substr($texto, 0, 2000);
+    $ipHash = hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . date('Y-m-d'));
+
+    // Rate limit: max 5 per day per IP
+    $countStmt = $db->prepare("SELECT COUNT(*) FROM sugerencias WHERE ip_hash = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)");
+    $countStmt->execute([$ipHash]);
+    if ($countStmt->fetchColumn() >= 5) {
+        echo json_encode(['error' => 'Máximo 5 sugerencias por día']);
+        exit;
+    }
+
+    $stmt = $db->prepare("INSERT INTO sugerencias (tipo, texto, ip_hash) VALUES (?, ?, ?)");
+    $stmt->execute([$tipo, $texto, $ipHash]);
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
 // ── Search Gutenberg (admin proxy) ──
 if ($action === 'search_gutenberg') {
     $q = trim($_GET['q'] ?? '');

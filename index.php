@@ -267,11 +267,65 @@ if (!localStorage.getItem('edutube_welcomed')) {
             <span class="si-badge" id="liked-count" style="display:none">0</span>
         </a>
     </div>
+    <div class="sidebar-section">
+        <a href="#" class="sidebar-item" id="nav-sugerencia" onclick="document.getElementById('modal-sugerencia').style.display='flex';return false;">
+            <span class="si-icon">💡</span><span class="si-label">Sugerir contenido</span>
+        </a>
+    </div>
     <div class="sidebar-footer">
         <strong>EduTube</strong> — Plataforma Educativa<br>
         <a href="https://comite.cooperativaliberte.coop/" target="_blank" style="color:inherit;text-decoration:underline;">Comité de Convivencia Mario Juliano</a> &copy; 2026
     </div>
 </nav>
+
+<!-- Modal sugerencia -->
+<div id="modal-sugerencia" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#fff;border-radius:16px;padding:2rem;max-width:480px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.2);">
+        <h3 style="margin-bottom:1rem;font-size:1.1rem;">Sugerir contenido</h3>
+        <p style="font-size:0.85rem;color:#888;margin-bottom:1rem;">Sugerí un canal de YouTube, un tema, una película o cualquier contenido que te gustaría ver en EduTube.</p>
+        <div style="margin-bottom:0.75rem;">
+            <select id="sug-tipo" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;font-family:inherit;">
+                <option value="canal">Canal de YouTube</option>
+                <option value="tema">Tema o materia</option>
+                <option value="contenido">Película / Libro / Audiolibro</option>
+                <option value="otro">Otro</option>
+            </select>
+        </div>
+        <div style="margin-bottom:1rem;">
+            <textarea id="sug-texto" rows="3" placeholder="Escribí tu sugerencia..." style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;font-family:inherit;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+            <button onclick="document.getElementById('modal-sugerencia').style.display='none';" style="padding:0.5rem 1rem;border:1px solid #ddd;border-radius:8px;background:none;cursor:pointer;font-family:inherit;">Cancelar</button>
+            <button id="sug-enviar" onclick="enviarSugerencia()" style="padding:0.5rem 1rem;border:none;border-radius:8px;background:#2e8b47;color:#fff;cursor:pointer;font-family:inherit;font-weight:500;">Enviar</button>
+        </div>
+        <div id="sug-msg" style="margin-top:0.75rem;font-size:0.85rem;display:none;"></div>
+    </div>
+</div>
+<script>
+function enviarSugerencia() {
+    var tipo = document.getElementById('sug-tipo').value;
+    var texto = document.getElementById('sug-texto').value.trim();
+    var msg = document.getElementById('sug-msg');
+    var btn = document.getElementById('sug-enviar');
+    if (!texto) { msg.style.display=''; msg.style.color='#c00'; msg.textContent='Escribí algo'; return; }
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    var fd = new FormData();
+    fd.append('tipo', tipo);
+    fd.append('texto', texto);
+    fetch('api.php?action=sugerencia', { method:'POST', body:fd })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            btn.disabled = false; btn.textContent = 'Enviar';
+            if (d.error) { msg.style.display=''; msg.style.color='#c00'; msg.textContent=d.error; }
+            else {
+                msg.style.display=''; msg.style.color='#2e8b47'; msg.textContent='Gracias por tu sugerencia.';
+                document.getElementById('sug-texto').value = '';
+                setTimeout(function(){ document.getElementById('modal-sugerencia').style.display='none'; msg.style.display='none'; }, 2000);
+            }
+        })
+        .catch(function(){ btn.disabled=false; btn.textContent='Enviar'; msg.style.display=''; msg.style.color='#c00'; msg.textContent='Error al enviar'; });
+}
+</script>
 
 <!-- ── MAIN ── -->
 <main class="main" id="main-content">

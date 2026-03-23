@@ -817,6 +817,10 @@ $section = $_GET['s'] ?? 'dashboard';
         <a href="?s=contenido_ia" class="<?= $section==='contenido_ia'?'active':'' ?>">🎬 Cine</a>
         <a href="?s=audiolibros" class="<?= $section==='audiolibros'?'active':'' ?>">📖 Audiolibros</a>
         <a href="?s=libros" class="<?= $section==='libros'?'active':'' ?>">📚 Libros</a>
+        <a href="?s=sugerencias" class="<?= $section==='sugerencias'?'active':'' ?>">💡 Sugerencias<?php
+            $sugCount = 0;
+            try { $sugCount = $db->query("SELECT COUNT(*) FROM sugerencias WHERE leida = 0")->fetchColumn(); } catch(Exception $e) {}
+            if ($sugCount > 0): ?> <span style="background:#e63946;color:#fff;border-radius:10px;padding:1px 6px;font-size:0.7rem;margin-left:4px;"><?= $sugCount ?></span><?php endif; ?></a>
         <a href="?s=portada" class="<?= $section==='portada'?'active':'' ?>">🏠 Portada</a>
         <a href="?s=password" class="<?= $section==='password'?'active':'' ?>">🔑 Contraseña</a>
         <a href="/" target="_blank">🌐 Ver sitio</a>
@@ -2052,6 +2056,53 @@ $section = $_GET['s'] ?? 'dashboard';
                 updateBulkBar();
                 </script>
             </div>
+
+        <?php elseif ($section === 'sugerencias'): ?>
+            <?php
+            // Mark all as read
+            if (isset($_GET['marcar_leidas'])) {
+                $db->query("UPDATE sugerencias SET leida = 1 WHERE leida = 0");
+                header('Location: ?s=sugerencias');
+                exit;
+            }
+            if (isset($_POST['action']) && $_POST['action'] === 'delete_sugerencia') {
+                $db->prepare("DELETE FROM sugerencias WHERE id = ?")->execute([$_POST['sug_id']]);
+            }
+            $sugs = $db->query("SELECT * FROM sugerencias ORDER BY leida ASC, created_at DESC LIMIT 100")->fetchAll();
+            $unread = 0;
+            foreach ($sugs as $s) { if (!$s['leida']) $unread++; }
+            // Mark displayed as read
+            if ($unread > 0) {
+                $db->query("UPDATE sugerencias SET leida = 1 WHERE leida = 0");
+            }
+            ?>
+            <h1>Sugerencias de usuarios (<?= count($sugs) ?>)</h1>
+            <?php if (empty($sugs)): ?>
+                <p style="color:#888;">No hay sugerencias todavía.</p>
+            <?php else: ?>
+                <div class="card">
+                    <table>
+                        <tr><th>Tipo</th><th>Sugerencia</th><th>Fecha</th><th></th></tr>
+                        <?php foreach ($sugs as $s):
+                            $tipoLabels = ['canal'=>'Canal YT','tema'=>'Tema','contenido'=>'Contenido','otro'=>'Otro'];
+                        ?>
+                        <tr style="<?= !$s['leida'] ? 'background:#eef7f0;font-weight:500;' : '' ?>">
+                            <td><span class="badge badge-active" style="font-size:0.75rem;"><?= $tipoLabels[$s['tipo']] ?? $s['tipo'] ?></span></td>
+                            <td style="max-width:400px;"><?= e($s['texto']) ?></td>
+                            <td style="font-size:0.78rem;color:#888;white-space:nowrap;"><?= date('d/m/Y H:i', strtotime($s['created_at'])) ?></td>
+                            <td>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar?')">
+                                    <input type="hidden" name="action" value="delete_sugerencia">
+                                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                                    <input type="hidden" name="sug_id" value="<?= $s['id'] ?>">
+                                    <button class="btn btn-sm btn-danger">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </table>
+                </div>
+            <?php endif; ?>
 
         <?php elseif ($section === 'password'): ?>
             <h1>Cambiar contraseña</h1>
