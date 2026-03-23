@@ -82,6 +82,9 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <a href="cine" class="sidebar-item">
             <span class="si-icon">🎬</span><span class="si-label">Cine</span>
         </a>
+        <a href="audiolibros" class="sidebar-item">
+            <span class="si-icon">📖</span><span class="si-label">Audiolibros</span>
+        </a>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Categorías</div>
@@ -209,12 +212,9 @@ function loadVideos(apiUrl) {
                 showVideosWithSort(ALL_VIDEOS);
             }
             updateBadges();
-            var totalVideos = data.total_videos || ALL_VIDEOS.length;
-            // Fetch cine count and show combined total
-            fetch('api.php?action=contenido_ia').then(function(r){return r.json();}).then(function(ia){
-                document.getElementById('video-count').textContent = (totalVideos + ia.length) + ' títulos';
-            }).catch(function(){
-                document.getElementById('video-count').textContent = totalVideos + ' títulos';
+            // Show total count
+            fetch('api.php?action=total_titulos').then(function(r){return r.json();}).then(function(d){
+                document.getElementById('video-count').textContent = d.total + ' títulos';
             });
         });
 }

@@ -306,12 +306,25 @@ if ($action === 'canal') {
     exit;
 }
 
-// ── Contenido Internet Archive (cine) ──
+// ── Total count (all sections) ──
+if ($action === 'total_titulos') {
+    $totalVideos = $db->query("SELECT COUNT(*) FROM videos WHERE activo = 1")->fetchColumn();
+    $totalIA = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0")->fetchColumn();
+    echo json_encode(['total' => intval($totalVideos) + intval($totalIA)]);
+    exit;
+}
+
+// ── Contenido Internet Archive ──
 if ($action === 'contenido_ia') {
+    $seccion = $_GET['seccion'] ?? '';
+    $where = 'activo = 1 AND bloqueado = 0';
+    if ($seccion && in_array($seccion, ['cine', 'audiolibros'])) {
+        $where .= " AND seccion = '$seccion'";
+    }
     $stmt = $db->query("
-        SELECT slug, ia_id, titulo, director, year, duracion, genero
+        SELECT slug, ia_id, titulo, director, year, duracion, genero, seccion
         FROM contenido_ia
-        WHERE activo = 1 AND bloqueado = 0
+        WHERE $where
         ORDER BY orden, titulo
     ");
     $items = [];
@@ -325,7 +338,7 @@ if ($action === 'contenido_ia') {
             'duracion' => $row['duracion'],
             'genero' => $row['genero'] ?: 'Sin género',
             'descargas' => 0,
-            'section' => 'Cine'
+            'section' => $row['seccion'] === 'audiolibros' ? 'Audiolibro' : 'Cine'
         ];
     }
     echo json_encode($items, JSON_UNESCAPED_UNICODE);
@@ -387,7 +400,8 @@ if ($action === 'import_ia_batch') {
     $errors = 0;
     $lastError = '';
     $activo = !empty($input['activo']) ? 1 : 0;
-    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $seccion = in_array($input['seccion'] ?? '', ['cine', 'audiolibros']) ? $input['seccion'] : 'cine';
+    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo, seccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
     $slugCheck = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");
 
@@ -416,7 +430,7 @@ if ($action === 'import_ia_batch') {
         $subject = trim($item['subject'] ?? '');
         $itemGenero = detectGenero($subject, $GENERO_MAP) ?: detectGenero($titulo, $GENERO_MAP) ?: $generoDefault;
         try {
-            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $itemGenero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo]);
+            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $itemGenero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo, $seccion]);
             $imported++;
         } catch (Exception $e) {
             $errors++;
@@ -442,7 +456,9 @@ if ($action === 'search_ia') {
 
     // Build IA advanced search query
     $collection = trim($_GET['collection'] ?? '');
-    $iaQuery = '(' . $q . ') AND mediatype:movies';
+    $mediatype = trim($_GET['mediatype'] ?? 'movies');
+    if (!in_array($mediatype, ['movies', 'audio'])) $mediatype = 'movies';
+    $iaQuery = '(' . $q . ') AND mediatype:' . $mediatype;
     if ($collection) {
         $iaQuery .= ' AND collection:(' . $collection . ')';
     }

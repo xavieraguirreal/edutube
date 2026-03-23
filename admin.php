@@ -568,7 +568,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if ($dup->fetch()) {
                     $msg = 'Ya existe un contenido con ese slug.'; $msgType = 'error';
                 } else {
-                    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $seccionVal = in_array($_POST['seccion'] ?? '', ['cine', 'audiolibros']) ? $_POST['seccion'] : 'cine';
+                    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, seccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $slug, $ia_id, $titulo,
                         trim($_POST['director'] ?? ''),
@@ -576,7 +577,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         trim($_POST['duracion'] ?? ''),
                         validarGenero($_POST['genero'] ?? ''),
                         trim($_POST['descripcion'] ?? ''),
-                        $_SESSION['admin_nombre'] ?? 'admin'
+                        $_SESSION['admin_nombre'] ?? 'admin',
+                        $seccionVal
                     ]);
                     $msg = 'Contenido "' . e($titulo) . '" agregado.'; $msgType = 'success';
                 }
@@ -665,7 +667,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $skipped = 0;
             if (is_array($items)) {
                 $activo = isset($_POST['activo']) ? intval($_POST['activo']) : 1;
-                $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $seccionVal = in_array($_POST['seccion'] ?? '', ['cine', 'audiolibros']) ? $_POST['seccion'] : 'cine';
+                $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo, seccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
                 foreach ($items as $item) {
                     $ia_id = trim($item['ia_id'] ?? '');
@@ -687,7 +690,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $duracion = trim($item['duracion'] ?? '');
                     $genero = validarGenero($item['genero'] ?? '');
                     $descripcion = trim($item['descripcion'] ?? '');
-                    $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $genero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo]);
+                    $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $genero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo, $seccionVal]);
                     $imported++;
                 }
             }
@@ -803,6 +806,7 @@ $section = $_GET['s'] ?? 'dashboard';
         <a href="?s=canales" class="<?= $section==='canales'?'active':'' ?>">📺 Canales</a>
         <a href="?s=categorias" class="<?= $section==='categorias'?'active':'' ?>">🏷 Categorías</a>
         <a href="?s=contenido_ia" class="<?= $section==='contenido_ia'?'active':'' ?>">🎬 Cine</a>
+        <a href="?s=audiolibros" class="<?= $section==='audiolibros'?'active':'' ?>">📖 Audiolibros</a>
         <a href="?s=portada" class="<?= $section==='portada'?'active':'' ?>">🏠 Portada</a>
         <a href="?s=password" class="<?= $section==='password'?'active':'' ?>">🔑 Contraseña</a>
         <a href="/" target="_blank">🌐 Ver sitio</a>
@@ -1338,8 +1342,13 @@ $section = $_GET['s'] ?? 'dashboard';
             </table>
             <?php endif; ?>
 
-        <?php elseif ($section === 'contenido_ia'): ?>
-            <h1>Cine (<?= $totalCine ?>)</h1>
+        <?php elseif ($section === 'contenido_ia' || $section === 'audiolibros'):
+            $isAudio = ($section === 'audiolibros');
+            $seccionDB = $isAudio ? 'audiolibros' : 'cine';
+            $seccionLabel = $isAudio ? 'Audiolibros' : 'Cine';
+            $totalSeccion = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE seccion = '$seccionDB'")->fetchColumn();
+        ?>
+            <h1><?= $seccionLabel ?> (<?= $totalSeccion ?>)</h1>
 
             <?php
             $editIA = null;
@@ -1355,6 +1364,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 <form method="POST" id="ia-form">
                     <input type="hidden" name="action" value="<?= $editIA ? 'edit_ia' : 'add_ia' ?>">
                     <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                    <input type="hidden" name="seccion" value="<?= $seccionDB ?>">
                     <?php if ($editIA): ?>
                         <input type="hidden" name="ia_content_id" value="<?= $editIA['id'] ?>">
                     <?php endif; ?>
@@ -1454,6 +1464,13 @@ $section = $_GET['s'] ?? 'dashboard';
                     <div class="form-group" style="max-width:200px;">
                         <label>Colección</label>
                         <select id="ia-search-col">
+                            <?php if ($isAudio): ?>
+                            <option value="" selected>Todas</option>
+                            <option value="librivoxaudio">LibriVox (audiolibros)</option>
+                            <option value="audio_bookspoetry">Libros y poesía</option>
+                            <option value="audio_foreign">Audio no-inglés</option>
+                            <option value="opensource_audio">Audio comunidad</option>
+                            <?php else: ?>
                             <option value="" selected>Todas</option>
                             <option value="feature_films">Largometrajes</option>
                             <option value="short_films">Cortometrajes</option>
@@ -1463,8 +1480,11 @@ $section = $_GET['s'] ?? 'dashboard';
                             <option value="anime">Anime</option>
                             <option value="ephemera">Films educativos</option>
                             <option value="opensource_movies">Videos comunidad</option>
+                            <?php endif; ?>
                         </select>
                     </div>
+                    <input type="hidden" id="ia-search-mediatype" value="<?= $isAudio ? 'audio' : 'movies' ?>">
+                    <input type="hidden" id="ia-search-seccion" value="<?= $seccionDB ?>">
                     <div class="form-group" style="max-width:160px;">
                         <label>Idioma</label>
                         <select id="ia-search-lang">
@@ -1594,7 +1614,8 @@ $section = $_GET['s'] ?? 'dashboard';
                 document.getElementById('ia-search-results').innerHTML = '';
                 document.getElementById('ia-import-actions').style.display = 'none';
 
-                var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q || '*');
+                var mediatype = document.getElementById('ia-search-mediatype').value;
+                var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q || '*') + '&mediatype=' + mediatype;
                 if (lang) url += '&lang=' + encodeURIComponent(lang);
                 if (col) url += '&collection=' + encodeURIComponent(col);
                 url += '&rows=' + iaPageSize + '&page=' + iaCurrentPage;
@@ -1751,7 +1772,8 @@ $section = $_GET['s'] ?? 'dashboard';
                         progressText.textContent = 'Completado: ' + totalImported + ' nuevos importados, ' + totalSkipped + ' ya existían. Recargando...';
                         btn.textContent = 'Importar TODOS los resultados'; btn.disabled = false;
                         // Reload page to refresh list
-                        setTimeout(function() { window.location.href = '?s=contenido_ia'; }, 2000);
+                        var sec = document.getElementById('ia-search-seccion').value;
+                        setTimeout(function() { window.location.href = '?s=' + (sec === 'audiolibros' ? 'audiolibros' : 'contenido_ia'); }, 2000);
                         return;
                     }
 
@@ -1760,7 +1782,7 @@ $section = $_GET['s'] ?? 'dashboard';
                     progressText.textContent = 'Página ' + (currentPage + 1) + ' de ' + totalPages + ' — importados: ' + totalImported + ', ya existían: ' + totalSkipped;
 
                     // Fetch results from IA search
-                    var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q) + '&rows=' + batchSize + '&page=' + currentPage;
+                    var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q) + '&mediatype=' + document.getElementById('ia-search-mediatype').value + '&rows=' + batchSize + '&page=' + currentPage;
                     if (lang) url += '&lang=' + encodeURIComponent(lang);
                     if (col) url += '&collection=' + encodeURIComponent(col);
 
@@ -1797,13 +1819,13 @@ $section = $_GET['s'] ?? 'dashboard';
                             if (activeItems.length) {
                                 batchPromises.push(fetch('api.php?action=import_ia_batch', {
                                     method: 'POST', headers: {'Content-Type': 'application/json'},
-                                    body: JSON.stringify({items: activeItems, genero: genero, activo: true})
+                                    body: JSON.stringify({items: activeItems, genero: genero, activo: true, seccion: document.getElementById('ia-search-seccion').value})
                                 }).then(function(r) { return r.json(); }));
                             }
                             if (inactiveItems.length) {
                                 batchPromises.push(fetch('api.php?action=import_ia_batch', {
                                     method: 'POST', headers: {'Content-Type': 'application/json'},
-                                    body: JSON.stringify({items: inactiveItems, genero: genero, activo: false})
+                                    body: JSON.stringify({items: inactiveItems, genero: genero, activo: false, seccion: document.getElementById('ia-search-seccion').value})
                                 }).then(function(r) { return r.json(); }));
                             }
                             Promise.all(batchPromises)
@@ -1853,10 +1875,10 @@ $section = $_GET['s'] ?? 'dashboard';
             $iaPage = max(intval($_GET['p'] ?? 1), 1);
             $iaPerPage = 50;
             $iaOffset = ($iaPage - 1) * $iaPerPage;
-            $iaWhere = '1=1';
-            if ($iaEstado === 'activo') $iaWhere = 'activo = 1 AND bloqueado = 0';
-            elseif ($iaEstado === 'inactivo') $iaWhere = 'activo = 0 AND bloqueado = 0';
-            elseif ($iaEstado === 'bloqueado') $iaWhere = 'bloqueado = 1';
+            $iaWhere = "seccion = '$seccionDB'";
+            if ($iaEstado === 'activo') $iaWhere .= ' AND activo = 1 AND bloqueado = 0';
+            elseif ($iaEstado === 'inactivo') $iaWhere .= ' AND activo = 0 AND bloqueado = 0';
+            elseif ($iaEstado === 'bloqueado') $iaWhere .= ' AND bloqueado = 1';
             $iaParams = [];
             if ($iaBuscar) {
                 $iaWhere .= ' AND (titulo LIKE ? OR director LIKE ? OR genero LIKE ?)';
@@ -1865,9 +1887,9 @@ $section = $_GET['s'] ?? 'dashboard';
             $countStmt = $db->prepare("SELECT COUNT(*) FROM contenido_ia WHERE $iaWhere");
             $countStmt->execute($iaParams);
             $iaTotalItems = $countStmt->fetchColumn();
-            $iaTotalActivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0")->fetchColumn();
-            $iaTotalInactivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 0 AND bloqueado = 0")->fetchColumn();
-            $iaTotalBloqueados = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE bloqueado = 1")->fetchColumn();
+            $iaTotalActivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE seccion = '$seccionDB' AND activo = 1 AND bloqueado = 0")->fetchColumn();
+            $iaTotalInactivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE seccion = '$seccionDB' AND activo = 0 AND bloqueado = 0")->fetchColumn();
+            $iaTotalBloqueados = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE seccion = '$seccionDB' AND bloqueado = 1")->fetchColumn();
             $iaTotalPages = max(ceil($iaTotalItems / $iaPerPage), 1);
             $listStmt = $db->prepare("SELECT * FROM contenido_ia WHERE $iaWhere ORDER BY activo DESC, orden, titulo LIMIT $iaPerPage OFFSET $iaOffset");
             $listStmt->execute($iaParams);
@@ -1878,10 +1900,11 @@ $section = $_GET['s'] ?? 'dashboard';
             <div class="card">
                 <h2>Catálogo</h2>
                 <div style="margin-bottom:0.75rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-                    <a href="?s=contenido_ia" class="btn btn-sm <?= !$iaEstado ? 'btn-primary' : 'btn-outline' ?>">Todos (<?= $iaTotalActivos + $iaTotalInactivos + $iaTotalBloqueados ?>)</a>
-                    <a href="?s=contenido_ia&estado=activo" class="btn btn-sm <?= $iaEstado==='activo' ? 'btn-primary' : 'btn-outline' ?>">Activos (<?= $iaTotalActivos ?>)</a>
-                    <a href="?s=contenido_ia&estado=inactivo" class="btn btn-sm <?= $iaEstado==='inactivo' ? 'btn-primary' : 'btn-outline' ?>">Pendientes (<?= $iaTotalInactivos ?>)</a>
-                    <a href="?s=contenido_ia&estado=bloqueado" class="btn btn-sm <?= $iaEstado==='bloqueado' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $iaTotalBloqueados ? '' : 'opacity:0.5;' ?>">Bloqueados (<?= $iaTotalBloqueados ?>)</a>
+                    <?php $sParam = $isAudio ? 'audiolibros' : 'contenido_ia'; ?>
+                    <a href="?s=<?= $sParam ?>" class="btn btn-sm <?= !$iaEstado ? 'btn-primary' : 'btn-outline' ?>">Todos (<?= $iaTotalActivos + $iaTotalInactivos + $iaTotalBloqueados ?>)</a>
+                    <a href="?s=<?= $sParam ?>&estado=activo" class="btn btn-sm <?= $iaEstado==='activo' ? 'btn-primary' : 'btn-outline' ?>">Activos (<?= $iaTotalActivos ?>)</a>
+                    <a href="?s=<?= $sParam ?>&estado=inactivo" class="btn btn-sm <?= $iaEstado==='inactivo' ? 'btn-primary' : 'btn-outline' ?>">Pendientes (<?= $iaTotalInactivos ?>)</a>
+                    <a href="?s=<?= $sParam ?>&estado=bloqueado" class="btn btn-sm <?= $iaEstado==='bloqueado' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $iaTotalBloqueados ? '' : 'opacity:0.5;' ?>">Bloqueados (<?= $iaTotalBloqueados ?>)</a>
                     <form style="margin-left:auto;display:flex;gap:0.3rem;" method="GET">
                         <input type="hidden" name="s" value="contenido_ia">
                         <?php if ($iaEstado): ?><input type="hidden" name="estado" value="<?= $iaEstado ?>"><?php endif; ?>

@@ -146,6 +146,7 @@ CREATE TABLE contenido_ia (
     descripcion TEXT,
     activo TINYINT(1) NOT NULL DEFAULT 1,
     bloqueado TINYINT(1) NOT NULL DEFAULT 0,
+    seccion VARCHAR(20) NOT NULL DEFAULT 'cine',
     orden INT NOT NULL DEFAULT 0,
     agregado_por VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

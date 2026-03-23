@@ -12,6 +12,9 @@ RewriteRule ^canal$ canal.php [QSA,L]
 # /cine → cine.php
 RewriteRule ^cine$ cine.php [QSA,L]
 
+# /audiolibros → audiolibros.php
+RewriteRule ^audiolibros$ audiolibros.php [QSA,L]
+
 # /peliculas and /documentales → redirect to /cine
 RewriteRule ^peliculas$ cine [R=301,L]
 RewriteRule ^documentales$ cine [R=301,L]

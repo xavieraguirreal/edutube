@@ -165,30 +165,47 @@ function formatDate(dateStr) {
                 var md = meta.metadata || {};
                 var files = meta.files || [];
                 var vistas = (viewsData[iaId] && viewsData[iaId].all_time) || 0;
-                // Find mp4 file
-                var mp4 = '';
+                // Find media file: mp4 > ogv > mp3 > ogg
+                var mediaFile = '';
+                var isAudio = false;
+                // Video first
                 for (var i = 0; i < files.length; i++) {
                     if (files[i].format === 'MPEG4' || (files[i].name && files[i].name.match(/\.mp4$/i))) {
-                        mp4 = files[i].name; break;
+                        mediaFile = files[i].name; break;
                     }
                 }
-                // Fallback to ogv
-                if (!mp4) {
+                if (!mediaFile) {
                     for (var j = 0; j < files.length; j++) {
                         if (files[j].format === 'Ogg Video' || (files[j].name && files[j].name.match(/\.ogv$/i))) {
-                            mp4 = files[j].name; break;
+                            mediaFile = files[j].name; break;
                         }
                     }
                 }
-                if (!mp4) {
-                    page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">No se encontró archivo de video</h2><a href="/cine" class="btn-back">← Volver a Cine</a></div>';
+                // Audio fallback
+                if (!mediaFile) {
+                    for (var k = 0; k < files.length; k++) {
+                        if (files[k].name && files[k].name.match(/\.mp3$/i)) {
+                            mediaFile = files[k].name; isAudio = true; break;
+                        }
+                    }
+                }
+                if (!mediaFile) {
+                    for (var l = 0; l < files.length; l++) {
+                        if (files[l].format === 'Ogg Vorbis' || files[l].format === '128Kbps MP3' || files[l].format === 'VBR MP3' || (files[l].name && files[l].name.match(/\.(ogg|flac)$/i))) {
+                            mediaFile = files[l].name; isAudio = true; break;
+                        }
+                    }
+                }
+                if (!mediaFile) {
+                    page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">No se encontró archivo reproducible</h2><a href="/cine" class="btn-back">← Volver</a></div>';
                     return;
                 }
                 var desc = md.description || '';
                 if (typeof desc === 'object') desc = Array.isArray(desc) ? desc.join('\n') : '';
                 renderArchivePlayer({
                     ia_id: iaId,
-                    archivo: mp4,
+                    archivo: mediaFile,
+                    isAudio: isAudio,
                     titulo: md.title || iaId,
                     descripcion: desc.replace(/<[^>]*>/g, ''),
                     duracion: '',
@@ -520,8 +537,11 @@ function formatDate(dateStr) {
             '<div class="player-layout">' +
                 '<div class="player-main">' +
                     '<div class="player-wrapper">' +
-                        '<div class="player-container" id="player-container">' +
-                            '<video id="html5-player" src="' + videoSrc + '" poster="' + thumbSrc + '" preload="metadata" playsinline></video>' +
+                        '<div class="player-container" id="player-container"' + (video.isAudio ? ' style="background:#1a1a2e;display:flex;align-items:center;justify-content:center;min-height:300px;"' : '') + '>' +
+                            (video.isAudio
+                                ? '<div style="text-align:center;padding:2rem;"><img src="' + thumbSrc + '" style="width:200px;height:200px;object-fit:cover;border-radius:12px;margin-bottom:1rem;" onerror="this.style.display=\'none\'"><div style="color:#fff;font-size:1.1rem;">' + video.titulo + '</div><div style="color:#aaa;font-size:0.85rem;margin-top:0.3rem;">' + (video.fuente || '') + '</div></div><audio id="html5-player" src="' + videoSrc + '" preload="metadata"></audio>'
+                                : '<video id="html5-player" src="' + videoSrc + '" poster="' + thumbSrc + '" preload="metadata" playsinline></video>'
+                            ) +
                         '</div>' +
                         '<div class="custom-controls">' +
                             '<button id="btn-play" class="ctrl-btn" title="Reproducir"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>' +
@@ -539,7 +559,7 @@ function formatDate(dateStr) {
                                 '<input type="range" id="progress-bar" class="ctrl-progress" min="0" max="1000" value="0">' +
                                 '<div class="ctrl-progress-fill" id="progress-fill"></div>' +
                             '</div>' +
-                            '<button id="btn-fullscreen" class="ctrl-btn" title="Pantalla completa"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>' +
+                            (video.isAudio ? '' : '<button id="btn-fullscreen" class="ctrl-btn" title="Pantalla completa"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>') +
                         '</div>' +
                     '</div>' +
                     '<div class="video-info">' +
