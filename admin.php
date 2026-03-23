@@ -1355,7 +1355,15 @@ $section = $_GET['s'] ?? 'dashboard';
                         </div>
                         <div class="form-group">
                             <label>Género</label>
-                            <input type="text" name="genero" value="<?= e($editIA['genero'] ?? '') ?>" placeholder="ej: Drama, Sociedad">
+                            <select name="genero">
+                                <option value="">— Sin género —</option>
+                                <?php
+                                $generosLista = ['Drama','Comedia','Terror','Ciencia ficción','Aventura','Acción','Suspenso','Film Noir','Animación','Documental','Historia','Sociedad','Musical','Romance','Western','Bélico','Cine mudo'];
+                                foreach ($generosLista as $g):
+                                ?>
+                                    <option value="<?= $g ?>" <?= (($editIA['genero'] ?? '') === $g) ? 'selected' : '' ?>><?= $g ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="form-row">
@@ -1432,6 +1440,34 @@ $section = $_GET['s'] ?? 'dashboard';
                     </div>
                     <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
                         <button type="button" class="btn btn-primary" id="btn-ia-search" onclick="searchIA(0)">Buscar</button>
+                    </div>
+                </div>
+                <div class="form-row" style="margin-top:0;">
+                    <div class="form-group" style="max-width:200px;">
+                        <label>Género al importar</label>
+                        <select id="ia-import-genero">
+                            <option value="">— Sin género —</option>
+                            <option value="Drama">Drama</option>
+                            <option value="Comedia">Comedia</option>
+                            <option value="Terror">Terror</option>
+                            <option value="Ciencia ficción">Ciencia ficción</option>
+                            <option value="Aventura">Aventura</option>
+                            <option value="Acción">Acción</option>
+                            <option value="Suspenso">Suspenso</option>
+                            <option value="Film Noir">Film Noir</option>
+                            <option value="Animación">Animación</option>
+                            <option value="Documental">Documental</option>
+                            <option value="Historia">Historia</option>
+                            <option value="Sociedad">Sociedad</option>
+                            <option value="Musical">Musical</option>
+                            <option value="Romance">Romance</option>
+                            <option value="Western">Western</option>
+                            <option value="Bélico">Bélico</option>
+                            <option value="Cine mudo">Cine mudo</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:flex-end;font-size:0.82rem;color:#888;padding-bottom:0.5rem;">
+                        Se aplica a todos los seleccionados al importar
                     </div>
                 </div>
                 <div id="ia-search-status" style="font-size:0.85rem;color:#888;margin-bottom:0.5rem;"></div>
@@ -1535,6 +1571,7 @@ $section = $_GET['s'] ?? 'dashboard';
             }
 
             function importSelected() {
+                var genero = document.getElementById('ia-import-genero').value;
                 var items = [];
                 document.querySelectorAll('.ia-check:checked:not(:disabled)').forEach(function(cb) {
                     var idx = parseInt(cb.getAttribute('data-idx'));
@@ -1545,7 +1582,7 @@ $section = $_GET['s'] ?? 'dashboard';
                         director: r.director || '',
                         year: r.year || '',
                         duracion: r.duracion || '',
-                        genero: r.genero || '',
+                        genero: genero,
                         descripcion: r.descripcion || ''
                     });
                 });
