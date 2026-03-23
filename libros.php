@@ -63,16 +63,16 @@ $description = 'Libros clásicos de dominio público en EduTube.';
             <span class="si-icon">🏠</span><span class="si-label">Inicio</span>
         </a>
         <a href="videos" class="sidebar-item">
-            <span class="si-icon">📺</span><span class="si-label">Videos</span>
+            <span class="si-icon">📺</span><span class="si-label">Videos <span id="cnt-videos" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="cine" class="sidebar-item">
-            <span class="si-icon">🎬</span><span class="si-label">Cine</span>
+            <span class="si-icon">🎬</span><span class="si-label">Cine <span id="cnt-cine" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="audiolibros" class="sidebar-item">
-            <span class="si-icon">📖</span><span class="si-label">Audiolibros</span>
+            <span class="si-icon">📖</span><span class="si-label">Audiolibros <span id="cnt-audiolibros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="libros" class="sidebar-item active">
-            <span class="si-icon">📚</span><span class="si-label">Libros</span>
+            <span class="si-icon">📚</span><span class="si-label">Libros <span id="cnt-libros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
     </div>
     <div class="sidebar-section">
@@ -222,6 +222,8 @@ updateBadges();
 // Total count
 fetch('api.php?action=total_titulos').then(function(r){return r.json();}).then(function(d){
     document.getElementById('total-count').textContent = d.total + ' títulos';
+    var ids = {videos:'cnt-videos',cine:'cnt-cine',audiolibros:'cnt-audiolibros',libros:'cnt-libros'};
+    for (var k in ids) { var el = document.getElementById(ids[k]); if (el) el.textContent = '(' + (d[k]||0) + ')'; }
 }).catch(function(){});
 
 // Load books

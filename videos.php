@@ -225,6 +225,7 @@ function loadVideos(apiUrl) {
                 document.getElementById('cnt-videos').textContent = '(' + d.videos + ')';
                 document.getElementById('cnt-cine').textContent = '(' + d.cine + ')';
                 document.getElementById('cnt-audiolibros').textContent = '(' + d.audiolibros + ')';
+                var cl = document.getElementById('cnt-libros'); if (cl) cl.textContent = '(' + (d.libros||0) + ')';
             });
         });
 }
