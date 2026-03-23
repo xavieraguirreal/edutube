@@ -402,7 +402,7 @@ if ($action === 'search_ia') {
     $lang = trim($_GET['lang'] ?? 'Spanish');
     $rows = min(intval($_GET['rows'] ?? 30), 200);
     $page = max(intval($_GET['page'] ?? 0), 0);
-    $start = $page * $rows;
+    $iaPage = $page + 1; // IA uses 1-based pages
     if (!$q) {
         echo json_encode(['error' => 'Falta parámetro q']);
         exit;
@@ -420,10 +420,10 @@ if ($action === 'search_ia') {
 
     $url = 'https://archive.org/advancedsearch.php?'
         . 'q=' . urlencode($iaQuery)
-        . '&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&fl[]=date&fl[]=description&fl[]=runtime&fl[]=subject&fl[]=language'
-        . '&sort[]=downloads+desc'
+        . '&fl=identifier,title,creator,year,date,description,runtime,subject,language'
+        . '&sort=downloads+desc'
         . '&rows=' . $rows
-        . '&start=' . $start
+        . '&page=' . $iaPage
         . '&output=json';
 
     $ctx = stream_context_create(['http' => ['timeout' => 15]]);
