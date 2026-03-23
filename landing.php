@@ -860,7 +860,7 @@
         <span>EduTube</span>
     </div>
     <p>
-        Desarrollado por <strong>VERUMax</strong> para el Comite de Convivencia Mario Juliano.<br>
+        Desarrollado por <strong>VERUMax</strong> para el <a href="https://comite.cooperativaliberte.coop/" target="_blank" style="color:var(--green-light);text-decoration:underline;">Comité de Convivencia Mario Juliano</a>.<br>
         Provincia de Buenos Aires, Argentina.
     </p>
     <a href="/" class="footer-cta" id="enter-btn-footer">Explorar EduTube &rarr;</a>

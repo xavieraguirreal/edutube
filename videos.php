@@ -110,7 +110,7 @@
     </div>
     <div class="sidebar-footer">
         <strong>EduTube</strong> — Plataforma de Videos Educativos<br>
-        Comité de Convivencia Mario Juliano &copy; 2026
+        <a href="https://comite.cooperativaliberte.coop/" target="_blank" style="color:inherit;text-decoration:underline;">Comité de Convivencia Mario Juliano</a> &copy; 2026
     </div>
 </nav>
 
