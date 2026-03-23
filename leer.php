@@ -281,7 +281,8 @@ if ($itemId) {
                     width: '100%',
                     height: '100%',
                     spread: 'none',
-                    flow: 'paginated'
+                    flow: 'paginated',
+                    allowScriptedContent: true
                 });
 
                 // Apply initial theme
