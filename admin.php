@@ -1483,12 +1483,6 @@ $section = $_GET['s'] ?? 'dashboard';
                     <div class="form-group" style="display:flex;align-items:flex-end;font-size:0.82rem;color:#888;padding-bottom:0.5rem;">
                         Se usa cuando no se detecta género automáticamente
                     </div>
-                    <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
-                        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;">
-                            <input type="checkbox" id="ia-import-inactive">
-                            Importar como inactivo (requiere revisión)
-                        </label>
-                    </div>
                 </div>
                 <div id="ia-search-status" style="font-size:0.85rem;color:#888;margin-bottom:0.5rem;"></div>
                 <div id="ia-search-results"></div>
@@ -1603,19 +1597,24 @@ $section = $_GET['s'] ?? 'dashboard';
             function renderIAResults() {
                 var container = document.getElementById('ia-search-results');
                 if (!iaSearchResults.length) { container.innerHTML = '<p style="color:#888;">Sin resultados.</p>'; return; }
-                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Género</th><th></th></tr>';
+                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Colección</th><th>Género</th><th title="Marcar = importar inactivo (requiere revisión)">Revisar</th><th></th></tr>';
                 iaSearchResults.forEach(function(r, i) {
                     var disabled = r.ya_existe ? ' disabled' : '';
                     var badge = r.ya_existe ? ' <span class="badge badge-active">Ya agregado</span>' : '';
                     var detected = detectGenero(r.genero) || detectGenero(r.titulo);
                     iaSearchResults[i]._genero = detected;
+                    var needsReview = !r.curada;
+                    iaSearchResults[i]._inactive = needsReview;
+                    var colStyle = r.curada ? 'color:#2e8b47;' : 'color:#e63946;';
                     html += '<tr style="' + (r.ya_existe ? 'opacity:0.5;' : '') + '">' +
                         '<td><input type="checkbox" class="ia-check" data-idx="' + i + '"' + disabled + (r.ya_existe ? '' : ' checked') + '></td>' +
                         '<td><img src="https://archive.org/download/' + r.ia_id + '/__ia_thumb.jpg" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display=\'none\'"></td>' +
                         '<td>' + r.titulo + badge + '</td>' +
                         '<td>' + (r.director || '—') + '</td>' +
                         '<td>' + (r.year || '—') + '</td>' +
+                        '<td style="font-size:0.78rem;' + colStyle + '">' + (r.coleccion || '—') + '</td>' +
                         '<td>' + generoSelectHTML(i, detected) + '</td>' +
+                        '<td style="text-align:center;"><input type="checkbox" class="ia-review" data-idx="' + i + '"' + (needsReview ? ' checked' : '') + (r.ya_existe ? ' disabled' : '') + '></td>' +
                         '<td><a href="https://archive.org/details/' + r.ia_id + '" target="_blank" class="btn btn-sm btn-outline">Ver en IA</a></td>' +
                     '</tr>';
                 });
@@ -1657,37 +1656,47 @@ $section = $_GET['s'] ?? 'dashboard';
 
             function importSelected() {
                 var generoGlobal = document.getElementById('ia-import-genero').value;
-                var items = [];
+                var itemsActive = [];
+                var itemsInactive = [];
                 document.querySelectorAll('.ia-check:checked:not(:disabled)').forEach(function(cb) {
                     var idx = parseInt(cb.getAttribute('data-idx'));
                     var r = iaSearchResults[idx];
-                    // Per-row genre (from dropdown) > global genre > empty
                     var sel = document.querySelector('.ia-genero-sel[data-idx="' + idx + '"]');
                     var genero = (sel && sel.value) ? sel.value : generoGlobal;
-                    items.push({
-                        ia_id: r.ia_id,
-                        titulo: r.titulo,
-                        director: r.director || '',
-                        year: r.year || '',
-                        duracion: r.duracion || '',
-                        genero: genero,
-                        descripcion: r.descripcion || ''
-                    });
+                    var reviewCb = document.querySelector('.ia-review[data-idx="' + idx + '"]');
+                    var needsReview = reviewCb && reviewCb.checked;
+                    var item = {
+                        ia_id: r.ia_id, titulo: r.titulo, director: r.director || '',
+                        year: r.year || '', duracion: r.duracion || '',
+                        subject: r.genero || '', descripcion: r.descripcion || ''
+                    };
+                    if (needsReview) itemsInactive.push(item); else itemsActive.push(item);
                 });
-                if (!items.length) { alert('Seleccioná al menos un item.'); return; }
-                if (!confirm('¿Importar ' + items.length + ' título' + (items.length > 1 ? 's' : '') + '?')) return;
+                var total = itemsActive.length + itemsInactive.length;
+                if (!total) { alert('Seleccioná al menos un item.'); return; }
+                var desc = total + ' título' + (total > 1 ? 's' : '');
+                if (itemsInactive.length) desc += ' (' + itemsInactive.length + ' para revisión)';
+                if (!confirm('¿Importar ' + desc + '?')) return;
 
-                // Submit via hidden form
-                var form = document.createElement('form');
-                form.method = 'POST'; form.style.display = 'none';
-                var activo = document.getElementById('ia-import-inactive').checked ? '0' : '1';
-                form.innerHTML = '<input name="action" value="bulk_import_ia">' +
-                    '<input name="csrf" value="<?= $csrf ?>">' +
-                    '<input name="activo" value="' + activo + '">' +
-                    '<input name="items" value="">';
-                form.querySelector('[name="items"]').value = JSON.stringify(items);
-                document.body.appendChild(form);
-                form.submit();
+                var promises = [];
+                if (itemsActive.length) {
+                    promises.push(fetch('api.php?action=import_ia_batch', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({items: itemsActive, genero: generoGlobal, activo: true})
+                    }).then(function(r) { return r.json(); }));
+                }
+                if (itemsInactive.length) {
+                    promises.push(fetch('api.php?action=import_ia_batch', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({items: itemsInactive, genero: generoGlobal, activo: false})
+                    }).then(function(r) { return r.json(); }));
+                }
+                Promise.all(promises).then(function(results) {
+                    var imp = 0, skip = 0;
+                    results.forEach(function(r) { imp += r.imported || 0; skip += r.skipped || 0; });
+                    alert('Importados: ' + imp + (skip ? ', ya existían: ' + skip : ''));
+                    window.location.reload();
+                });
             }
 
             // ── Import ALL results ──
@@ -1740,38 +1749,50 @@ $section = $_GET['s'] ?? 'dashboard';
                                 processBatch();
                                 return;
                             }
-                            // Send items to import endpoint
-                            var items = data.results.filter(function(r) { return !r.ya_existe; }).map(function(r) {
-                                return {
-                                    ia_id: r.ia_id,
-                                    titulo: r.titulo,
-                                    director: r.director || '',
-                                    year: r.year || '',
-                                    duracion: r.duracion || '',
-                                    descripcion: r.descripcion || '',
-                                    subject: r.genero || ''
-                                };
-                            });
-                            totalSkipped += data.results.length - items.length;
+                            // Split into curated (active) and community (inactive)
+                            var newResults = data.results.filter(function(r) { return !r.ya_existe; });
+                            totalSkipped += data.results.length - newResults.length;
 
-                            if (!items.length) {
+                            if (!newResults.length) {
                                 currentPage++;
                                 processBatch();
                                 return;
                             }
 
-                            fetch('api.php?action=import_ia_batch', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({items: items, genero: genero, activo: !document.getElementById('ia-import-inactive').checked})
-                            })
+                            var activeItems = [], inactiveItems = [];
+                            newResults.forEach(function(r) {
+                                var item = {
+                                    ia_id: r.ia_id, titulo: r.titulo, director: r.director || '',
+                                    year: r.year || '', duracion: r.duracion || '',
+                                    descripcion: r.descripcion || '', subject: r.genero || ''
+                                };
+                                if (r.curada) activeItems.push(item); else inactiveItems.push(item);
+                            });
+
+                            // Import both batches
+                            var batchPromises = [];
+                            if (activeItems.length) {
+                                batchPromises.push(fetch('api.php?action=import_ia_batch', {
+                                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({items: activeItems, genero: genero, activo: true})
+                                }).then(function(r) { return r.json(); }));
+                            }
+                            if (inactiveItems.length) {
+                                batchPromises.push(fetch('api.php?action=import_ia_batch', {
+                                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({items: inactiveItems, genero: genero, activo: false})
+                                }).then(function(r) { return r.json(); }));
+                            }
+                            Promise.all(batchPromises)
                             .then(function(r) { return r.json(); })
-                            .then(function(result) {
-                                totalImported += result.imported || 0;
-                                totalSkipped += result.skipped || 0;
-                                if (result.errors) {
-                                    progressText.textContent += ' ⚠ ' + result.errors + ' errores: ' + (result.lastError || '').substring(0, 80);
-                                }
+                            .then(function(results) {
+                                results.forEach(function(result) {
+                                    totalImported += result.imported || 0;
+                                    totalSkipped += result.skipped || 0;
+                                    if (result.errors) {
+                                        progressText.textContent += ' ⚠ ' + result.errors + ' errores';
+                                    }
+                                });
                                 currentPage++;
                                 processBatch();
                             })
@@ -1788,11 +1809,6 @@ $section = $_GET['s'] ?? 'dashboard';
 
                 processBatch();
             }
-
-            // Auto-check "inactivo" for community collection
-            document.getElementById('ia-search-col').addEventListener('change', function() {
-                document.getElementById('ia-import-inactive').checked = (this.value === 'opensource_movies' || this.value === '');
-            });
 
             // When global genre changes, fill empty per-row selects
             document.getElementById('ia-import-genero').addEventListener('change', function() {

@@ -452,7 +452,7 @@ if ($action === 'search_ia') {
 
     $url = 'https://archive.org/advancedsearch.php?'
         . 'q=' . urlencode($iaQuery)
-        . '&fl=identifier,title,creator,year,date,description,runtime,subject,language'
+        . '&fl=identifier,title,creator,year,date,description,runtime,subject,language,collection'
         . '&sort=downloads+desc'
         . '&rows=' . $rows
         . '&page=' . $iaPage
@@ -494,6 +494,20 @@ if ($action === 'search_ia') {
         $year = $doc['year'] ?? '';
         if (!$year && !empty($doc['date'])) $year = substr($doc['date'], 0, 4);
 
+        $cols = $doc['collection'] ?? [];
+        if (is_string($cols)) $cols = [$cols];
+        $CURATED = ['feature_films','Film_Noir','silent_films','classic_cartoons','anime','ephemera','short_films','classic_tv','moviesandfilms'];
+        $isCurated = false;
+        $colLabel = 'Comunidad';
+        foreach ($cols as $c) {
+            if (in_array($c, $CURATED)) {
+                $isCurated = true;
+                $colLabels = ['feature_films'=>'Largometrajes','Film_Noir'=>'Film Noir','silent_films'=>'Cine mudo','classic_cartoons'=>'Dibujos animados','anime'=>'Anime','ephemera'=>'Films educativos','short_films'=>'Cortometrajes','classic_tv'=>'TV clásica','moviesandfilms'=>'Movies'];
+                $colLabel = $colLabels[$c] ?? $c;
+                break;
+            }
+        }
+
         $results[] = [
             'ia_id' => $doc['identifier'],
             'titulo' => $doc['title'] ?? $doc['identifier'],
@@ -503,6 +517,8 @@ if ($action === 'search_ia') {
             'genero' => $subject,
             'descripcion' => mb_substr(strip_tags($desc), 0, 200),
             'idioma' => $lang,
+            'coleccion' => $colLabel,
+            'curada' => $isCurated,
             'ya_existe' => in_array($doc['identifier'], $existingIds)
         ];
     }
