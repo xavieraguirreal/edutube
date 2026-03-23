@@ -337,6 +337,8 @@ if ($action === 'search_ia') {
     $q = trim($_GET['q'] ?? '');
     $lang = trim($_GET['lang'] ?? 'Spanish');
     $rows = min(intval($_GET['rows'] ?? 30), 50);
+    $page = max(intval($_GET['page'] ?? 0), 0);
+    $start = $page * $rows;
     if (!$q) {
         echo json_encode(['error' => 'Falta parámetro q']);
         exit;
@@ -357,6 +359,7 @@ if ($action === 'search_ia') {
         'fl' => ['identifier', 'title', 'creator', 'year', 'date', 'description', 'runtime', 'subject', 'language'],
         'sort' => ['downloads desc'],
         'rows' => $rows,
+        'start' => $start,
         'output' => 'json'
     ]);
 

@@ -1403,8 +1403,8 @@ $section = $_GET['s'] ?? 'dashboard';
                 <h2>Buscar en Internet Archive</h2>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Buscar</label>
-                        <input type="text" id="ia-search-q" placeholder="ej: película drama, documental historia..." value="">
+                        <label>Buscar (vacío = todo)</label>
+                        <input type="text" id="ia-search-q" placeholder="ej: drama, Truffaut, terror..." value="">
                     </div>
                     <div class="form-group" style="max-width:200px;">
                         <label>Colección</label>
@@ -1431,26 +1431,34 @@ $section = $_GET['s'] ?? 'dashboard';
                         </select>
                     </div>
                     <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
-                        <button type="button" class="btn btn-primary" id="btn-ia-search" onclick="searchIA()">Buscar</button>
+                        <button type="button" class="btn btn-primary" id="btn-ia-search" onclick="searchIA(0)">Buscar</button>
                     </div>
                 </div>
                 <div id="ia-search-status" style="font-size:0.85rem;color:#888;margin-bottom:0.5rem;"></div>
                 <div id="ia-search-results"></div>
-                <div id="ia-import-actions" style="display:none;margin-top:1rem;">
+                <div id="ia-import-actions" style="display:none;margin-top:1rem;flex-wrap:wrap;gap:0.5rem;align-items:center;">
                     <button type="button" class="btn btn-primary" onclick="importSelected()">Importar seleccionados</button>
                     <button type="button" class="btn btn-outline" onclick="toggleSelectAll()">Seleccionar/deseleccionar todos</button>
-                    <span id="ia-selected-count" style="font-size:0.85rem;color:#888;margin-left:0.5rem;"></span>
+                    <span id="ia-selected-count" style="font-size:0.85rem;color:#888;"></span>
+                    <span style="flex:1;"></span>
+                    <button type="button" class="btn btn-outline btn-sm" id="ia-prev-btn" onclick="searchIA(iaCurrentPage-1)" disabled>← Anterior</button>
+                    <span id="ia-page-info" style="font-size:0.82rem;color:#888;"></span>
+                    <button type="button" class="btn btn-outline btn-sm" id="ia-next-btn" onclick="searchIA(iaCurrentPage+1)">Siguiente →</button>
                 </div>
             </div>
 
             <script>
             var iaSearchResults = [];
+            var iaCurrentPage = 0;
+            var iaPageSize = 30;
+            var iaTotalResults = 0;
 
-            function searchIA() {
+            function searchIA(page) {
                 var q = document.getElementById('ia-search-q').value.trim();
-                if (!q) { alert('Ingresá un término de búsqueda.'); return; }
                 var lang = document.getElementById('ia-search-lang').value;
                 var col = document.getElementById('ia-search-col').value;
+                if (!q && !col && !lang) { alert('Elegí al menos una colección o idioma.'); return; }
+                iaCurrentPage = page || 0;
                 var btn = document.getElementById('btn-ia-search');
                 var status = document.getElementById('ia-search-status');
                 btn.textContent = 'Buscando...'; btn.disabled = true;
@@ -1458,9 +1466,10 @@ $section = $_GET['s'] ?? 'dashboard';
                 document.getElementById('ia-search-results').innerHTML = '';
                 document.getElementById('ia-import-actions').style.display = 'none';
 
-                var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q);
+                var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q || '*');
                 if (lang) url += '&lang=' + encodeURIComponent(lang);
                 if (col) url += '&collection=' + encodeURIComponent(col);
+                url += '&rows=' + iaPageSize + '&page=' + iaCurrentPage;
 
                 fetch(url)
                     .then(function(r) { return r.json(); })
@@ -1468,7 +1477,10 @@ $section = $_GET['s'] ?? 'dashboard';
                         btn.textContent = 'Buscar'; btn.disabled = false;
                         if (data.error) { status.textContent = data.error; return; }
                         iaSearchResults = data.results || [];
-                        status.textContent = data.total + ' resultados en Archive.org (mostrando ' + iaSearchResults.length + ')';
+                        iaTotalResults = data.total || 0;
+                        var from = iaCurrentPage * iaPageSize + 1;
+                        var to = Math.min(from + iaSearchResults.length - 1, iaTotalResults);
+                        status.textContent = iaTotalResults.toLocaleString() + ' resultados — mostrando ' + from + '-' + to;
                         renderIAResults();
                     })
                     .catch(function() {
@@ -1497,11 +1509,16 @@ $section = $_GET['s'] ?? 'dashboard';
                 });
                 html += '</table>';
                 container.innerHTML = html;
-                document.getElementById('ia-import-actions').style.display = '';
+                document.getElementById('ia-import-actions').style.display = 'flex';
                 updateSelectedCount();
                 document.querySelectorAll('.ia-check').forEach(function(cb) {
                     cb.addEventListener('change', updateSelectedCount);
                 });
+                // Update pagination
+                var totalPages = Math.ceil(iaTotalResults / iaPageSize);
+                document.getElementById('ia-prev-btn').disabled = iaCurrentPage <= 0;
+                document.getElementById('ia-next-btn').disabled = iaCurrentPage >= totalPages - 1;
+                document.getElementById('ia-page-info').textContent = 'Pág. ' + (iaCurrentPage + 1) + ' de ' + totalPages;
             }
 
             function updateSelectedCount() {
@@ -1548,7 +1565,7 @@ $section = $_GET['s'] ?? 'dashboard';
 
             // Search on Enter
             document.getElementById('ia-search-q').addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') { e.preventDefault(); searchIA(); }
+                if (e.key === 'Enter') { e.preventDefault(); searchIA(0); }
             });
             </script>
 
