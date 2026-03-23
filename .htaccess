@@ -18,6 +18,12 @@ RewriteRule ^cine$ cine.php [QSA,L]
 # /audiolibros → audiolibros.php
 RewriteRule ^audiolibros$ audiolibros.php [QSA,L]
 
+# /libros → libros.php
+RewriteRule ^libros$ libros.php [QSA,L]
+
+# /leer?id=X → leer.php
+RewriteRule ^leer$ leer.php [QSA,L]
+
 # /peliculas and /documentales → redirect to /cine
 RewriteRule ^peliculas$ cine [R=301,L]
 RewriteRule ^documentales$ cine [R=301,L]

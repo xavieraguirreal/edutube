@@ -311,11 +311,13 @@ if ($action === 'total_titulos') {
     $totalVideos = intval($db->query("SELECT COUNT(*) FROM videos WHERE activo = 1")->fetchColumn());
     $totalCine = intval($db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0 AND seccion = 'cine'")->fetchColumn());
     $totalAudio = intval($db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0 AND seccion = 'audiolibros'")->fetchColumn());
+    $totalLibros = intval($db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0 AND seccion = 'libros'")->fetchColumn());
     echo json_encode([
-        'total' => $totalVideos + $totalCine + $totalAudio,
+        'total' => $totalVideos + $totalCine + $totalAudio + $totalLibros,
         'videos' => $totalVideos,
         'cine' => $totalCine,
-        'audiolibros' => $totalAudio
+        'audiolibros' => $totalAudio,
+        'libros' => $totalLibros
     ]);
     exit;
 }
@@ -328,7 +330,7 @@ if ($action === 'contenido_ia') {
         $where .= " AND seccion = '$seccion'";
     }
     $stmt = $db->query("
-        SELECT slug, ia_id, titulo, director, year, duracion, genero, seccion
+        SELECT slug, ia_id, titulo, director, year, duracion, genero, seccion, url_portada, fuente
         FROM contenido_ia
         WHERE $where
         ORDER BY orden, titulo
@@ -344,7 +346,9 @@ if ($action === 'contenido_ia') {
             'duracion' => $row['duracion'],
             'genero' => $row['genero'] ?: 'Sin género',
             'descargas' => 0,
-            'section' => $row['seccion'] === 'audiolibros' ? 'Audiolibro' : 'Cine'
+            'url_portada' => $row['url_portada'] ?? '',
+            'fuente' => $row['fuente'] ?? 'archive.org',
+            'section' => $row['seccion'] === 'audiolibros' ? 'Audiolibro' : ($row['seccion'] === 'libros' ? 'Libro' : 'Cine')
         ];
     }
     echo json_encode($items, JSON_UNESCAPED_UNICODE);
@@ -407,7 +411,7 @@ if ($action === 'import_ia_batch') {
     $lastError = '';
     $activo = !empty($input['activo']) ? 1 : 0;
     $seccion = in_array($input['seccion'] ?? '', ['cine', 'audiolibros']) ? $input['seccion'] : 'cine';
-    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo, seccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo, seccion, url_portada, url_contenido, fuente) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
     $slugCheck = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");
 
@@ -436,7 +440,10 @@ if ($action === 'import_ia_batch') {
         $subject = trim($item['subject'] ?? '');
         $itemGenero = detectGenero($subject, $GENERO_MAP) ?: detectGenero($titulo, $GENERO_MAP) ?: $generoDefault;
         try {
-            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $itemGenero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo, $seccion]);
+            $urlPortada = trim($item['url_portada'] ?? '');
+            $urlContenido = trim($item['url_contenido'] ?? '');
+            $fuente = trim($item['fuente'] ?? 'archive.org');
+            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $itemGenero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo, $seccion, $urlPortada, $urlContenido, $fuente]);
             $imported++;
         } catch (Exception $e) {
             $errors++;
@@ -546,6 +553,68 @@ if ($action === 'search_ia') {
     }
 
     echo json_encode(['results' => $results, 'total' => $data['response']['numFound'] ?? 0], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ── Search Gutenberg (admin proxy) ──
+if ($action === 'search_gutenberg') {
+    $q = trim($_GET['q'] ?? '');
+    $page = max(intval($_GET['page'] ?? 1), 1);
+
+    $url = 'https://gutendex.com/books/?languages=es&page=' . $page;
+    if ($q) $url .= '&search=' . urlencode($q);
+
+    $ctx = stream_context_create(['http' => ['timeout' => 15]]);
+    $json = @file_get_contents($url, false, $ctx);
+    if (!$json) {
+        echo json_encode(['error' => 'No se pudo conectar con Gutenberg']);
+        exit;
+    }
+
+    $data = json_decode($json, true);
+    $total = $data['count'] ?? 0;
+    $books = $data['results'] ?? [];
+
+    // Check existing
+    $checkStmt = $db->prepare("SELECT ia_id FROM contenido_ia WHERE ia_id = ? LIMIT 1");
+    $existingIds = [];
+    foreach ($books as $b) {
+        $checkStmt->execute(['gutenberg_' . $b['id']]);
+        if ($checkStmt->fetchColumn() !== false) $existingIds[] = 'gutenberg_' . $b['id'];
+    }
+
+    $results = [];
+    foreach ($books as $b) {
+        $authors = [];
+        foreach ($b['authors'] ?? [] as $a) { $authors[] = $a['name']; }
+        $subjects = [];
+        foreach ($b['subjects'] ?? [] as $s) { $subjects[] = $s; }
+
+        // Get cover and HTML URLs
+        $formats = $b['formats'] ?? [];
+        $cover = '';
+        $htmlUrl = '';
+        foreach ($formats as $mime => $url) {
+            if (strpos($mime, 'image/jpeg') !== false && !$cover) $cover = $url;
+            if ($mime === 'text/html' && !$htmlUrl) $htmlUrl = $url;
+            if ($mime === 'text/html; charset=utf-8' && !$htmlUrl) $htmlUrl = $url;
+        }
+
+        $results[] = [
+            'gutenberg_id' => $b['id'],
+            'ia_id' => 'gutenberg_' . $b['id'],
+            'titulo' => $b['title'] ?? '',
+            'director' => implode('; ', $authors),
+            'year' => '',
+            'genero' => implode(', ', array_slice($subjects, 0, 3)),
+            'url_portada' => $cover,
+            'url_contenido' => $htmlUrl,
+            'descargas' => $b['download_count'] ?? 0,
+            'ya_existe' => in_array('gutenberg_' . $b['id'], $existingIds)
+        ];
+    }
+
+    echo json_encode(['results' => $results, 'total' => $total], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

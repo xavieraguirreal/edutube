@@ -807,6 +807,7 @@ $section = $_GET['s'] ?? 'dashboard';
         <a href="?s=categorias" class="<?= $section==='categorias'?'active':'' ?>">🏷 Categorías</a>
         <a href="?s=contenido_ia" class="<?= $section==='contenido_ia'?'active':'' ?>">🎬 Cine</a>
         <a href="?s=audiolibros" class="<?= $section==='audiolibros'?'active':'' ?>">📖 Audiolibros</a>
+        <a href="?s=libros" class="<?= $section==='libros'?'active':'' ?>">📚 Libros</a>
         <a href="?s=portada" class="<?= $section==='portada'?'active':'' ?>">🏠 Portada</a>
         <a href="?s=password" class="<?= $section==='password'?'active':'' ?>">🔑 Contraseña</a>
         <a href="/" target="_blank">🌐 Ver sitio</a>
@@ -1342,10 +1343,11 @@ $section = $_GET['s'] ?? 'dashboard';
             </table>
             <?php endif; ?>
 
-        <?php elseif ($section === 'contenido_ia' || $section === 'audiolibros'):
+        <?php elseif ($section === 'contenido_ia' || $section === 'audiolibros' || $section === 'libros'):
             $isAudio = ($section === 'audiolibros');
-            $seccionDB = $isAudio ? 'audiolibros' : 'cine';
-            $seccionLabel = $isAudio ? 'Audiolibros' : 'Cine';
+            $isLibros = ($section === 'libros');
+            $seccionDB = $isLibros ? 'libros' : ($isAudio ? 'audiolibros' : 'cine');
+            $seccionLabel = $isLibros ? 'Libros' : ($isAudio ? 'Audiolibros' : 'Cine');
             $totalSeccion = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE seccion = '$seccionDB'")->fetchColumn();
         ?>
             <h1><?= $seccionLabel ?> (<?= $totalSeccion ?>)</h1>
@@ -1453,9 +1455,9 @@ $section = $_GET['s'] ?? 'dashboard';
             }
             </script>
 
-            <!-- ── Buscar en Internet Archive ── -->
+            <!-- ── Buscar contenido ── -->
             <div class="card">
-                <h2>Buscar en Internet Archive</h2>
+                <h2>Buscar en <?= $isLibros ? 'Proyecto Gutenberg' : 'Internet Archive' ?></h2>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Buscar (vacío = todo)</label>
@@ -1464,7 +1466,9 @@ $section = $_GET['s'] ?? 'dashboard';
                     <div class="form-group" style="max-width:200px;">
                         <label>Colección</label>
                         <select id="ia-search-col">
-                            <?php if ($isAudio): ?>
+                            <?php if ($isLibros): ?>
+                            <!-- Gutenberg no necesita colección ni idioma (ya filtra español) -->
+                    <?php elseif ($isAudio): ?>
                             <option value="" selected>Todas</option>
                             <option value="librivoxaudio">LibriVox (audiolibros)</option>
                             <option value="audio_bookspoetry">Libros y poesía</option>
@@ -1481,10 +1485,12 @@ $section = $_GET['s'] ?? 'dashboard';
                             <option value="ephemera">Films educativos</option>
                             <option value="opensource_movies">Videos comunidad</option>
                             <?php endif; ?>
-                        </select>
-                    </div>
+                        <?php if (!$isLibros): ?></select>
+                    </div><?php endif; ?>
                     <input type="hidden" id="ia-search-mediatype" value="<?= $isAudio ? 'audio' : 'movies' ?>">
                     <input type="hidden" id="ia-search-seccion" value="<?= $seccionDB ?>">
+                    <input type="hidden" id="ia-search-source" value="<?= $isLibros ? 'gutenberg' : 'ia' ?>">
+                    <?php if (!$isLibros): ?>
                     <div class="form-group" style="max-width:160px;">
                         <label>Idioma</label>
                         <select id="ia-search-lang">
@@ -1495,6 +1501,7 @@ $section = $_GET['s'] ?? 'dashboard';
                             <option value="French OR français">Francés</option>
                         </select>
                     </div>
+                    <?php endif; ?>
                     <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
                         <button type="button" class="btn btn-primary" id="btn-ia-search" onclick="searchIA(0)">Buscar</button>
                     </div>
@@ -1614,11 +1621,18 @@ $section = $_GET['s'] ?? 'dashboard';
                 document.getElementById('ia-search-results').innerHTML = '';
                 document.getElementById('ia-import-actions').style.display = 'none';
 
-                var mediatype = document.getElementById('ia-search-mediatype').value;
-                var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q || '*') + '&mediatype=' + mediatype;
-                if (lang) url += '&lang=' + encodeURIComponent(lang);
-                if (col) url += '&collection=' + encodeURIComponent(col);
-                url += '&rows=' + iaPageSize + '&page=' + iaCurrentPage;
+                var source = document.getElementById('ia-search-source').value;
+                var url;
+                if (source === 'gutenberg') {
+                    url = 'api.php?action=search_gutenberg&page=' + (iaCurrentPage + 1);
+                    if (q) url += '&q=' + encodeURIComponent(q);
+                } else {
+                    var mediatype = document.getElementById('ia-search-mediatype').value;
+                    url = 'api.php?action=search_ia&q=' + encodeURIComponent(q || '*') + '&mediatype=' + mediatype;
+                    if (lang) url += '&lang=' + encodeURIComponent(lang);
+                    if (col) url += '&collection=' + encodeURIComponent(col);
+                    url += '&rows=' + iaPageSize + '&page=' + iaCurrentPage;
+                }
 
                 fetch(url)
                     .then(function(r) { return r.json(); })
@@ -1652,7 +1666,7 @@ $section = $_GET['s'] ?? 'dashboard';
                     var colStyle = r.curada ? 'color:#2e8b47;' : 'color:#e63946;';
                     html += '<tr style="' + (r.ya_existe ? 'opacity:0.5;' : '') + '">' +
                         '<td><input type="checkbox" class="ia-check" data-idx="' + i + '"' + disabled + (r.ya_existe ? '' : ' checked') + '></td>' +
-                        '<td><img src="https://archive.org/download/' + r.ia_id + '/__ia_thumb.jpg" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display=\'none\'"></td>' +
+                        '<td><img src="' + (r.url_portada || ('https://archive.org/download/' + r.ia_id + '/__ia_thumb.jpg')) + '" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display=\'none\'"></td>' +
                         '<td>' + r.titulo + badge + '</td>' +
                         '<td>' + (r.director || '—') + '</td>' +
                         '<td>' + (r.year || '—') + '</td>' +
@@ -1712,7 +1726,9 @@ $section = $_GET['s'] ?? 'dashboard';
                     var item = {
                         ia_id: r.ia_id, titulo: r.titulo, director: r.director || '',
                         year: r.year || '', duracion: r.duracion || '',
-                        subject: r.genero || '', descripcion: r.descripcion || ''
+                        subject: r.genero || '', descripcion: r.descripcion || '',
+                        url_portada: r.url_portada || '', url_contenido: r.url_contenido || '',
+                        fuente: document.getElementById('ia-search-source').value === 'gutenberg' ? 'gutenberg' : 'archive.org'
                     };
                     if (needsReview) itemsInactive.push(item); else itemsActive.push(item);
                 });
@@ -1809,7 +1825,9 @@ $section = $_GET['s'] ?? 'dashboard';
                                 var item = {
                                     ia_id: r.ia_id, titulo: r.titulo, director: r.director || '',
                                     year: r.year || '', duracion: r.duracion || '',
-                                    descripcion: r.descripcion || '', subject: r.genero || ''
+                                    descripcion: r.descripcion || '', subject: r.genero || '',
+                                    url_portada: r.url_portada || '', url_contenido: r.url_contenido || '',
+                                    fuente: document.getElementById('ia-search-source').value === 'gutenberg' ? 'gutenberg' : 'archive.org'
                                 };
                                 if (r.curada) activeItems.push(item); else inactiveItems.push(item);
                             });
