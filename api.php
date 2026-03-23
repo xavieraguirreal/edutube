@@ -323,7 +323,7 @@ if ($action === 'contenido_ia') {
             'director' => $row['director'],
             'year' => intval($row['year']),
             'duracion' => $row['duracion'],
-            'genero' => $row['genero'],
+            'genero' => $row['genero'] ?: 'Sin género',
             'descargas' => 0,
             'section' => 'Cine'
         ];
