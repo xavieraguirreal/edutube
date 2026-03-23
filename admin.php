@@ -1444,7 +1444,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 </div>
                 <div class="form-row" style="margin-top:0;">
                     <div class="form-group" style="max-width:200px;">
-                        <label>Género al importar</label>
+                        <label>Género por defecto</label>
                         <select id="ia-import-genero">
                             <option value="">— Sin género —</option>
                             <option value="Drama">Drama</option>
@@ -1467,7 +1467,7 @@ $section = $_GET['s'] ?? 'dashboard';
                         </select>
                     </div>
                     <div class="form-group" style="display:flex;align-items:flex-end;font-size:0.82rem;color:#888;padding-bottom:0.5rem;">
-                        Se aplica a todos los seleccionados al importar
+                        Se usa cuando no se detecta género automáticamente
                     </div>
                 </div>
                 <div id="ia-search-status" style="font-size:0.85rem;color:#888;margin-bottom:0.5rem;"></div>
@@ -1488,6 +1488,47 @@ $section = $_GET['s'] ?? 'dashboard';
             var iaCurrentPage = 0;
             var iaPageSize = 30;
             var iaTotalResults = 0;
+
+            var GENEROS = ['Drama','Comedia','Terror','Ciencia ficción','Aventura','Acción','Suspenso','Film Noir','Animación','Documental','Historia','Sociedad','Musical','Romance','Western','Bélico','Cine mudo'];
+            var GENERO_MAP = {
+                'drama':'Drama', 'dramatic':'Drama', 'tragedy':'Drama',
+                'comedy':'Comedia', 'comedia':'Comedia', 'comic':'Comedia', 'humor':'Comedia',
+                'horror':'Terror', 'terror':'Terror', 'scary':'Terror',
+                'sci-fi':'Ciencia ficción', 'science fiction':'Ciencia ficción', 'ciencia ficción':'Ciencia ficción', 'scifi':'Ciencia ficción',
+                'adventure':'Aventura', 'aventura':'Aventura',
+                'action':'Acción', 'acción':'Acción',
+                'thriller':'Suspenso', 'suspense':'Suspenso', 'suspenso':'Suspenso', 'mystery':'Suspenso',
+                'noir':'Film Noir', 'film noir':'Film Noir',
+                'animation':'Animación', 'animación':'Animación', 'animated':'Animación', 'cartoon':'Animación',
+                'documentary':'Documental', 'documental':'Documental',
+                'history':'Historia', 'historia':'Historia', 'historical':'Historia',
+                'musical':'Musical',
+                'romance':'Romance', 'romantic':'Romance', 'love':'Romance',
+                'western':'Western',
+                'war':'Bélico', 'bélico':'Bélico', 'guerra':'Bélico', 'military':'Bélico',
+                'silent':'Cine mudo', 'silent film':'Cine mudo', 'cine mudo':'Cine mudo'
+            };
+
+            function detectGenero(subjectStr) {
+                if (!subjectStr) return '';
+                var lower = subjectStr.toLowerCase();
+                // Try longest matches first (e.g. "science fiction" before "fiction")
+                var keys = Object.keys(GENERO_MAP).sort(function(a,b) { return b.length - a.length; });
+                for (var i = 0; i < keys.length; i++) {
+                    if (lower.indexOf(keys[i]) > -1) return GENERO_MAP[keys[i]];
+                }
+                return '';
+            }
+
+            function generoSelectHTML(idx, detected) {
+                var html = '<select class="ia-genero-sel" data-idx="' + idx + '" style="font-size:0.78rem;padding:2px 4px;border-radius:4px;border:1px solid #ddd;">';
+                html += '<option value="">—</option>';
+                GENEROS.forEach(function(g) {
+                    html += '<option value="' + g + '"' + (g === detected ? ' selected' : '') + '>' + g + '</option>';
+                });
+                html += '</select>';
+                return html;
+            }
 
             function searchIA(page) {
                 var q = document.getElementById('ia-search-q').value.trim();
@@ -1528,18 +1569,19 @@ $section = $_GET['s'] ?? 'dashboard';
             function renderIAResults() {
                 var container = document.getElementById('ia-search-results');
                 if (!iaSearchResults.length) { container.innerHTML = '<p style="color:#888;">Sin resultados.</p>'; return; }
-                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Idioma</th><th>Género</th><th></th></tr>';
+                var html = '<table><tr><th style="width:30px;"></th><th></th><th>Título</th><th>Director</th><th>Año</th><th>Género</th><th></th></tr>';
                 iaSearchResults.forEach(function(r, i) {
                     var disabled = r.ya_existe ? ' disabled' : '';
                     var badge = r.ya_existe ? ' <span class="badge badge-active">Ya agregado</span>' : '';
+                    var detected = detectGenero(r.genero) || detectGenero(r.titulo);
+                    iaSearchResults[i]._genero = detected;
                     html += '<tr style="' + (r.ya_existe ? 'opacity:0.5;' : '') + '">' +
                         '<td><input type="checkbox" class="ia-check" data-idx="' + i + '"' + disabled + (r.ya_existe ? '' : ' checked') + '></td>' +
                         '<td><img src="https://archive.org/download/' + r.ia_id + '/__ia_thumb.jpg" style="width:60px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.style.display=\'none\'"></td>' +
                         '<td>' + r.titulo + badge + '</td>' +
                         '<td>' + (r.director || '—') + '</td>' +
                         '<td>' + (r.year || '—') + '</td>' +
-                        '<td>' + (r.idioma || '—') + '</td>' +
-                        '<td style="font-size:0.78rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (r.genero || '—') + '</td>' +
+                        '<td>' + generoSelectHTML(i, detected) + '</td>' +
                         '<td><a href="https://archive.org/details/' + r.ia_id + '" target="_blank" class="btn btn-sm btn-outline">Ver en IA</a></td>' +
                     '</tr>';
                 });
@@ -1571,11 +1613,14 @@ $section = $_GET['s'] ?? 'dashboard';
             }
 
             function importSelected() {
-                var genero = document.getElementById('ia-import-genero').value;
+                var generoGlobal = document.getElementById('ia-import-genero').value;
                 var items = [];
                 document.querySelectorAll('.ia-check:checked:not(:disabled)').forEach(function(cb) {
                     var idx = parseInt(cb.getAttribute('data-idx'));
                     var r = iaSearchResults[idx];
+                    // Per-row genre (from dropdown) > global genre > empty
+                    var sel = document.querySelector('.ia-genero-sel[data-idx="' + idx + '"]');
+                    var genero = (sel && sel.value) ? sel.value : generoGlobal;
                     items.push({
                         ia_id: r.ia_id,
                         titulo: r.titulo,
@@ -1599,6 +1644,14 @@ $section = $_GET['s'] ?? 'dashboard';
                 document.body.appendChild(form);
                 form.submit();
             }
+
+            // When global genre changes, fill empty per-row selects
+            document.getElementById('ia-import-genero').addEventListener('change', function() {
+                var val = this.value;
+                document.querySelectorAll('.ia-genero-sel').forEach(function(sel) {
+                    if (!sel.value && val) sel.value = val;
+                });
+            });
 
             // Search on Enter
             document.getElementById('ia-search-q').addEventListener('keydown', function(e) {
