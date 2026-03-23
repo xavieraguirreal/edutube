@@ -248,6 +248,9 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <a href="audiolibros" class="sidebar-item">
             <span class="si-icon">📖</span><span class="si-label">Audiolibros <span id="cnt-audiolibros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
+        <a href="libros" class="sidebar-item">
+            <span class="si-icon">📚</span><span class="si-label">Libros <span id="cnt-libros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
+        </a>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Tu actividad</div>
@@ -310,8 +313,12 @@ if (!localStorage.getItem('edutube_welcomed')) {
         Cine
     </a>
     <a href="audiolibros" class="bottom-nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
         Audiolibros
+    </a>
+    <a href="libros" class="bottom-nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+        Libros
     </a>
 </nav>
 
@@ -356,7 +363,8 @@ function buildPortalCards(counts) {
     var sections = [
         { name: 'Videos', href: 'videos', img: 'img/card-videos.jpg', color: '#2e8b47', key: 'videos', desc: 'Videos educativos curados de YouTube' },
         { name: 'Cine', href: 'cine', img: 'img/card-cine.jpg', color: '#e63946', key: 'cine', desc: 'Peliculas y documentales de Internet Archive' },
-        { name: 'Audiolibros', href: 'audiolibros', img: 'img/card-audiolibros.jpg', color: '#6a4c93', key: 'audiolibros', desc: 'Audiolibros completos de Internet Archive' }
+        { name: 'Audiolibros', href: 'audiolibros', img: 'img/card-audiolibros.jpg', color: '#6a4c93', key: 'audiolibros', desc: 'Audiolibros completos de Internet Archive' },
+        { name: 'Libros', href: 'libros', img: 'img/card-libros.jpg', color: '#0077b6', key: 'libros', desc: 'Biblioteca digital de obras clásicas' }
     ];
     var html = '';
     sections.forEach(function(s) {
@@ -380,7 +388,8 @@ function buildLatestRows() {
     container.innerHTML =
         '<div class="latest-row" id="row-videos"><div class="latest-row-header"><span class="latest-row-title">Ultimos videos</span><a href="videos" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-videos"></div></div>' +
         '<div class="latest-row" id="row-cine" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimo en Cine</span><a href="cine" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-cine"></div></div>' +
-        '<div class="latest-row" id="row-audiolibros" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimos audiolibros</span><a href="audiolibros" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-audiolibros"></div></div>';
+        '<div class="latest-row" id="row-audiolibros" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimos audiolibros</span><a href="audiolibros" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-audiolibros"></div></div>' +
+        '<div class="latest-row" id="row-libros" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimos libros</span><a href="libros" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-libros"></div></div>';
 
     // Fetch latest videos
     fetch('api.php?action=videos')
@@ -437,6 +446,25 @@ function buildLatestRows() {
             document.getElementById('scroll-audiolibros').innerHTML = html;
             document.getElementById('row-audiolibros').style.display = '';
         }).catch(function(){});
+
+    // Fetch latest libros
+    fetch('api.php?action=contenido_ia&seccion=libros')
+        .then(function(r) { return r.json(); })
+        .then(function(items) {
+            var latest = items.slice(0, 6);
+            if (latest.length === 0) return;
+            var html = '';
+            latest.forEach(function(item) {
+                var thumbUrl = item.url_portada || 'img/card-libros.jpg';
+                html += '<a href="leer?id=' + item.id + '" class="latest-card">' +
+                    '<img class="latest-card-thumb" src="' + thumbUrl + '" alt="" loading="lazy" style="object-fit:contain;background:#f5f0e8;">' +
+                    '<div class="latest-card-title">' + item.titulo + '</div>' +
+                    '<div class="latest-card-sub">' + (item.director || '') + '</div>' +
+                '</a>';
+            });
+            document.getElementById('scroll-libros').innerHTML = html;
+            document.getElementById('row-libros').style.display = '';
+        }).catch(function(){});
 }
 
 // ── Init ──
@@ -450,7 +478,9 @@ fetch('api.php?action=total_titulos')
         document.getElementById('cnt-videos').textContent = '(' + d.videos + ')';
         document.getElementById('cnt-cine').textContent = '(' + d.cine + ')';
         document.getElementById('cnt-audiolibros').textContent = '(' + d.audiolibros + ')';
-        buildPortalCards({ videos: d.videos, cine: d.cine, audiolibros: d.audiolibros });
+        var cntLibros = document.getElementById('cnt-libros');
+        if (cntLibros) cntLibros.textContent = '(' + (d.libros || 0) + ')';
+        buildPortalCards({ videos: d.videos, cine: d.cine, audiolibros: d.audiolibros, libros: d.libros || 0 });
     });
 
 buildLatestRows();
@@ -516,25 +546,31 @@ function doSearch(q) {
             (item.director || '').toLowerCase().indexOf(lq) > -1 ||
             (item.genero || '').toLowerCase().indexOf(lq) > -1);
     }).slice(0, 10);
+    var librosResults = cachedIA.filter(function(item) {
+        return item.section === 'Libro' && (
+            item.titulo.toLowerCase().indexOf(lq) > -1 ||
+            (item.director || '').toLowerCase().indexOf(lq) > -1 ||
+            (item.genero || '').toLowerCase().indexOf(lq) > -1);
+    }).slice(0, 10);
 
     // Show instant results immediately, then fetch videos
-    renderSearchResults(q, [], cineResults, audioResults, true);
+    renderSearchResults(q, [], cineResults, audioResults, librosResults, true);
 
     // Fetch videos from API (slightly slower)
     fetch('api.php?action=search&q=' + encodeURIComponent(q))
         .then(function(r) { return r.json(); })
         .then(function(res) {
             var videos = (res.videos || []).slice(0, 10);
-            renderSearchResults(q, videos, cineResults, audioResults, false);
+            renderSearchResults(q, videos, cineResults, audioResults, librosResults, false);
         })
         .catch(function() {
-            renderSearchResults(q, [], cineResults, audioResults, false);
+            renderSearchResults(q, [], cineResults, audioResults, librosResults, false);
         });
 }
 
-function renderSearchResults(q, videos, cineResults, audioResults, loading) {
+function renderSearchResults(q, videos, cineResults, audioResults, librosResults, loading) {
     var resultsDiv = document.getElementById('search-results');
-    var total = videos.length + cineResults.length + audioResults.length;
+    var total = videos.length + cineResults.length + audioResults.length + librosResults.length;
 
     if (!total && !loading) {
         resultsDiv.innerHTML = '<p style="color:var(--text-muted);padding:2rem;text-align:center;">No se encontraron resultados para "' + q + '"</p>';
@@ -579,6 +615,19 @@ function renderSearchResults(q, videos, cineResults, audioResults, loading) {
             html += '<div class="video-card"><a href="watch?v=' + p.id + '" class="thumb"><img src="https://archive.org/download/' + p.ia_id + '/__ia_thumb.jpg" alt="" loading="lazy">' +
                 '</a><div class="card-info"><div class="channel-avatar" style="background:#6a4c93;font-size:0.65rem;">📖</div>' +
                 '<div class="card-text"><a href="watch?v=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
+                '<div class="card-channel-static">' + (p.director || '') + '</div></div></div></div>';
+        });
+        html += '</div>';
+    }
+
+    if (librosResults.length) {
+        html += '<h3 style="font-size:1rem;margin:1.5rem 0 0.5rem;"><a href="libros" style="color:var(--text-primary);text-decoration:none;">Libros (' + librosResults.length + ') →</a></h3>';
+        html += '<div class="video-grid" style="display:grid;">';
+        librosResults.forEach(function(p) {
+            var thumbUrl = p.url_portada || 'img/card-libros.jpg';
+            html += '<div class="video-card"><a href="leer?id=' + p.id + '" class="thumb" style="background:#f5f0e8;"><img src="' + thumbUrl + '" alt="" loading="lazy" style="object-fit:contain;">' +
+                '</a><div class="card-info"><div class="channel-avatar" style="background:#0077b6;font-size:0.65rem;">📚</div>' +
+                '<div class="card-text"><a href="leer?id=' + p.id + '" class="card-title">' + p.titulo + '</a>' +
                 '<div class="card-channel-static">' + (p.director || '') + '</div></div></div></div>';
         });
         html += '</div>';
