@@ -308,9 +308,15 @@ if ($action === 'canal') {
 
 // ── Total count (all sections) ──
 if ($action === 'total_titulos') {
-    $totalVideos = $db->query("SELECT COUNT(*) FROM videos WHERE activo = 1")->fetchColumn();
-    $totalIA = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0")->fetchColumn();
-    echo json_encode(['total' => intval($totalVideos) + intval($totalIA)]);
+    $totalVideos = intval($db->query("SELECT COUNT(*) FROM videos WHERE activo = 1")->fetchColumn());
+    $totalCine = intval($db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0 AND seccion = 'cine'")->fetchColumn());
+    $totalAudio = intval($db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1 AND bloqueado = 0 AND seccion = 'audiolibros'")->fetchColumn());
+    echo json_encode([
+        'total' => $totalVideos + $totalCine + $totalAudio,
+        'videos' => $totalVideos,
+        'cine' => $totalCine,
+        'audiolibros' => $totalAudio
+    ]);
     exit;
 }
 
@@ -512,13 +518,13 @@ if ($action === 'search_ia') {
 
         $cols = $doc['collection'] ?? [];
         if (is_string($cols)) $cols = [$cols];
-        $CURATED = ['feature_films','Film_Noir','silent_films','classic_cartoons','anime','ephemera','short_films','classic_tv','moviesandfilms'];
+        $CURATED = ['feature_films','Film_Noir','silent_films','classic_cartoons','anime','ephemera','short_films','classic_tv','moviesandfilms','librivoxaudio','audio_bookspoetry','audio_foreign'];
         $isCurated = false;
         $colLabel = 'Comunidad';
         foreach ($cols as $c) {
             if (in_array($c, $CURATED)) {
                 $isCurated = true;
-                $colLabels = ['feature_films'=>'Largometrajes','Film_Noir'=>'Film Noir','silent_films'=>'Cine mudo','classic_cartoons'=>'Dibujos animados','anime'=>'Anime','ephemera'=>'Films educativos','short_films'=>'Cortometrajes','classic_tv'=>'TV clásica','moviesandfilms'=>'Movies'];
+                $colLabels = ['feature_films'=>'Largometrajes','Film_Noir'=>'Film Noir','silent_films'=>'Cine mudo','classic_cartoons'=>'Dibujos animados','anime'=>'Anime','ephemera'=>'Films educativos','short_films'=>'Cortometrajes','classic_tv'=>'TV clásica','moviesandfilms'=>'Movies','librivoxaudio'=>'LibriVox','audio_bookspoetry'=>'Libros y poesía','audio_foreign'=>'Audio no-inglés'];
                 $colLabel = $colLabels[$c] ?? $c;
                 break;
             }

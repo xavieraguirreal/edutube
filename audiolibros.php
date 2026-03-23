@@ -61,13 +61,13 @@ $description = 'Audiolibros de dominio público en EduTube.';
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-section">
         <a href="index.php" class="sidebar-item">
-            <span class="si-icon">📺</span><span class="si-label">Videos</span>
+            <span class="si-icon">📺</span><span class="si-label">Videos <span id="cnt-videos" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="cine" class="sidebar-item">
-            <span class="si-icon">🎬</span><span class="si-label">Cine</span>
+            <span class="si-icon">🎬</span><span class="si-label">Cine <span id="cnt-cine" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="audiolibros" class="sidebar-item active">
-            <span class="si-icon">📖</span><span class="si-label">Audiolibros</span>
+            <span class="si-icon">📖</span><span class="si-label">Audiolibros <span id="cnt-audiolibros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
     </div>
     <div class="sidebar-section">
@@ -282,12 +282,11 @@ document.getElementById('nav-liked').addEventListener('click', function(e) { e.p
 updateBadges();
 
 // ── Load total count (all sections) ──
-Promise.all([
-    fetch('api.php?action=videos').then(function(r){return r.json();}),
-    fetch('api.php?action=contenido_ia').then(function(r){return r.json();})
-]).then(function(res) {
-    var total = (res[0].total_videos || 0) + res[1].length;
-    document.getElementById('total-count').textContent = total + ' títulos';
+fetch('api.php?action=total_titulos').then(function(r){return r.json();}).then(function(d){
+    document.getElementById('total-count').textContent = d.total + ' títulos';
+    document.getElementById('cnt-videos').textContent = '(' + d.videos + ')';
+    document.getElementById('cnt-cine').textContent = '(' + d.cine + ')';
+    document.getElementById('cnt-audiolibros').textContent = '(' + d.audiolibros + ')';
 }).catch(function(){});
 
 // Load audiolibros from API

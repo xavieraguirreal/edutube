@@ -77,13 +77,13 @@ if (!localStorage.getItem('edutube_welcomed')) {
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-section">
         <a href="index.php" class="sidebar-item active" data-cat="todos">
-            <span class="si-icon">📺</span><span class="si-label">Videos</span>
+            <span class="si-icon">📺</span><span class="si-label">Videos <span id="cnt-videos" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="cine" class="sidebar-item">
-            <span class="si-icon">🎬</span><span class="si-label">Cine</span>
+            <span class="si-icon">🎬</span><span class="si-label">Cine <span id="cnt-cine" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
         <a href="audiolibros" class="sidebar-item">
-            <span class="si-icon">📖</span><span class="si-label">Audiolibros</span>
+            <span class="si-icon">📖</span><span class="si-label">Audiolibros <span id="cnt-audiolibros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
     </div>
     <div class="sidebar-section">
@@ -215,6 +215,9 @@ function loadVideos(apiUrl) {
             // Show total count
             fetch('api.php?action=total_titulos').then(function(r){return r.json();}).then(function(d){
                 document.getElementById('video-count').textContent = d.total + ' títulos';
+                document.getElementById('cnt-videos').textContent = '(' + d.videos + ')';
+                document.getElementById('cnt-cine').textContent = '(' + d.cine + ')';
+                document.getElementById('cnt-audiolibros').textContent = '(' + d.audiolibros + ')';
             });
         });
 }
