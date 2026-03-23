@@ -343,7 +343,11 @@ if ($action === 'search_ia') {
     }
 
     // Build IA advanced search query
+    $collection = trim($_GET['collection'] ?? '');
     $iaQuery = '(' . $q . ') AND mediatype:movies';
+    if ($collection) {
+        $iaQuery .= ' AND collection:(' . $collection . ')';
+    }
     if ($lang) {
         $iaQuery .= ' AND language:(' . $lang . ')';
     }

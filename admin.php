@@ -1406,15 +1406,28 @@ $section = $_GET['s'] ?? 'dashboard';
                         <label>Buscar</label>
                         <input type="text" id="ia-search-q" placeholder="ej: película drama, documental historia..." value="">
                     </div>
-                    <div class="form-group" style="max-width:180px;">
+                    <div class="form-group" style="max-width:200px;">
+                        <label>Colección</label>
+                        <select id="ia-search-col">
+                            <option value="" selected>Todas</option>
+                            <option value="feature_films">Largometrajes</option>
+                            <option value="short_films">Cortometrajes</option>
+                            <option value="Film_Noir">Film Noir</option>
+                            <option value="silent_films">Cine mudo</option>
+                            <option value="classic_cartoons">Dibujos animados</option>
+                            <option value="anime">Anime</option>
+                            <option value="ephemera">Films educativos</option>
+                            <option value="opensource_movies">Videos comunidad</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="max-width:160px;">
                         <label>Idioma</label>
                         <select id="ia-search-lang">
-                            <option value="Spanish" selected>Español</option>
-                            <option value="Spanish OR español">Español (amplio)</option>
+                            <option value="Spanish OR español" selected>Español</option>
                             <option value="">Cualquier idioma</option>
                             <option value="English">Inglés</option>
-                            <option value="Portuguese">Portugués</option>
-                            <option value="French">Francés</option>
+                            <option value="Portuguese OR portugués">Portugués</option>
+                            <option value="French OR français">Francés</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end;">
@@ -1437,6 +1450,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 var q = document.getElementById('ia-search-q').value.trim();
                 if (!q) { alert('Ingresá un término de búsqueda.'); return; }
                 var lang = document.getElementById('ia-search-lang').value;
+                var col = document.getElementById('ia-search-col').value;
                 var btn = document.getElementById('btn-ia-search');
                 var status = document.getElementById('ia-search-status');
                 btn.textContent = 'Buscando...'; btn.disabled = true;
@@ -1446,6 +1460,7 @@ $section = $_GET['s'] ?? 'dashboard';
 
                 var url = 'api.php?action=search_ia&q=' + encodeURIComponent(q);
                 if (lang) url += '&lang=' + encodeURIComponent(lang);
+                if (col) url += '&collection=' + encodeURIComponent(col);
 
                 fetch(url)
                     .then(function(r) { return r.json(); })
