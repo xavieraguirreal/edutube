@@ -326,7 +326,7 @@ if ($action === 'total_titulos') {
 if ($action === 'contenido_ia') {
     $seccion = $_GET['seccion'] ?? '';
     $where = 'activo = 1 AND bloqueado = 0';
-    if ($seccion && in_array($seccion, ['cine', 'audiolibros'])) {
+    if ($seccion && in_array($seccion, ['cine', 'audiolibros', 'libros'])) {
         $where .= " AND seccion = '$seccion'";
     }
     $stmt = $db->query("
