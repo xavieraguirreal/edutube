@@ -641,7 +641,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $imported = 0;
             $skipped = 0;
             if (is_array($items)) {
-                $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $activo = isset($_POST['activo']) ? intval($_POST['activo']) : 1;
+                $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
                 foreach ($items as $item) {
                     $ia_id = trim($item['ia_id'] ?? '');
@@ -663,7 +664,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $duracion = trim($item['duracion'] ?? '');
                     $genero = validarGenero($item['genero'] ?? '');
                     $descripcion = trim($item['descripcion'] ?? '');
-                    $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $genero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
+                    $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $genero, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo]);
                     $imported++;
                 }
             }
@@ -1482,6 +1483,12 @@ $section = $_GET['s'] ?? 'dashboard';
                     <div class="form-group" style="display:flex;align-items:flex-end;font-size:0.82rem;color:#888;padding-bottom:0.5rem;">
                         Se usa cuando no se detecta género automáticamente
                     </div>
+                    <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;">
+                        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;">
+                            <input type="checkbox" id="ia-import-inactive" checked>
+                            Importar como inactivo (requiere revisión)
+                        </label>
+                    </div>
                 </div>
                 <div id="ia-search-status" style="font-size:0.85rem;color:#888;margin-bottom:0.5rem;"></div>
                 <div id="ia-search-results"></div>
@@ -1673,8 +1680,10 @@ $section = $_GET['s'] ?? 'dashboard';
                 // Submit via hidden form
                 var form = document.createElement('form');
                 form.method = 'POST'; form.style.display = 'none';
+                var activo = document.getElementById('ia-import-inactive').checked ? '0' : '1';
                 form.innerHTML = '<input name="action" value="bulk_import_ia">' +
                     '<input name="csrf" value="<?= $csrf ?>">' +
+                    '<input name="activo" value="' + activo + '">' +
                     '<input name="items" value="">';
                 form.querySelector('[name="items"]').value = JSON.stringify(items);
                 document.body.appendChild(form);
@@ -1753,7 +1762,7 @@ $section = $_GET['s'] ?? 'dashboard';
                             fetch('api.php?action=import_ia_batch', {
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({items: items, genero: genero})
+                                body: JSON.stringify({items: items, genero: genero, activo: !document.getElementById('ia-import-inactive').checked})
                             })
                             .then(function(r) { return r.json(); })
                             .then(function(result) {
@@ -1794,11 +1803,27 @@ $section = $_GET['s'] ?? 'dashboard';
             </script>
 
             <?php
-            $iaItems = $db->query("SELECT * FROM contenido_ia ORDER BY orden, titulo")->fetchAll();
+            $iaEstado = $_GET['estado'] ?? '';
+            $iaPage = max(intval($_GET['p'] ?? 1), 1);
+            $iaPerPage = 50;
+            $iaOffset = ($iaPage - 1) * $iaPerPage;
+            $iaWhere = '1=1';
+            if ($iaEstado === 'activo') $iaWhere = 'activo = 1';
+            elseif ($iaEstado === 'inactivo') $iaWhere = 'activo = 0';
+            $iaTotalItems = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE $iaWhere")->fetchColumn();
+            $iaTotalActivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 1")->fetchColumn();
+            $iaTotalInactivos = $db->query("SELECT COUNT(*) FROM contenido_ia WHERE activo = 0")->fetchColumn();
+            $iaTotalPages = max(ceil($iaTotalItems / $iaPerPage), 1);
+            $iaItems = $db->query("SELECT * FROM contenido_ia WHERE $iaWhere ORDER BY activo DESC, orden, titulo LIMIT $iaPerPage OFFSET $iaOffset")->fetchAll();
             ?>
 
             <div class="card">
-                <h2>Catálogo (<?= count($iaItems) ?>)</h2>
+                <h2>Catálogo</h2>
+                <div style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                    <a href="?s=contenido_ia" class="btn btn-sm <?= !$iaEstado ? 'btn-primary' : 'btn-outline' ?>">Todos (<?= $iaTotalActivos + $iaTotalInactivos ?>)</a>
+                    <a href="?s=contenido_ia&estado=activo" class="btn btn-sm <?= $iaEstado==='activo' ? 'btn-primary' : 'btn-outline' ?>">Activos (<?= $iaTotalActivos ?>)</a>
+                    <a href="?s=contenido_ia&estado=inactivo" class="btn btn-sm <?= $iaEstado==='inactivo' ? 'btn-primary' : 'btn-outline' ?>">Pendientes de revisión (<?= $iaTotalInactivos ?>)</a>
+                </div>
                 <table>
                     <tr><th></th><th>Título</th><th>Director</th><th>Género</th><th>Estado</th><th>Acciones</th></tr>
                     <?php foreach ($iaItems as $ia): ?>
@@ -1826,6 +1851,17 @@ $section = $_GET['s'] ?? 'dashboard';
                     </tr>
                     <?php endforeach; ?>
                 </table>
+                <?php if ($iaTotalPages > 1): ?>
+                <div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;justify-content:center;">
+                    <?php if ($iaPage > 1): ?>
+                        <a href="?s=contenido_ia<?= $iaEstado ? '&estado='.$iaEstado : '' ?>&p=<?= $iaPage-1 ?>" class="btn btn-sm btn-outline">← Anterior</a>
+                    <?php endif; ?>
+                    <span style="font-size:0.85rem;color:#888;">Pág. <?= $iaPage ?> de <?= $iaTotalPages ?> (<?= $iaTotalItems ?> items)</span>
+                    <?php if ($iaPage < $iaTotalPages): ?>
+                        <a href="?s=contenido_ia<?= $iaEstado ? '&estado='.$iaEstado : '' ?>&p=<?= $iaPage+1 ?>" class="btn btn-sm btn-outline">Siguiente →</a>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
             </div>
 
         <?php elseif ($section === 'password'): ?>

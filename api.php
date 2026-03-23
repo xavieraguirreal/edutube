@@ -358,7 +358,8 @@ if ($action === 'import_ia_batch') {
     $skipped = 0;
     $errors = 0;
     $lastError = '';
-    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $activo = !empty($input['activo']) ? 1 : 0;
+    $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
     $slugCheck = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");
 
@@ -384,7 +385,7 @@ if ($action === 'import_ia_batch') {
         $duracion = substr(trim($item['duracion'] ?? ''), 0, 14);
         $descripcion = trim($item['descripcion'] ?? '');
         try {
-            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $generoFinal, $descripcion, $_SESSION['admin_nombre'] ?? 'admin']);
+            $stmt->execute([$slug, $ia_id, $titulo, $director, $year, $duracion, $generoFinal, $descripcion, $_SESSION['admin_nombre'] ?? 'admin', $activo]);
             $imported++;
         } catch (Exception $e) {
             $errors++;
