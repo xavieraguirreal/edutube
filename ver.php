@@ -35,7 +35,7 @@ if ($videoId) {
         frame-src https://www.youtube-nocookie.com https://archive.org;
         img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org https://*.us.archive.org https://*.archive.org;
         media-src https://archive.org https://*.us.archive.org https://*.archive.org;
-        connect-src 'self' https://archive.org https://be-api.us.archive.org;
+        connect-src 'self' https://archive.org https://*.archive.org https://be-api.us.archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline' https://www.youtube.com;
@@ -154,7 +154,7 @@ function formatDate(dateStr) {
         var iaId = iaLookup[videoId] || videoId.substring(3);
 
         // Fetch metadata + views from Archive.org in parallel
-        page.innerHTML = '<div style="padding:4rem;text-align:center;color:var(--text-muted);">Cargando película...</div>';
+        page.innerHTML = '<div style="padding:4rem;text-align:center;color:var(--text-muted);">Cargando contenido...</div>';
         Promise.all([
             fetch('https://archive.org/metadata/' + iaId).then(function(r) { return r.json(); }),
             fetch('https://be-api.us.archive.org/views/v1/short/' + iaId).then(function(r) { return r.json(); }).catch(function() { return {}; })
@@ -181,17 +181,27 @@ function formatDate(dateStr) {
                         }
                     }
                 }
-                // Audio fallback
+                // Audio fallback: prefer m4b (full audiobook) > 128kb mp3 (chapter 1) > any mp3
                 if (!mediaFile) {
+                    // Try m4b first (complete audiobook in one file)
                     for (var k = 0; k < files.length; k++) {
-                        if (files[k].name && files[k].name.match(/\.mp3$/i)) {
+                        if (files[k].name && files[k].name.match(/\.m4b$/i)) {
                             mediaFile = files[k].name; isAudio = true; break;
                         }
                     }
                 }
                 if (!mediaFile) {
+                    // Collect all mp3 chapters, sort by name, play first
+                    var mp3Files = files.filter(function(f) {
+                        return f.name && f.name.match(/\.mp3$/i) && (f.format === '128Kbps MP3' || f.format === 'VBR MP3');
+                    }).sort(function(a, b) { return a.name.localeCompare(b.name); });
+                    if (mp3Files.length > 0) {
+                        mediaFile = mp3Files[0].name; isAudio = true;
+                    }
+                }
+                if (!mediaFile) {
                     for (var l = 0; l < files.length; l++) {
-                        if (files[l].format === 'Ogg Vorbis' || files[l].format === '128Kbps MP3' || files[l].format === 'VBR MP3' || (files[l].name && files[l].name.match(/\.(ogg|flac)$/i))) {
+                        if (files[l].name && files[l].name.match(/\.(mp3|ogg|flac)$/i)) {
                             mediaFile = files[l].name; isAudio = true; break;
                         }
                     }
@@ -217,7 +227,7 @@ function formatDate(dateStr) {
                 });
             })
             .catch(function() {
-                page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">Error al cargar la película</h2><a href="/cine" class="btn-back">← Volver a Cine</a></div>';
+                page.innerHTML = '<div style="padding:4rem;text-align:center;"><h2 style="color:var(--text-muted);">Error al cargar el contenido</h2><a href="javascript:history.back()" class="btn-back">← Volver</a></div>';
             });
         return;
     }
