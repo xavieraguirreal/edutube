@@ -1491,6 +1491,8 @@ $section = $_GET['s'] ?? 'dashboard';
                     <span id="ia-selected-count" style="font-size:0.85rem;color:#888;"></span>
                     <span style="flex:1;"></span>
                     <button type="button" class="btn btn-outline btn-sm" id="ia-prev-btn" onclick="searchIA(iaCurrentPage-1)" disabled>← Anterior</button>
+                    <span style="font-size:0.82rem;color:#888;">Pág.</span>
+                    <input type="number" id="ia-page-input" min="1" value="1" style="width:50px;padding:2px 4px;font-size:0.82rem;border:1px solid #ddd;border-radius:4px;text-align:center;" onchange="searchIA(parseInt(this.value)-1)">
                     <span id="ia-page-info" style="font-size:0.82rem;color:#888;"></span>
                     <button type="button" class="btn btn-outline btn-sm" id="ia-next-btn" onclick="searchIA(iaCurrentPage+1)">Siguiente →</button>
                 </div>
@@ -1560,7 +1562,7 @@ $section = $_GET['s'] ?? 'dashboard';
                 var lang = document.getElementById('ia-search-lang').value;
                 var col = document.getElementById('ia-search-col').value;
                 if (!q && !col && !lang) { alert('Elegí al menos una colección o idioma.'); return; }
-                iaCurrentPage = page || 0;
+                iaCurrentPage = (page !== undefined && page !== null) ? page : 0;
                 var btn = document.getElementById('btn-ia-search');
                 var status = document.getElementById('ia-search-status');
                 btn.textContent = 'Buscando...'; btn.disabled = true;
@@ -1621,7 +1623,9 @@ $section = $_GET['s'] ?? 'dashboard';
                 var totalPages = Math.ceil(iaTotalResults / iaPageSize);
                 document.getElementById('ia-prev-btn').disabled = iaCurrentPage <= 0;
                 document.getElementById('ia-next-btn').disabled = iaCurrentPage >= totalPages - 1;
-                document.getElementById('ia-page-info').textContent = 'Pág. ' + (iaCurrentPage + 1) + ' de ' + totalPages;
+                document.getElementById('ia-page-input').value = iaCurrentPage + 1;
+                document.getElementById('ia-page-input').max = totalPages;
+                document.getElementById('ia-page-info').textContent = 'de ' + totalPages;
                 // Show import-all if there are many results
                 if (iaTotalResults > iaPageSize) {
                     document.getElementById('ia-import-all-actions').style.display = '';
