@@ -410,7 +410,7 @@ if ($action === 'import_ia_batch') {
     $errors = 0;
     $lastError = '';
     $activo = !empty($input['activo']) ? 1 : 0;
-    $seccion = in_array($input['seccion'] ?? '', ['cine', 'audiolibros']) ? $input['seccion'] : 'cine';
+    $seccion = in_array($input['seccion'] ?? '', ['cine', 'audiolibros', 'libros']) ? $input['seccion'] : 'cine';
     $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo, seccion, url_portada, url_contenido, fuente) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
     $slugCheck = $db->prepare("SELECT id FROM contenido_ia WHERE slug = ?");

@@ -568,7 +568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if ($dup->fetch()) {
                     $msg = 'Ya existe un contenido con ese slug.'; $msgType = 'error';
                 } else {
-                    $seccionVal = in_array($_POST['seccion'] ?? '', ['cine', 'audiolibros']) ? $_POST['seccion'] : 'cine';
+                    $seccionVal = in_array($_POST['seccion'] ?? '', ['cine', 'audiolibros', 'libros']) ? $_POST['seccion'] : 'cine';
                     $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, seccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([
                         $slug, $ia_id, $titulo,
@@ -667,7 +667,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $skipped = 0;
             if (is_array($items)) {
                 $activo = isset($_POST['activo']) ? intval($_POST['activo']) : 1;
-                $seccionVal = in_array($_POST['seccion'] ?? '', ['cine', 'audiolibros']) ? $_POST['seccion'] : 'cine';
+                $seccionVal = in_array($_POST['seccion'] ?? '', ['cine', 'audiolibros', 'libros']) ? $_POST['seccion'] : 'cine';
                 $stmt = $db->prepare("INSERT INTO contenido_ia (slug, ia_id, titulo, director, year, duracion, genero, descripcion, agregado_por, activo, seccion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $dupCheck = $db->prepare("SELECT id FROM contenido_ia WHERE ia_id = ?");
                 foreach ($items as $item) {
