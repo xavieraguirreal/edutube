@@ -450,10 +450,10 @@ function buildPortalCards(counts) {
 function buildLatestRows() {
     var container = document.getElementById('latest-rows');
     container.innerHTML =
-        '<div class="latest-row" id="row-videos"><div class="latest-row-header"><span class="latest-row-title">Ultimos videos</span><a href="videos" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-videos"></div></div>' +
-        '<div class="latest-row" id="row-cine" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimo en Cine</span><a href="cine" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-cine"></div></div>' +
-        '<div class="latest-row" id="row-audiolibros" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimos audiolibros</span><a href="audiolibros" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-audiolibros"></div></div>' +
-        '<div class="latest-row" id="row-libros" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">Ultimos libros</span><a href="libros" class="latest-row-link">Ver todo &rarr;</a></div><div class="latest-row-scroll" id="scroll-libros"></div></div>';
+        '<div class="latest-row" id="row-videos"><div class="latest-row-header"><span class="latest-row-title">📺 Últimos videos</span><a href="videos" class="latest-row-link">Ver todo →</a></div><div class="latest-row-scroll" id="scroll-videos"></div></div>' +
+        '<div class="latest-row" id="row-cine" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">🎬 Último en Cine</span><a href="cine" class="latest-row-link">Ver todo →</a></div><div class="latest-row-scroll" id="scroll-cine"></div></div>' +
+        '<div class="latest-row" id="row-audiolibros" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">📖 Últimos audiolibros</span><a href="audiolibros" class="latest-row-link">Ver todo →</a></div><div class="latest-row-scroll" id="scroll-audiolibros"></div></div>' +
+        '<div class="latest-row" id="row-libros" style="display:none;"><div class="latest-row-header"><span class="latest-row-title">📚 Últimos libros</span><a href="libros" class="latest-row-link">Ver todo →</a></div><div class="latest-row-scroll" id="scroll-libros"></div></div>';
 
     // Fetch latest videos
     fetch('api.php?action=videos')
@@ -517,9 +517,14 @@ function buildLatestRows() {
             if (latest.length === 0) return;
             var html = '';
             latest.forEach(function(item) {
-                var thumbUrl = item.url_portada || 'img/card-libros.jpg';
+                var thumbUrl = item.url_portada;
+                if (!thumbUrl && item.ia_id && item.ia_id.indexOf('gutenberg_') === 0) {
+                    var gId = item.ia_id.replace('gutenberg_', '');
+                    thumbUrl = 'https://www.gutenberg.org/cache/epub/' + gId + '/pg' + gId + '.cover.medium.jpg';
+                }
+                if (!thumbUrl) thumbUrl = 'img/card-libros.jpg';
                 html += '<a href="leer?id=' + item.id + '" class="latest-card">' +
-                    '<img class="latest-card-thumb" src="' + thumbUrl + '" alt="" loading="lazy" style="object-fit:contain;background:#f5f0e8;">' +
+                    '<img class="latest-card-thumb" src="' + thumbUrl + '" alt="" loading="lazy" style="object-fit:contain;background:#f5f0e8;" onerror="this.src=\'img/card-libros.jpg\'">' +
                     '<div class="latest-card-title">' + item.titulo + '</div>' +
                     '<div class="latest-card-sub">' + (item.director || '') + '</div>' +
                 '</a>';

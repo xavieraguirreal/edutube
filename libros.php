@@ -227,7 +227,12 @@ function buildGenreUI() {
 var activeGenero = 'todos';
 
 function cardHTML(p) {
-    var thumbUrl = p.url_portada || 'img/card-libros.jpg';
+    var thumbUrl = p.url_portada;
+    if (!thumbUrl && p.ia_id && p.ia_id.indexOf('gutenberg_') === 0) {
+        var gId = p.ia_id.replace('gutenberg_', '');
+        thumbUrl = 'https://www.gutenberg.org/cache/epub/' + gId + '/pg' + gId + '.cover.medium.jpg';
+    }
+    if (!thumbUrl) thumbUrl = 'img/card-libros.jpg';
     return '<div class="video-card">' +
         '<a href="leer?id=' + p.id + '" class="thumb" style="background:#f5f0e8;">' +
             '<img src="' + thumbUrl + '" alt="" loading="lazy" style="object-fit:contain;height:100%;">' +
