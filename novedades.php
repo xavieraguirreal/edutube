@@ -65,8 +65,9 @@ $description = 'Últimas incorporaciones a EduTube.';
         </a>
     </div>
     <div class="sidebar-footer">
-        <strong>EduTube</strong> — Plataforma Educativa<br>
-        <a href="https://comite.cooperativaliberte.coop/" target="_blank" style="color:inherit;text-decoration:underline;">Comité de Convivencia Mario Juliano</a> &copy; 2026
+        <strong>EduTube</strong> — Plataforma Educativa y Cultural<br>
+        <a href="https://comite.cooperativaliberte.coop/" target="_blank" style="color:inherit;text-decoration:underline;">Comité de Convivencia Mario Juliano</a> &copy; 2026<br>
+        <a href="landing" style="color:inherit;font-size:0.75rem;">Acerca de EduTube</a>
     </div>
 </nav>
 
