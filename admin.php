@@ -2069,9 +2069,13 @@ $section = $_GET['s'] ?? 'dashboard';
                     $respuesta = trim($_POST['respuesta'] ?? '');
                     if ($nuevoEstado === 'realizada' && $respuesta) {
                         $db->prepare("UPDATE sugerencias SET estado = ?, respuesta = ?, respondido_at = NOW() WHERE id = ?")->execute([$nuevoEstado, $respuesta, $_POST['sug_id']]);
-                        // TODO: Send email notification if user left email
-                        // $sug = $db->prepare("SELECT * FROM sugerencias WHERE id = ?")->execute([$_POST['sug_id']])->fetch();
-                        // if ($sug['email']) sendSugerenciaEmail($sug);
+                        // Send email if user left their email
+                        $sugStmt = $db->prepare("SELECT * FROM sugerencias WHERE id = ?");
+                        $sugStmt->execute([$_POST['sug_id']]);
+                        $sugData = $sugStmt->fetch();
+                        if ($sugData && !empty($sugData['email'])) {
+                            sendSugerenciaRespuesta($sugData['email'], $sugData['nombre'], $sugData['texto'], $respuesta);
+                        }
                     } else {
                         $db->prepare("UPDATE sugerencias SET estado = ? WHERE id = ?")->execute([$nuevoEstado, $_POST['sug_id']]);
                     }
