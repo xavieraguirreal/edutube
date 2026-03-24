@@ -819,7 +819,7 @@ $section = $_GET['s'] ?? 'dashboard';
         <a href="?s=libros" class="<?= $section==='libros'?'active':'' ?>">📚 Libros</a>
         <a href="?s=sugerencias" class="<?= $section==='sugerencias'?'active':'' ?>">💡 Sugerencias<?php
             $sugCount = 0;
-            try { $sugCount = $db->query("SELECT COUNT(*) FROM sugerencias WHERE leida = 0")->fetchColumn(); } catch(Exception $e) {}
+            try { $sugCount = $db->query("SELECT COUNT(*) FROM sugerencias WHERE estado = 'nueva'")->fetchColumn(); } catch(Exception $e) {}
             if ($sugCount > 0): ?> <span style="background:#e63946;color:#fff;border-radius:10px;padding:1px 6px;font-size:0.7rem;margin-left:4px;"><?= $sugCount ?></span><?php endif; ?></a>
         <a href="?s=portada" class="<?= $section==='portada'?'active':'' ?>">🏠 Portada</a>
         <a href="?s=password" class="<?= $section==='password'?'active':'' ?>">🔑 Contraseña</a>
@@ -2059,34 +2059,60 @@ $section = $_GET['s'] ?? 'dashboard';
 
         <?php elseif ($section === 'sugerencias'): ?>
             <?php
-            // Mark all as read
-            if (isset($_GET['marcar_leidas'])) {
-                $db->query("UPDATE sugerencias SET leida = 1 WHERE leida = 0");
-                header('Location: ?s=sugerencias');
-                exit;
+            // Handle state changes
+            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+                if ($_POST['action'] === 'delete_sugerencia') {
+                    $db->prepare("DELETE FROM sugerencias WHERE id = ?")->execute([$_POST['sug_id']]);
+                }
+                if ($_POST['action'] === 'cambiar_estado_sug') {
+                    $nuevoEstado = in_array($_POST['estado'] ?? '', ['nueva','pendiente','realizada']) ? $_POST['estado'] : 'nueva';
+                    $db->prepare("UPDATE sugerencias SET estado = ? WHERE id = ?")->execute([$nuevoEstado, $_POST['sug_id']]);
+                }
             }
-            if (isset($_POST['action']) && $_POST['action'] === 'delete_sugerencia') {
-                $db->prepare("DELETE FROM sugerencias WHERE id = ?")->execute([$_POST['sug_id']]);
-            }
-            $sugs = $db->query("SELECT * FROM sugerencias ORDER BY leida ASC, created_at DESC LIMIT 100")->fetchAll();
-            $unread = 0;
-            foreach ($sugs as $s) { if (!$s['leida']) $unread++; }
-            // Mark displayed as read
-            if ($unread > 0) {
-                $db->query("UPDATE sugerencias SET leida = 1 WHERE leida = 0");
-            }
+
+            $filtroEstado = $_GET['estado'] ?? '';
+            $sugWhere = '1=1';
+            if ($filtroEstado === 'nueva') $sugWhere = "estado = 'nueva'";
+            elseif ($filtroEstado === 'pendiente') $sugWhere = "estado = 'pendiente'";
+            elseif ($filtroEstado === 'realizada') $sugWhere = "estado = 'realizada'";
+
+            $sugs = $db->query("SELECT * FROM sugerencias WHERE $sugWhere ORDER BY FIELD(estado,'nueva','pendiente','realizada'), created_at DESC LIMIT 200")->fetchAll();
+            $cNueva = $db->query("SELECT COUNT(*) FROM sugerencias WHERE estado = 'nueva'")->fetchColumn();
+            $cPendiente = $db->query("SELECT COUNT(*) FROM sugerencias WHERE estado = 'pendiente'")->fetchColumn();
+            $cRealizada = $db->query("SELECT COUNT(*) FROM sugerencias WHERE estado = 'realizada'")->fetchColumn();
             ?>
-            <h1>Sugerencias de usuarios (<?= count($sugs) ?>)</h1>
+            <h1>Sugerencias de usuarios</h1>
+            <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <a href="?s=sugerencias" class="btn btn-sm <?= !$filtroEstado ? 'btn-primary' : 'btn-outline' ?>">Todas (<?= $cNueva + $cPendiente + $cRealizada ?>)</a>
+                <a href="?s=sugerencias&estado=nueva" class="btn btn-sm <?= $filtroEstado==='nueva' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $cNueva ? '' : 'opacity:0.5;' ?>">Nuevas (<?= $cNueva ?>)</a>
+                <a href="?s=sugerencias&estado=pendiente" class="btn btn-sm <?= $filtroEstado==='pendiente' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $cPendiente ? '' : 'opacity:0.5;' ?>">Pendientes (<?= $cPendiente ?>)</a>
+                <a href="?s=sugerencias&estado=realizada" class="btn btn-sm <?= $filtroEstado==='realizada' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $cRealizada ? '' : 'opacity:0.5;' ?>">Realizadas (<?= $cRealizada ?>)</a>
+            </div>
             <?php if (empty($sugs)): ?>
-                <p style="color:#888;">No hay sugerencias todavía.</p>
+                <p style="color:#888;">No hay sugerencias.</p>
             <?php else: ?>
                 <div class="card">
                     <table>
-                        <tr><th>Tipo</th><th>Sugerencia</th><th>Fecha</th><th></th></tr>
+                        <tr><th>Estado</th><th>Tipo</th><th>Sugerencia</th><th>Fecha</th><th>Acciones</th></tr>
                         <?php foreach ($sugs as $s):
                             $tipoLabels = ['canal'=>'Canal YT','tema'=>'Tema','contenido'=>'Contenido','otro'=>'Otro'];
+                            $estadoColors = ['nueva'=>'background:#eef7f0;color:#2e8b47;','pendiente'=>'background:#fff3e0;color:#e67e22;','realizada'=>'background:#f0f0f0;color:#888;'];
+                            $estadoLabels = ['nueva'=>'Nueva','pendiente'=>'Pendiente','realizada'=>'Realizada'];
+                            $rowBg = $s['estado'] === 'nueva' ? 'background:#f0faf3;' : '';
                         ?>
-                        <tr style="<?= !$s['leida'] ? 'background:#eef7f0;font-weight:500;' : '' ?>">
+                        <tr style="<?= $rowBg ?>">
+                            <td>
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="action" value="cambiar_estado_sug">
+                                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                                    <input type="hidden" name="sug_id" value="<?= $s['id'] ?>">
+                                    <select name="estado" onchange="this.form.submit()" style="font-size:0.78rem;padding:2px 4px;border-radius:6px;border:1px solid #ddd;<?= $estadoColors[$s['estado']] ?? '' ?>">
+                                        <option value="nueva" <?= $s['estado']==='nueva'?'selected':'' ?>>Nueva</option>
+                                        <option value="pendiente" <?= $s['estado']==='pendiente'?'selected':'' ?>>Pendiente</option>
+                                        <option value="realizada" <?= $s['estado']==='realizada'?'selected':'' ?>>Realizada</option>
+                                    </select>
+                                </form>
+                            </td>
                             <td><span class="badge badge-active" style="font-size:0.75rem;"><?= $tipoLabels[$s['tipo']] ?? $s['tipo'] ?></span></td>
                             <td style="max-width:400px;"><?= e($s['texto']) ?></td>
                             <td style="font-size:0.78rem;color:#888;white-space:nowrap;"><?= date('d/m/Y H:i', strtotime($s['created_at'])) ?></td>
