@@ -2066,7 +2066,15 @@ $section = $_GET['s'] ?? 'dashboard';
                 }
                 if ($_POST['action'] === 'cambiar_estado_sug') {
                     $nuevoEstado = in_array($_POST['estado'] ?? '', ['nueva','pendiente','realizada']) ? $_POST['estado'] : 'nueva';
-                    $db->prepare("UPDATE sugerencias SET estado = ? WHERE id = ?")->execute([$nuevoEstado, $_POST['sug_id']]);
+                    $respuesta = trim($_POST['respuesta'] ?? '');
+                    if ($nuevoEstado === 'realizada' && $respuesta) {
+                        $db->prepare("UPDATE sugerencias SET estado = ?, respuesta = ?, respondido_at = NOW() WHERE id = ?")->execute([$nuevoEstado, $respuesta, $_POST['sug_id']]);
+                        // TODO: Send email notification if user left email
+                        // $sug = $db->prepare("SELECT * FROM sugerencias WHERE id = ?")->execute([$_POST['sug_id']])->fetch();
+                        // if ($sug['email']) sendSugerenciaEmail($sug);
+                    } else {
+                        $db->prepare("UPDATE sugerencias SET estado = ? WHERE id = ?")->execute([$nuevoEstado, $_POST['sug_id']]);
+                    }
                 }
             }
 
@@ -2093,30 +2101,45 @@ $section = $_GET['s'] ?? 'dashboard';
             <?php else: ?>
                 <div class="card">
                     <table>
-                        <tr><th>Estado</th><th>Tipo</th><th>Sugerencia</th><th>Fecha</th><th>Acciones</th></tr>
+                        <tr><th>Estado</th><th>Tipo</th><th>Sugerencia</th><th>Usuario</th><th>Fecha</th><th>Acciones</th></tr>
                         <?php foreach ($sugs as $s):
-                            $tipoLabels = ['canal'=>'Canal YT','tema'=>'Tema','contenido'=>'Contenido','otro'=>'Otro'];
+                            $tipoLabels = ['canal'=>'Canal YT','tema'=>'Tema','contenido'=>'Contenido','mejora'=>'Mejora','otro'=>'Otro'];
                             $estadoColors = ['nueva'=>'background:#eef7f0;color:#2e8b47;','pendiente'=>'background:#fff3e0;color:#e67e22;','realizada'=>'background:#f0f0f0;color:#888;'];
-                            $estadoLabels = ['nueva'=>'Nueva','pendiente'=>'Pendiente','realizada'=>'Realizada'];
                             $rowBg = $s['estado'] === 'nueva' ? 'background:#f0faf3;' : '';
                         ?>
                         <tr style="<?= $rowBg ?>">
                             <td>
-                                <form method="POST" style="display:inline;">
-                                    <input type="hidden" name="action" value="cambiar_estado_sug">
-                                    <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                                    <input type="hidden" name="sug_id" value="<?= $s['id'] ?>">
-                                    <select name="estado" onchange="this.form.submit()" style="font-size:0.78rem;padding:2px 4px;border-radius:6px;border:1px solid #ddd;<?= $estadoColors[$s['estado']] ?? '' ?>">
-                                        <option value="nueva" <?= $s['estado']==='nueva'?'selected':'' ?>>Nueva</option>
-                                        <option value="pendiente" <?= $s['estado']==='pendiente'?'selected':'' ?>>Pendiente</option>
-                                        <option value="realizada" <?= $s['estado']==='realizada'?'selected':'' ?>>Realizada</option>
-                                    </select>
-                                </form>
+                                <span class="badge" style="font-size:0.72rem;<?= $estadoColors[$s['estado']] ?? '' ?>"><?= ucfirst($s['estado']) ?></span>
                             </td>
-                            <td><span class="badge badge-active" style="font-size:0.75rem;"><?= $tipoLabels[$s['tipo']] ?? $s['tipo'] ?></span></td>
-                            <td style="max-width:400px;"><?= e($s['texto']) ?></td>
-                            <td style="font-size:0.78rem;color:#888;white-space:nowrap;"><?= date('d/m/Y H:i', strtotime($s['created_at'])) ?></td>
-                            <td>
+                            <td><span class="badge badge-active" style="font-size:0.72rem;"><?= $tipoLabels[$s['tipo']] ?? $s['tipo'] ?></span></td>
+                            <td style="max-width:350px;">
+                                <?= e($s['texto']) ?>
+                                <?php if (!empty($s['respuesta'])): ?>
+                                    <div style="margin-top:0.4rem;padding:0.4rem 0.6rem;background:#f0f7ff;border-radius:6px;font-size:0.78rem;color:#555;">
+                                        <strong>Respuesta:</strong> <?= e($s['respuesta']) ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td style="font-size:0.78rem;">
+                                <?= e($s['nombre'] ?: 'Anónimo') ?>
+                                <?php if (!empty($s['email'])): ?>
+                                    <br><a href="mailto:<?= e($s['email']) ?>" style="color:#0077b6;font-size:0.72rem;"><?= e($s['email']) ?></a>
+                                <?php endif; ?>
+                            </td>
+                            <td style="font-size:0.78rem;color:#888;white-space:nowrap;"><?= date('d/m H:i', strtotime($s['created_at'])) ?></td>
+                            <td style="white-space:nowrap;">
+                                <?php if ($s['estado'] === 'nueva'): ?>
+                                    <form method="POST" style="display:inline;">
+                                        <input type="hidden" name="action" value="cambiar_estado_sug">
+                                        <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                                        <input type="hidden" name="sug_id" value="<?= $s['id'] ?>">
+                                        <input type="hidden" name="estado" value="pendiente">
+                                        <button class="btn btn-sm btn-outline" style="color:#e67e22;border-color:#e67e22;">Pendiente</button>
+                                    </form>
+                                <?php endif; ?>
+                                <?php if ($s['estado'] !== 'realizada'): ?>
+                                    <button class="btn btn-sm btn-primary" onclick="abrirRespuesta(<?= $s['id'] ?>)">Realizada</button>
+                                <?php endif; ?>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar?')">
                                     <input type="hidden" name="action" value="delete_sugerencia">
                                     <input type="hidden" name="csrf" value="<?= $csrf ?>">
@@ -2127,6 +2150,30 @@ $section = $_GET['s'] ?? 'dashboard';
                         </tr>
                         <?php endforeach; ?>
                     </table>
+
+                    <!-- Modal respuesta -->
+                    <div id="modal-respuesta" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+                        <div style="background:#fff;border-radius:12px;padding:1.5rem;max-width:450px;width:90%;">
+                            <h3 style="margin-bottom:1rem;font-size:1rem;">Marcar como realizada</h3>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="cambiar_estado_sug">
+                                <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                                <input type="hidden" name="estado" value="realizada">
+                                <input type="hidden" name="sug_id" id="resp-sug-id" value="">
+                                <textarea name="respuesta" rows="3" placeholder="Qué se hizo? (ej: Se agregó el canal X, Se importaron libros de Y...)" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;font-family:inherit;margin-bottom:0.75rem;"></textarea>
+                                <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+                                    <button type="button" onclick="document.getElementById('modal-respuesta').style.display='none';" class="btn btn-outline">Cancelar</button>
+                                    <button type="submit" class="btn btn-primary">Marcar realizada</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <script>
+                    function abrirRespuesta(id) {
+                        document.getElementById('resp-sug-id').value = id;
+                        document.getElementById('modal-respuesta').style.display = 'flex';
+                    }
+                    </script>
                 </div>
             <?php endif; ?>
 

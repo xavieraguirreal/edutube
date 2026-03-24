@@ -707,7 +707,7 @@ if ($action === 'proxy_gutenberg_epub') {
 
 // ── Submit suggestion ──
 if ($action === 'sugerencia') {
-    $tipo = in_array($_POST['tipo'] ?? '', ['canal', 'tema', 'contenido', 'otro']) ? $_POST['tipo'] : 'otro';
+    $tipo = in_array($_POST['tipo'] ?? '', ['canal', 'tema', 'contenido', 'mejora', 'otro']) ? $_POST['tipo'] : 'otro';
     $texto = trim($_POST['texto'] ?? '');
     if (!$texto || strlen($texto) < 3) {
         echo json_encode(['error' => 'Escribí tu sugerencia']);
@@ -724,8 +724,11 @@ if ($action === 'sugerencia') {
         exit;
     }
 
-    $stmt = $db->prepare("INSERT INTO sugerencias (tipo, texto, ip_hash) VALUES (?, ?, ?)");
-    $stmt->execute([$tipo, $texto, $ipHash]);
+    $nombre = mb_substr(trim($_POST['nombre'] ?? ''), 0, 100);
+    $email = mb_substr(trim($_POST['email'] ?? ''), 0, 200);
+    if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) $email = '';
+    $stmt = $db->prepare("INSERT INTO sugerencias (tipo, texto, ip_hash, nombre, email) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$tipo, $texto, $ipHash, $nombre, $email]);
     echo json_encode(['ok' => true]);
     exit;
 }
