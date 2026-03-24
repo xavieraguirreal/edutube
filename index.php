@@ -32,9 +32,9 @@
 </head>
 <body>
 <script>
-// Redirect first-time visitors to landing page
+// Redirect first-time visitors to landing page on university site
 if (!localStorage.getItem('edutube_welcomed')) {
-    window.location.replace('landing');
+    window.location.replace('https://universidadliberte.org/edutube/');
 }
 </script>
 
@@ -277,7 +277,8 @@ if (!localStorage.getItem('edutube_welcomed')) {
     </div>
     <div class="sidebar-footer">
         <strong>EduTube</strong> — Plataforma Educativa<br>
-        <a href="https://comite.cooperativaliberte.coop/" target="_blank" style="color:inherit;text-decoration:underline;">Comité de Convivencia Mario Juliano</a> &copy; 2026
+        <a href="https://comite.cooperativaliberte.coop/" target="_blank" style="color:inherit;text-decoration:underline;">Comité de Convivencia Mario Juliano</a> &copy; 2026<br>
+        <a href="landing" style="color:inherit;font-size:0.75rem;">Acerca de EduTube</a>
     </div>
 </nav>
 
