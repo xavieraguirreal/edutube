@@ -102,6 +102,9 @@ $description = 'Películas y documentales de dominio público en EduTube.';
         <a href="#" class="sidebar-item" id="nav-sugerencia" onclick="document.getElementById('modal-sugerencia').style.display='flex';return false;">
             <span class="si-icon">💡</span><span class="si-label">Sugerir contenido</span>
         </a>
+        <a href="protocolopba" class="sidebar-item">
+            <span class="si-icon">📄</span><span class="si-label">Protocolo de celulares</span>
+        </a>
     </div>
     <div class="sidebar-footer">
         <strong>EduTube</strong> — Plataforma Educativa y Cultural<br>

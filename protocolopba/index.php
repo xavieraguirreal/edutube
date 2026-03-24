@@ -8,7 +8,7 @@ $description = 'Protocolo para el uso de dispositivos celulares por parte de per
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?></title>
-    <link rel="icon" type="image/png" href="loguito-edutube.png">
+    <link rel="icon" type="image/png" href="../loguito-edutube.png">
     <meta name="description" content="<?= $description ?>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -114,7 +114,7 @@ $description = 'Protocolo para el uso de dispositivos celulares por parte de per
 
 <nav class="topnav">
     <a href="/" class="logo">
-        <img src="loguito-edutube.png" alt="">
+        <img src="../loguito-edutube.png" alt="">
         <span>EduTube</span>
     </a>
     <span class="sep">|</span>
@@ -128,7 +128,7 @@ $description = 'Protocolo para el uso de dispositivos celulares por parte de per
         <h1>Protocolo de Uso de Dispositivos Celulares</h1>
         <p>Normativa para el uso de teléfonos celulares por parte de personas privadas de la libertad en el ámbito del Servicio Penitenciario Bonaerense.</p>
         <div class="hero-actions">
-            <a href="protocolopba/Protocolo%20de%20Celulares.pdf" target="_blank" class="btn btn-white">Descargar PDF</a>
+            <a href="Protocolo%20de%20Celulares.pdf" target="_blank" class="btn btn-white">Descargar PDF</a>
             <a href="#articulos" class="btn btn-outline">Ver artículos ↓</a>
             <a href="/" class="btn btn-outline">Ir a EduTube</a>
         </div>
@@ -321,14 +321,14 @@ $description = 'Protocolo para el uso de dispositivos celulares por parte de per
     </p>
     <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
         <a href="/" class="btn btn-green">Explorar EduTube</a>
-        <a href="protocolopba/Protocolo%20de%20Celulares.pdf" target="_blank" class="btn" style="background:#1e3a8a;color:#fff;">Descargar PDF completo</a>
+        <a href="Protocolo%20de%20Celulares.pdf" target="_blank" class="btn" style="background:#1e3a8a;color:#fff;">Descargar PDF completo</a>
     </div>
 </div>
 
 <!-- Footer -->
 <footer class="page-footer">
     <div class="footer-logo">
-        <img src="loguito-edutube.png" alt="">
+        <img src="../loguito-edutube.png" alt="">
         <span>EduTube</span>
     </div>
     <p style="font-size:0.82rem;">
