@@ -455,6 +455,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $msg = 'Canal actualizado.'; $msgType = 'success';
         }
 
+        // ── Delete channel + all its videos ──
+        if ($action === 'delete_channel') {
+            $canalId = intval($_POST['canal_id']);
+            $confirmText = trim($_POST['confirm_text'] ?? '');
+            if ($confirmText !== 'ELIMINAR') {
+                $msg = 'Escribí ELIMINAR para confirmar.'; $msgType = 'error';
+            } else {
+                // Count videos to delete
+                $videoCount = $db->prepare("SELECT COUNT(*) FROM videos WHERE canal_id = ?");
+                $videoCount->execute([$canalId]);
+                $count = $videoCount->fetchColumn();
+                // Delete playlist_videos for this channel's videos
+                $db->prepare("DELETE pv FROM playlist_videos pv JOIN videos v ON pv.video_id = v.id WHERE v.canal_id = ?")->execute([$canalId]);
+                // Delete videos
+                $db->prepare("DELETE FROM videos WHERE canal_id = ?")->execute([$canalId]);
+                // Delete playlists
+                $db->prepare("DELETE FROM playlists WHERE canal_id = ?")->execute([$canalId]);
+                // Delete channel
+                $db->prepare("DELETE FROM canales WHERE id = ?")->execute([$canalId]);
+                $msg = "Canal eliminado con $count videos."; $msgType = 'success';
+            }
+        }
+
         // ── Toggle solo_nuevos ──
         if ($action === 'toggle_solo_nuevos') {
             $canalId = intval($_POST['canal_id']);
@@ -1264,10 +1287,47 @@ $section = $_GET['s'] ?? 'dashboard';
                         <?php if (!empty($c['youtube_channel_id'])): ?>
                         <a href="?s=import&preview_url=https://www.youtube.com/channel/<?= e($c['youtube_channel_id']) ?>" class="btn btn-sm btn-outline" style="margin-left:0.25rem;" title="Sincronizar videos y playlists">Sync</a>
                         <?php endif; ?>
+                        <?php
+                        $vcStmt = $db->prepare("SELECT COUNT(*) FROM videos WHERE canal_id = ?");
+                        $vcStmt->execute([$c['id']]);
+                        $vCount = $vcStmt->fetchColumn();
+                        ?>
+                        <button class="btn btn-sm btn-danger" style="margin-left:0.25rem;" onclick="abrirEliminarCanal(<?= $c['id'] ?>, '<?= e(addslashes($c['nombre'])) ?>', <?= $vCount ?>)">Eliminar</button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
             </table>
+
+            <!-- Modal eliminar canal -->
+            <div id="modal-delete-canal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+                <div style="background:#fff;border-radius:12px;padding:1.5rem;max-width:450px;width:90%;">
+                    <h3 style="margin-bottom:0.5rem;font-size:1rem;color:#c00;">Eliminar canal</h3>
+                    <p id="del-canal-info" style="font-size:0.9rem;margin-bottom:1rem;"></p>
+                    <div style="background:#fee;border:1px solid #fcc;border-radius:8px;padding:0.75rem;margin-bottom:1rem;font-size:0.85rem;color:#c00;">
+                        Esta acción es irreversible. Se eliminarán el canal, todos sus videos y playlists.
+                    </div>
+                    <form method="POST">
+                        <input type="hidden" name="action" value="delete_channel">
+                        <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                        <input type="hidden" name="canal_id" id="del-canal-id" value="">
+                        <div style="margin-bottom:1rem;">
+                            <label style="font-size:0.85rem;font-weight:500;">Escribí <strong>ELIMINAR</strong> para confirmar:</label>
+                            <input type="text" name="confirm_text" placeholder="ELIMINAR" required style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;font-family:inherit;margin-top:0.3rem;">
+                        </div>
+                        <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+                            <button type="button" onclick="document.getElementById('modal-delete-canal').style.display='none';" class="btn btn-outline">Cancelar</button>
+                            <button type="submit" class="btn btn-danger">Eliminar canal</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <script>
+            function abrirEliminarCanal(id, nombre, videoCount) {
+                document.getElementById('del-canal-id').value = id;
+                document.getElementById('del-canal-info').innerHTML = 'Vas a eliminar <strong>' + nombre + '</strong> y sus <strong>' + videoCount + ' videos</strong>.';
+                document.getElementById('modal-delete-canal').style.display = 'flex';
+            }
+            </script>
 
         <?php elseif ($section === 'categorias'): ?>
             <h1>Categorías</h1>
