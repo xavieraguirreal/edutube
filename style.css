@@ -1309,6 +1309,11 @@ button { font-family: inherit; }
     .related-card .r-thumb { width: 100%; min-width: 0; }
 }
 
+/* Hide hamburger menu on desktop (sidebar already visible) */
+@media (min-width: 1025px) {
+    #menu-toggle { display: none; }
+}
+
 @media (max-width: 1024px) {
     .sidebar {
         transform: translateX(-100%);
