@@ -251,6 +251,9 @@ if (!localStorage.getItem('edutube_welcomed')) {
         <a href="libros" class="sidebar-item">
             <span class="si-icon">📚</span><span class="si-label">Libros <span id="cnt-libros" style="color:var(--text-muted);font-size:0.8em;"></span></span>
         </a>
+        <a href="novedades" class="sidebar-item">
+            <span class="si-icon">🆕</span><span class="si-label">Novedades</span>
+        </a>
     </div>
     <div class="sidebar-section">
         <div class="sidebar-title">Tu actividad</div>

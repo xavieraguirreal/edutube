@@ -21,6 +21,9 @@ RewriteRule ^audiolibros$ audiolibros.php [QSA,L]
 # /libros → libros.php
 RewriteRule ^libros$ libros.php [QSA,L]
 
+# /novedades → novedades.php
+RewriteRule ^novedades$ novedades.php [QSA,L]
+
 # /leer?id=X → leer.php
 RewriteRule ^leer$ leer.php [QSA,L]
 

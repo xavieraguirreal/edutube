@@ -705,6 +705,69 @@ if ($action === 'proxy_gutenberg_epub') {
     exit;
 }
 
+// ── Novedades feed ──
+if ($action === 'novedades') {
+    $limit = min(intval($_GET['limit'] ?? 30), 100);
+    $items = [];
+
+    // Recent channels
+    $stmt = $db->query("
+        SELECT c.nombre, c.codigo, c.color, c.thumbnail_url, c.descripcion, c.created_at,
+               COALESCE(cat.nombre, '') AS categoria,
+               (SELECT COUNT(*) FROM videos WHERE canal_id = c.id AND activo = 1) AS total_videos
+        FROM canales c
+        LEFT JOIN categorias cat ON c.default_categoria_id = cat.id
+        WHERE c.activo = 1
+        ORDER BY c.created_at DESC
+        LIMIT 20
+    ");
+    foreach ($stmt->fetchAll() as $r) {
+        $items[] = [
+            'tipo' => 'canal',
+            'titulo' => $r['nombre'],
+            'detalle' => $r['descripcion'] ? mb_substr(strip_tags($r['descripcion']), 0, 150) : '',
+            'categoria' => $r['categoria'],
+            'extra' => $r['total_videos'] . ' videos',
+            'thumbnail' => $r['thumbnail_url'] ?: '',
+            'color' => $r['color'],
+            'codigo' => $r['codigo'],
+            'fecha' => $r['created_at']
+        ];
+    }
+
+    // Recent IA content batches (group by date + seccion)
+    $stmt = $db->query("
+        SELECT seccion, DATE(created_at) AS dia, COUNT(*) AS total, MIN(titulo) AS ejemplo
+        FROM contenido_ia
+        WHERE activo = 1
+        GROUP BY seccion, DATE(created_at)
+        ORDER BY dia DESC
+        LIMIT 20
+    ");
+    foreach ($stmt->fetchAll() as $r) {
+        $secLabels = ['cine'=>'Cine','audiolibros'=>'Audiolibros','libros'=>'Libros'];
+        $items[] = [
+            'tipo' => $r['seccion'],
+            'titulo' => $r['total'] . ' títulos de ' . ($secLabels[$r['seccion']] ?? $r['seccion']),
+            'detalle' => 'Ej: ' . mb_substr($r['ejemplo'], 0, 60),
+            'categoria' => $secLabels[$r['seccion']] ?? '',
+            'extra' => '',
+            'thumbnail' => '',
+            'color' => '',
+            'codigo' => '',
+            'fecha' => $r['dia'] . ' 00:00:00'
+        ];
+    }
+
+    // Sort all by date desc
+    usort($items, function($a, $b) {
+        return strcmp($b['fecha'], $a['fecha']);
+    });
+
+    echo json_encode(array_slice($items, 0, $limit), JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // ── Submit suggestion ──
 if ($action === 'sugerencia') {
     $tipo = in_array($_POST['tipo'] ?? '', ['canal', 'tema', 'contenido', 'mejora', 'otro']) ? $_POST['tipo'] : 'otro';
