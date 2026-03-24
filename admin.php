@@ -2137,7 +2137,7 @@ $section = $_GET['s'] ?? 'dashboard';
                     $db->prepare("DELETE FROM sugerencias WHERE id = ?")->execute([$_POST['sug_id']]);
                 }
                 if ($_POST['action'] === 'cambiar_estado_sug') {
-                    $nuevoEstado = in_array($_POST['estado'] ?? '', ['nueva','pendiente','realizada']) ? $_POST['estado'] : 'nueva';
+                    $nuevoEstado = in_array($_POST['estado'] ?? '', ['nueva','pendiente','realizada','rechazada']) ? $_POST['estado'] : 'nueva';
                     $respuesta = trim($_POST['respuesta'] ?? '');
                     if ($nuevoEstado === 'realizada' && $respuesta) {
                         $db->prepare("UPDATE sugerencias SET estado = ?, respuesta = ?, respondido_at = NOW() WHERE id = ?")->execute([$nuevoEstado, $respuesta, $_POST['sug_id']]);
@@ -2160,17 +2160,20 @@ $section = $_GET['s'] ?? 'dashboard';
             elseif ($filtroEstado === 'pendiente') $sugWhere = "estado = 'pendiente'";
             elseif ($filtroEstado === 'realizada') $sugWhere = "estado = 'realizada'";
 
-            $sugs = $db->query("SELECT * FROM sugerencias WHERE $sugWhere ORDER BY FIELD(estado,'nueva','pendiente','realizada'), created_at DESC LIMIT 200")->fetchAll();
+            if ($filtroEstado === 'rechazada') $sugWhere = "estado = 'rechazada'";
+            $sugs = $db->query("SELECT * FROM sugerencias WHERE $sugWhere ORDER BY FIELD(estado,'nueva','pendiente','realizada','rechazada'), created_at DESC LIMIT 200")->fetchAll();
             $cNueva = $db->query("SELECT COUNT(*) FROM sugerencias WHERE estado = 'nueva'")->fetchColumn();
             $cPendiente = $db->query("SELECT COUNT(*) FROM sugerencias WHERE estado = 'pendiente'")->fetchColumn();
             $cRealizada = $db->query("SELECT COUNT(*) FROM sugerencias WHERE estado = 'realizada'")->fetchColumn();
+            $cRechazada = $db->query("SELECT COUNT(*) FROM sugerencias WHERE estado = 'rechazada'")->fetchColumn();
             ?>
             <h1>Sugerencias de usuarios</h1>
             <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-                <a href="?s=sugerencias" class="btn btn-sm <?= !$filtroEstado ? 'btn-primary' : 'btn-outline' ?>">Todas (<?= $cNueva + $cPendiente + $cRealizada ?>)</a>
+                <a href="?s=sugerencias" class="btn btn-sm <?= !$filtroEstado ? 'btn-primary' : 'btn-outline' ?>">Todas (<?= $cNueva + $cPendiente + $cRealizada + $cRechazada ?>)</a>
                 <a href="?s=sugerencias&estado=nueva" class="btn btn-sm <?= $filtroEstado==='nueva' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $cNueva ? '' : 'opacity:0.5;' ?>">Nuevas (<?= $cNueva ?>)</a>
                 <a href="?s=sugerencias&estado=pendiente" class="btn btn-sm <?= $filtroEstado==='pendiente' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $cPendiente ? '' : 'opacity:0.5;' ?>">Pendientes (<?= $cPendiente ?>)</a>
                 <a href="?s=sugerencias&estado=realizada" class="btn btn-sm <?= $filtroEstado==='realizada' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $cRealizada ? '' : 'opacity:0.5;' ?>">Realizadas (<?= $cRealizada ?>)</a>
+                <a href="?s=sugerencias&estado=rechazada" class="btn btn-sm <?= $filtroEstado==='rechazada' ? 'btn-primary' : 'btn-outline' ?>" style="<?= $cRechazada ? '' : 'opacity:0.5;' ?>">Rechazadas (<?= $cRechazada ?>)</a>
             </div>
             <?php if (empty($sugs)): ?>
                 <p style="color:#888;">No hay sugerencias.</p>
@@ -2180,7 +2183,7 @@ $section = $_GET['s'] ?? 'dashboard';
                         <tr><th>Estado</th><th>Tipo</th><th>Sugerencia</th><th>Usuario</th><th>Fecha</th><th>Acciones</th></tr>
                         <?php foreach ($sugs as $s):
                             $tipoLabels = ['canal'=>'Canal YT','tema'=>'Tema','contenido'=>'Contenido','mejora'=>'Mejora','otro'=>'Otro'];
-                            $estadoColors = ['nueva'=>'background:#eef7f0;color:#2e8b47;','pendiente'=>'background:#fff3e0;color:#e67e22;','realizada'=>'background:#f0f0f0;color:#888;'];
+                            $estadoColors = ['nueva'=>'background:#eef7f0;color:#2e8b47;','pendiente'=>'background:#fff3e0;color:#e67e22;','realizada'=>'background:#f0f0f0;color:#888;','rechazada'=>'background:#fee;color:#c00;'];
                             $rowBg = $s['estado'] === 'nueva' ? 'background:#f0faf3;' : '';
                         ?>
                         <tr style="<?= $rowBg ?>">
@@ -2213,8 +2216,15 @@ $section = $_GET['s'] ?? 'dashboard';
                                         <button class="btn btn-sm btn-outline" style="color:#e67e22;border-color:#e67e22;">Pendiente</button>
                                     </form>
                                 <?php endif; ?>
-                                <?php if ($s['estado'] !== 'realizada'): ?>
+                                <?php if ($s['estado'] !== 'realizada' && $s['estado'] !== 'rechazada'): ?>
                                     <button class="btn btn-sm btn-primary" onclick="abrirRespuesta(<?= $s['id'] ?>)">Realizada</button>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('¿Rechazar esta sugerencia?')">
+                                        <input type="hidden" name="action" value="cambiar_estado_sug">
+                                        <input type="hidden" name="csrf" value="<?= $csrf ?>">
+                                        <input type="hidden" name="sug_id" value="<?= $s['id'] ?>">
+                                        <input type="hidden" name="estado" value="rechazada">
+                                        <button class="btn btn-sm btn-outline" style="color:#c00;border-color:#c00;">Rechazar</button>
+                                    </form>
                                 <?php endif; ?>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar?')">
                                     <input type="hidden" name="action" value="delete_sugerencia">
