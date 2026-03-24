@@ -212,8 +212,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         $colores = ['#2e8b47','#e63946','#9b5de5','#f77f00','#00b4d8','#e76f51','#6a994e','#bc4749'];
 
                         $defaultCatId = $_POST['categoria_id'] ?: null;
-                        $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, default_categoria_id) VALUES (?, ?, ?, ?, ?)");
-                        $stmt->execute([$nombre, $channelId, $autoCodigo, $colores[array_rand($colores)], $defaultCatId]);
+                        $autoSync = isset($_POST['auto_sync']) ? 1 : 0;
+                        $soloNuevos = isset($_POST['solo_nuevos']) ? 1 : 0;
+                        $stmt = $db->prepare("INSERT INTO canales (nombre, youtube_channel_id, codigo, color, default_categoria_id, auto_sync, solo_nuevos) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$nombre, $channelId, $autoCodigo, $colores[array_rand($colores)], $defaultCatId, $autoSync, $soloNuevos]);
                         $canalDbId = $db->lastInsertId();
                     } else {
                         $canalDbId = $canal['id'];
@@ -1084,6 +1086,16 @@ $section = $_GET['s'] ?? 'dashboard';
                                     <option value="<?= $c['id'] ?>" <?= (isset($canalDefaultCatId) && $canalDefaultCatId == $c['id']) ? 'selected' : '' ?>><?= e($c['nombre']) ?></option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+                        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:0.3rem;gap:1.5rem;">
+                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                                <input type="checkbox" name="auto_sync" value="1" checked>
+                                Auto-sync (cron)
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;" title="Solo importa videos más nuevos que el último sincronizado">
+                                <input type="checkbox" name="solo_nuevos" value="1">
+                                Solo nuevos
+                            </label>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary" onclick="this.disabled=true;this.innerHTML='⏳ Importando... esto puede tardar un momento';this.form.submit();">Importar <?= e($preview['nombre']) ?></button>
