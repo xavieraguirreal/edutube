@@ -1234,7 +1234,15 @@ $section = $_GET['s'] ?? 'dashboard';
                 <?php endif; ?>
             </div>
             <table>
-                <tr><th></th><th>Nombre</th><th>Channel ID</th><th>Categoría</th><th>Auto-sync</th><th>Solo nuevos</th><th>Metadata</th><th>Acciones</th></tr>
+                <style>
+                .toggle-switch { position:relative;display:inline-block;width:36px;height:20px;vertical-align:middle;cursor:pointer; }
+                .toggle-switch input { opacity:0;width:0;height:0; }
+                .toggle-slider { position:absolute;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:20px;transition:0.2s; }
+                .toggle-slider:before { content:'';position:absolute;height:16px;width:16px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:0.2s; }
+                .toggle-switch input:checked + .toggle-slider { background:#2e8b47; }
+                .toggle-switch input:checked + .toggle-slider:before { transform:translateX(16px); }
+                </style>
+                <tr><th></th><th>Nombre</th><th>Videos</th><th>Categoría</th><th>Auto-sync</th><th>Solo nuevos</th><th>Acciones</th></tr>
                 <?php foreach ($canales as $c):
                     $catNombre = '—';
                     if (!empty($c['default_categoria_id'])) {
@@ -1242,6 +1250,9 @@ $section = $_GET['s'] ?? 'dashboard';
                             if ($cat['id'] == $c['default_categoria_id']) { $catNombre = $cat['nombre']; break; }
                         }
                     }
+                    $vcStmt = $db->prepare("SELECT COUNT(*) FROM videos WHERE canal_id = ?");
+                    $vcStmt->execute([$c['id']]);
+                    $vCount = $vcStmt->fetchColumn();
                 ?>
                 <tr>
                     <td>
@@ -1252,51 +1263,41 @@ $section = $_GET['s'] ?? 'dashboard';
                         <?php endif; ?>
                     </td>
                     <td><a href="canal.php?id=<?= $c['id'] ?>" target="_blank" style="color:var(--text);font-weight:500;"><?= e($c['nombre']) ?></a></td>
-                    <td style="font-size:0.78rem;"><?= e($c['youtube_channel_id']) ?></td>
+                    <td style="text-align:center;font-size:0.85rem;font-weight:500;"><?= $vCount ?></td>
                     <td><?= e($catNombre) ?></td>
-                    <td>
-                        <form method="POST" style="display:inline;">
-                            <input type="hidden" name="action" value="toggle_auto_sync">
-                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                            <input type="hidden" name="canal_id" value="<?= $c['id'] ?>">
-                            <button type="submit" class="badge-btn <?= !empty($c['auto_sync']) ? 'badge-active' : 'badge-inactive' ?>" title="Clic para cambiar"><?= !empty($c['auto_sync']) ? 'Sí' : 'No' ?></button>
-                        </form>
+                    <td style="text-align:center;">
+                        <label class="toggle-switch" title="Auto-sync (cron)">
+                            <input type="checkbox" <?= !empty($c['auto_sync']) ? 'checked' : '' ?> onchange="toggleCanal(<?= $c['id'] ?>, 'toggle_auto_sync', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </td>
-                    <td>
-                        <form method="POST" style="display:inline;">
-                            <input type="hidden" name="action" value="toggle_solo_nuevos">
-                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                            <input type="hidden" name="canal_id" value="<?= $c['id'] ?>">
-                            <button type="submit" class="badge-btn <?= !empty($c['solo_nuevos']) ? 'badge-active' : 'badge-inactive' ?>" title="Solo importa videos más nuevos que el último sincronizado"><?= !empty($c['solo_nuevos']) ? 'Sí' : 'No' ?></button>
-                        </form>
+                    <td style="text-align:center;">
+                        <label class="toggle-switch" title="Solo importar videos nuevos">
+                            <input type="checkbox" <?= !empty($c['solo_nuevos']) ? 'checked' : '' ?> onchange="toggleCanal(<?= $c['id'] ?>, 'toggle_solo_nuevos', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </td>
-                    <td>
-                        <?php if (!empty($c['youtube_channel_id'])): ?>
-                        <form method="POST" style="display:inline;" onsubmit="return confirm('¿Sincronizar metadatos de YouTube para <?= e($c['nombre']) ?>?')">
-                            <input type="hidden" name="action" value="sync_channel_metadata">
-                            <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                            <input type="hidden" name="canal_id" value="<?= $c['id'] ?>">
-                            <button type="submit" class="badge-btn <?= !empty($c['metadata_updated_at']) ? 'badge-active' : 'badge-inactive' ?>" title="Clic para sincronizar metadatos"><?= !empty($c['metadata_updated_at']) ? date('d/m', strtotime($c['metadata_updated_at'])) : 'Sin sync' ?></button>
-                        </form>
-                        <?php else: ?>
-                        <span class="badge badge-inactive">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
+                    <td style="white-space:nowrap;">
                         <a href="?s=canales&edit=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
                         <?php if (!empty($c['youtube_channel_id'])): ?>
-                        <a href="?s=import&preview_url=https://www.youtube.com/channel/<?= e($c['youtube_channel_id']) ?>" class="btn btn-sm btn-outline" style="margin-left:0.25rem;" title="Sincronizar videos y playlists">Sync</a>
+                        <a href="?s=import&preview_url=https://www.youtube.com/channel/<?= e($c['youtube_channel_id']) ?>" class="btn btn-sm btn-outline" title="Sincronizar">Sync</a>
                         <?php endif; ?>
-                        <?php
-                        $vcStmt = $db->prepare("SELECT COUNT(*) FROM videos WHERE canal_id = ?");
-                        $vcStmt->execute([$c['id']]);
-                        $vCount = $vcStmt->fetchColumn();
-                        ?>
-                        <button class="btn btn-sm btn-danger" style="margin-left:0.25rem;" onclick="abrirEliminarCanal(<?= $c['id'] ?>, '<?= e(addslashes($c['nombre'])) ?>', <?= $vCount ?>)">Eliminar</button>
+                        <button class="btn btn-sm btn-danger" onclick="abrirEliminarCanal(<?= $c['id'] ?>, '<?= e(addslashes($c['nombre'])) ?>', <?= $vCount ?>)">Eliminar</button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
             </table>
+            <script>
+            function toggleCanal(canalId, action, checked) {
+                var fd = new FormData();
+                fd.append('action', action);
+                fd.append('csrf', '<?= $csrf ?>');
+                fd.append('canal_id', canalId);
+                fetch('admin.php', { method:'POST', body:fd })
+                    .then(function(r) { /* silently ok */ })
+                    .catch(function() { /* revert on error */ });
+            }
+            </script>
 
             <!-- Modal eliminar canal -->
             <div id="modal-delete-canal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
