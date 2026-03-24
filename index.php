@@ -34,7 +34,7 @@
 <script>
 // Redirect first-time visitors to landing page on university site
 if (!localStorage.getItem('edutube_welcomed')) {
-    window.location.replace('https://universidadliberte.org/edutube/');
+    window.location.replace('https://universidadliberte.org/plataforma-edutube/');
 }
 </script>
 
