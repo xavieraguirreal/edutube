@@ -33,7 +33,7 @@ if ($videoId) {
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         frame-src https://www.youtube-nocookie.com https://archive.org;
-        img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org https://*.us.archive.org https://*.archive.org;
+        img-src 'self' https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com https://archive.org https://*.us.archive.org https://*.archive.org;
         media-src https://archive.org https://*.us.archive.org https://*.archive.org;
         connect-src 'self' https://archive.org https://*.archive.org https://be-api.us.archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -256,7 +256,7 @@ function formatDate(dateStr) {
         list.forEach(function(v) {
             html += '<a href="watch?v=' + v.youtube_id + '" class="related-card">' +
                 '<div class="r-thumb">' +
-                    '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                    '<img src="thumb.php?id=' + v.youtube_id + '&s=mq" alt="" loading="lazy">' +
                     (v.duracion ? '<span class="r-duration">' + v.duracion + '</span>' : '') +
                 '</div>' +
                 '<div class="r-info">' +
@@ -289,6 +289,7 @@ function formatDate(dateStr) {
                         '<iframe id="yt-player" src="' + embedSrc + '" ' +
                             'sandbox="allow-scripts allow-same-origin allow-presentation" ' +
                             'allow="autoplay; encrypted-media" ' +
+                            'tabindex="-1" ' +
                             'title="' + video.titulo + '"></iframe>' +
                         '<div class="yt-shield-top"></div>' +
                         '<div class="yt-shield-bottom"></div>' +
@@ -369,7 +370,7 @@ function formatDate(dateStr) {
                     var isCurrent = v.youtube_id === videoId;
                     plHtml += '<a href="watch?v=' + v.youtube_id + '" class="related-card' + (isCurrent ? '" style="background:var(--bg-hover);border-left:3px solid var(--accent);' : '') + '">' +
                         '<div class="r-thumb">' +
-                            '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                            '<img src="thumb.php?id=' + v.youtube_id + '&s=mq" alt="" loading="lazy">' +
                             (v.duracion ? '<span class="r-duration">' + v.duracion + '</span>' : '') +
                         '</div>' +
                         '<div class="r-info">' +
@@ -453,8 +454,35 @@ function formatDate(dateStr) {
     var player, progressInterval, isMuted = false;
 
     window.onYouTubeIframeAPIReady = function() {
-        player = new YT.Player('yt-player', { events: { onReady: function() { updateTotal(); setTimeout(updateTotal, 2000); }, onStateChange: onState } });
+        player = new YT.Player('yt-player', { events: {
+            onReady: function() { updateTotal(); setTimeout(updateTotal, 2000); },
+            onStateChange: onState,
+            onError: function(e) {
+                var container = document.getElementById('player-container');
+                var msgs = { 2: 'ID de video inválido', 5: 'Error de reproducción', 100: 'Video no encontrado', 101: 'Video no disponible', 150: 'Video no disponible' };
+                var msg = msgs[e.data] || 'Error al reproducir el video';
+                var overlay = document.createElement('div');
+                overlay.className = 'yt-error-overlay';
+                overlay.innerHTML = '<svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><p>' + msg + '</p><a href="/">← Volver al inicio</a>';
+                container.appendChild(overlay);
+            }
+        }});
     };
+
+    // Click en container → play/pause (el iframe tiene pointer-events:none)
+    document.getElementById('player-container').addEventListener('click', function(e) {
+        if (!player || !player.getPlayerState) return;
+        if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
+        else player.playVideo();
+    });
+
+    // Capturar Tab para evitar que el foco entre al iframe
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab' && document.activeElement && document.activeElement.tagName === 'IFRAME') {
+            e.preventDefault();
+            document.getElementById('btn-play').focus();
+        }
+    });
 
     function onState(e) {
         var btn = document.getElementById('btn-play');

@@ -412,7 +412,7 @@ function videoCardHTML(v) {
     var isWL = isInStore('watchlater', v.youtube_id);
     return '<div class="video-card" data-id="' + v.youtube_id + '">' +
         '<a href="watch?v=' + v.youtube_id + '" class="thumb">' +
-            '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+            '<img src="thumb.php?id=' + v.youtube_id + '&s=mq" alt="" loading="lazy">' +
             (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
             '<div class="thumb-actions">' +
                 '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Reproducir después">🕐</button>' +

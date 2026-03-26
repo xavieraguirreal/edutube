@@ -9,7 +9,7 @@ $description = 'Películas y documentales de dominio público en EduTube.';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org https://img.youtube.com;
+        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline';
@@ -353,7 +353,7 @@ function crossCardHTML(item) {
     // YouTube video from other sections
     return '<div class="video-card">' +
         '<a href="watch?v=' + item.id + '" class="thumb">' +
-            '<img src="https://img.youtube.com/vi/' + item.id + '/mqdefault.jpg" alt="" loading="lazy">' +
+            '<img src="thumb.php?id=' + item.id + '&s=mq" alt="" loading="lazy">' +
         '</a>' +
         '<div class="card-info">' +
             '<div class="channel-avatar" style="background:#2e8b47">▶</div>' +

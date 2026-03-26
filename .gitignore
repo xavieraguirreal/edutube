@@ -15,6 +15,7 @@ cron-sync.log
 
 # Cache
 cache/
+thumbs/
 
 # Misc
 *.docx

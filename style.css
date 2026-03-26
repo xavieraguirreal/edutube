@@ -856,6 +856,9 @@ button { font-family: inherit; }
 
 .player-container iframe, .player-container video { width: 100%; height: 100%; border: none; object-fit: contain; background: #000; }
 
+/* YouTube iframe: bloquear toda interacción directa — clicks se manejan via container */
+.player-container iframe { pointer-events: none; }
+
 .player-container .yt-shield-top {
     position: absolute;
     top: 0; left: 0;
@@ -863,6 +866,7 @@ button { font-family: inherit; }
     z-index: 10;
     cursor: default;
     background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+    pointer-events: none;
 }
 
 .player-container .yt-shield-bottom {
@@ -872,7 +876,27 @@ button { font-family: inherit; }
     z-index: 10;
     cursor: default;
     background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+    pointer-events: none;
 }
+
+/* Overlay de error YouTube */
+.yt-error-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 20;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: rgba(255,255,255,0.7);
+}
+.yt-error-overlay svg { opacity: 0.4; }
+.yt-error-overlay p { font-size: 0.95rem; margin: 0; }
+.yt-error-overlay a { color: var(--accent); text-decoration: none; font-size: 0.85rem; }
+.yt-error-overlay a:hover { text-decoration: underline; }
 
 /* ── Custom Controls ── */
 .custom-controls {

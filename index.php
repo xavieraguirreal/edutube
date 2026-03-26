@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org https://img.youtube.com;
+        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline';
@@ -464,7 +464,7 @@ function buildLatestRows() {
             var html = '';
             videos.forEach(function(v) {
                 html += '<a href="watch?v=' + v.youtube_id + '" class="latest-card">' +
-                    '<img class="latest-card-thumb" src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+                    '<img class="latest-card-thumb" src="thumb.php?id=' + v.youtube_id + '&s=mq" alt="" loading="lazy">' +
                     '<div class="latest-card-title">' + v.titulo + '</div>' +
                     '<div class="latest-card-sub">' + (v.canal_nombre || '') + '</div>' +
                 '</a>';
@@ -652,7 +652,7 @@ function renderSearchResults(q, videos, cineResults, audioResults, librosResults
         html += '<h3 style="font-size:1rem;margin:1rem 0 0.5rem;"><a href="videos?q=' + encodeURIComponent(q) + '" style="color:var(--text-primary);text-decoration:none;">Videos (' + videos.length + ') →</a></h3>';
         html += '<div class="video-grid" style="display:grid;">';
         videos.forEach(function(v) {
-            html += '<div class="video-card"><a href="watch?v=' + v.youtube_id + '" class="thumb"><img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+            html += '<div class="video-card"><a href="watch?v=' + v.youtube_id + '" class="thumb"><img src="thumb.php?id=' + v.youtube_id + '&s=mq" alt="" loading="lazy">' +
                 (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
                 '</a><div class="card-info"><div class="channel-avatar" style="background:' + (v.canal_color || '#2e8b47') + '">' + (v.canal_codigo || '▶') + '</div>' +
                 '<div class="card-text"><a href="watch?v=' + v.youtube_id + '" class="card-title">' + v.titulo + '</a>' +

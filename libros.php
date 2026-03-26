@@ -9,7 +9,7 @@ $description = 'Libros clásicos de dominio público en EduTube.';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org https://img.youtube.com https://www.gutenberg.org https://*.gutenberg.org;
+        img-src 'self' https://archive.org https://*.us.archive.org https://*.archive.org https://www.gutenberg.org https://*.gutenberg.org;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline';

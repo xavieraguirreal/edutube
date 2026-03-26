@@ -28,7 +28,7 @@ if ($canalId) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        img-src 'self' https://img.youtube.com https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com;
+        img-src 'self' https://i.ytimg.com https://yt3.ggpht.com https://lh3.googleusercontent.com;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src https://fonts.gstatic.com;
         script-src 'self' 'unsafe-inline';
@@ -114,7 +114,7 @@ function videoCardHTML(v) {
     var isWL = isInStore('watchlater', v.youtube_id);
     return '<div class="video-card" data-id="' + v.youtube_id + '">' +
         '<a href="watch?v=' + v.youtube_id + '" class="thumb">' +
-            '<img src="https://img.youtube.com/vi/' + v.youtube_id + '/mqdefault.jpg" alt="" loading="lazy">' +
+            '<img src="thumb.php?id=' + v.youtube_id + '&s=mq" alt="" loading="lazy">' +
             (v.duracion ? '<span class="duration-badge">' + v.duracion + '</span>' : '') +
             '<div class="thumb-actions">' +
                 '<button class="thumb-action-btn btn-wl' + (isWL ? ' saved' : '') + '" data-id="' + v.youtube_id + '" title="Reproducir después">🕐</button>' +

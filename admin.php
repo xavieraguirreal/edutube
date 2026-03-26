@@ -196,7 +196,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 // Get channel info from YouTube API
                 $chInfo = getChannelInfo($channelId);
                 if (!$chInfo) {
-                    $msg = 'No se pudo obtener información del canal.'; $msgType = 'error';
+                    $apiError = youtubeApiLastError();
+                    $msg = 'No se pudo obtener información del canal.' . ($apiError ? ' — ' . $apiError : ''); $msgType = 'error';
                 } else {
                     // Check if channel exists in DB
                     $stmt = $db->prepare("SELECT id FROM canales WHERE youtube_channel_id = ?");
@@ -954,8 +955,10 @@ $section = $_GET['s'] ?? 'dashboard';
                 </form>
             </div>
 
-            <?php if (isset($_GET['preview_url']) && !$preview): ?>
-                <div class="msg msg-error">No se pudo obtener información del canal. Verificá la URL.</div>
+            <?php if (isset($_GET['preview_url']) && !$preview):
+                $apiError = youtubeApiLastError();
+            ?>
+                <div class="msg msg-error">No se pudo obtener información del canal. Verificá la URL.<?php if ($apiError): ?><br><small style="opacity:0.8;">Debug: <?= e($apiError) ?></small><?php endif; ?></div>
             <?php endif; ?>
 
             <?php if ($preview): ?>
