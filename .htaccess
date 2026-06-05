@@ -6,6 +6,9 @@ DirectoryIndex index.php
 # /watch?v=VIDEO_ID → ver.php
 RewriteRule ^watch$ ver.php [QSA,L]
 
+# /embed?v=VIDEO_ID → embed.php (reproductor limpio para incrustar en <iframe>)
+RewriteRule ^embed$ embed.php [QSA,L]
+
 # /canal?id=ID → canal.php
 RewriteRule ^canal$ canal.php [QSA,L]
 

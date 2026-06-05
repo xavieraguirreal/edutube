@@ -25,6 +25,17 @@ URL: edutube.universidadliberte.org
 - Controles propios via YouTube IFrame Player API
 - IMPORTANTE: NO usar referrerpolicy="no-referrer" (causa Error 153)
 
+## Ruta /embed (reproductor para incrustar en iframe)
+- URL: https://edutube.universidadliberte.org/embed?v=VIDEO_ID  (acepta también ?id=)
+- Archivo: embed.php (rewrite `^embed$ embed.php [QSA,L]` en .htaccess)
+- Devuelve SOLO el reproductor (sin topbar/sidebar/relacionados), full-bleed; el iframe padre controla tamaño/aspect-ratio.
+- Reusa el reproductor limpio de ver.php (youtube-nocookie + IFrame API + yt-shields + custom-controls) y hereda style.css.
+- Valida el video contra la BD (videos.activo=1); si no existe → "Video no disponible".
+- Badge "EduTube" (loguito-edutube.png) que enlaza a /watch?v=ID en pestaña nueva.
+- Política frame-ancestors (quién puede incrustarlo), vía header HTTP en embed.php:
+  'self', cooperativaliberte.coop, universidadliberte.org, tallersolidarioliberte.com.ar (y sus subdominios).
+  NO se envía X-Frame-Options. Para sumar un dominio, editar $frameAncestors en embed.php.
+
 ## Indexación de videos
 ### Actual (hardcodeado)
 Los videos están en videos.js con estructura: id, titulo, descripcion, canal, categoria, duracion, vistas, fecha, tags.
