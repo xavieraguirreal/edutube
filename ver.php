@@ -1,14 +1,26 @@
 <?php
 // Server-side meta tags for social sharing (crawlers don't execute JS)
-$videoId = isset($_GET['v']) ? $_GET['v'] : (isset($_GET['id']) ? $_GET['id'] : '');
-$videoId = preg_replace('/[^a-zA-Z0-9_-]/', '', $videoId);
+$rawId = isset($_GET['v']) ? $_GET['v'] : (isset($_GET['id']) ? $_GET['id'] : '');
+$isIA = strpos($rawId, 'ia:') === 0;
+$videoId = preg_replace('/[^a-zA-Z0-9_-]/', '', $rawId);
 
 $title = 'EduTube — Videos Educativos';
 $description = 'Video educativo en EduTube — Plataforma de videos educativos curados.';
 $image = 'https://edutube.universidadliberte.org/loguito-edutube.png';
 $url = 'https://edutube.universidadliberte.org/watch?v=' . $videoId;
 
-if ($videoId) {
+// Validate the video server-side so missing/deleted/private videos return HTTP 404
+// (not a 200 with an empty player) — avoids Google flagging them as Soft 404.
+$notFound = false;
+
+if ($isIA) {
+    // Contenido de Internet Archive: se valida en el cliente contra archive.org
+    // (un id "ia:" puede ser un identificador directo que no está en nuestra BD),
+    // así que no forzamos 404 acá.
+} elseif ($videoId === '') {
+    // /watch sin id de video → no hay nada que mostrar
+    $notFound = true;
+} else {
     try {
         require_once __DIR__ . '/config.php';
         $db = getDB();
@@ -19,10 +31,20 @@ if ($videoId) {
             $title = $v['titulo'] . ' — EduTube';
             $description = $v['descripcion'] ?: $title;
             $image = 'https://img.youtube.com/vi/' . $videoId . '/hqdefault.jpg';
+        } else {
+            // Video inexistente, borrado o no disponible → soft-404 fix
+            $notFound = true;
         }
     } catch (Exception $e) {
-        // Silently fail - use defaults
+        // Error de BD: NO devolver 404 (rompería videos válidos si la BD cae);
+        // se usan los valores por defecto y HTTP 200.
     }
+}
+
+if ($notFound) {
+    http_response_code(404);
+    $title = 'Video no disponible — EduTube';
+    $description = 'Este video no está disponible o fue eliminado.';
 }
 ?>
 <!DOCTYPE html>
@@ -30,6 +52,9 @@ if ($videoId) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php if ($notFound): ?>
+    <meta name="robots" content="noindex">
+<?php endif; ?>
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         frame-src https://www.youtube-nocookie.com https://archive.org;
