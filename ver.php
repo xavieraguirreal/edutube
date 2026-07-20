@@ -12,6 +12,9 @@ $url = 'https://edutube.universidadliberte.org/watch?v=' . $videoId;
 // Validate the video server-side so missing/deleted/private videos return HTTP 404
 // (not a 200 with an empty player) — avoids Google flagging them as Soft 404.
 $notFound = false;
+// Datos del video para renderizar el <body> server-side (progressive enhancement):
+// el crawler ve título/descripción/thumbnail reales; el JS reemplaza esto al cargar.
+$ssrVideo = null;
 
 if ($isIA) {
     // Contenido de Internet Archive: se valida en el cliente contra archive.org
@@ -24,13 +27,22 @@ if ($isIA) {
     try {
         require_once __DIR__ . '/config.php';
         $db = getDB();
-        $stmt = $db->prepare("SELECT titulo, descripcion FROM videos WHERE youtube_id = ? AND activo = 1");
+        $stmt = $db->prepare("
+            SELECT v.titulo, v.descripcion, v.duracion, v.vistas_yt, v.fecha_yt, v.canal_id,
+                   c.nombre AS canal_nombre, c.codigo AS canal_codigo, c.color AS canal_color,
+                   cat.nombre AS categoria_nombre
+            FROM videos v
+            LEFT JOIN canales c ON v.canal_id = c.id
+            LEFT JOIN categorias cat ON v.categoria_id = cat.id
+            WHERE v.youtube_id = ? AND v.activo = 1
+        ");
         $stmt->execute([$videoId]);
         $v = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($v) {
             $title = $v['titulo'] . ' — EduTube';
-            $description = $v['descripcion'] ?: $title;
+            $description = $v['descripcion'] ?: $v['titulo'];
             $image = 'https://img.youtube.com/vi/' . $videoId . '/hqdefault.jpg';
+            $ssrVideo = $v;
         } else {
             // Video inexistente, borrado o no disponible → soft-404 fix
             $notFound = true;
@@ -45,6 +57,21 @@ if ($notFound) {
     http_response_code(404);
     $title = 'Video no disponible — EduTube';
     $description = 'Este video no está disponible o fue eliminado.';
+}
+
+// Helpers para el render server-side del body (mismo formato que el JS del cliente).
+function ssrViews($n) {
+    $n = (int)$n;
+    if ($n >= 1000000) return rtrim(rtrim(number_format($n / 1000000, 1), '0'), '.') . ' M';
+    if ($n >= 1000)    return rtrim(rtrim(number_format($n / 1000, 1), '0'), '.') . ' K';
+    return (string)$n;
+}
+function ssrFecha($dateStr) {
+    if (!$dateStr) return '';
+    $ts = strtotime($dateStr);
+    if (!$ts) return '';
+    $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    return (int)date('j', $ts) . ' ' . $meses[(int)date('n', $ts)] . ' ' . date('Y', $ts);
 }
 ?>
 <!DOCTYPE html>
@@ -106,7 +133,38 @@ if ($notFound) {
     <div class="topbar-right"></div>
 </header>
 
-<main class="main player-page" id="player-page"></main>
+<main class="main player-page" id="player-page">
+<?php if ($ssrVideo && !$notFound): ?>
+    <!-- Contenido server-side (progressive enhancement): el JS lo reemplaza al cargar.
+         Sin JS / para crawlers deja título, canal, stats, descripción y thumbnail reales
+         en el <body>, evitando que /watch sea HTML vacío (causa de soft-404). -->
+    <div class="player-layout">
+        <div class="player-main">
+            <div class="player-wrapper">
+                <div class="player-container">
+                    <img src="thumb.php?id=<?php echo $videoId; ?>&amp;s=hq" alt="<?php echo htmlspecialchars($ssrVideo['titulo'], ENT_QUOTES, 'UTF-8'); ?>" style="width:100%;height:auto;display:block;">
+                </div>
+            </div>
+            <div class="video-info">
+                <h1><?php echo htmlspecialchars($ssrVideo['titulo'], ENT_QUOTES, 'UTF-8'); ?></h1>
+                <div class="video-info-row">
+                    <div class="video-info-channel">
+                        <div class="ch-avatar" style="background:<?php echo htmlspecialchars($ssrVideo['canal_color'] ?: '#2e8b47', ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($ssrVideo['canal_codigo'] ?: '?', ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div>
+                            <a href="canal.php?id=<?php echo (int)$ssrVideo['canal_id']; ?>" class="ch-name"><?php echo htmlspecialchars($ssrVideo['canal_nombre'] ?: '', ENT_QUOTES, 'UTF-8'); ?></a>
+                            <div class="ch-subs"><?php echo htmlspecialchars($ssrVideo['categoria_nombre'] ?: '', ENT_QUOTES, 'UTF-8'); ?></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="video-description expanded">
+                    <div class="desc-stats"><?php echo ssrViews($ssrVideo['vistas_yt']); ?> reproducciones · <?php echo ssrFecha($ssrVideo['fecha_yt']); ?></div>
+                    <div class="desc-text"><?php echo nl2br(htmlspecialchars($ssrVideo['descripcion'] ?: '', ENT_QUOTES, 'UTF-8')); ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+</main>
 
 <div class="toast" id="toast"></div>
 
